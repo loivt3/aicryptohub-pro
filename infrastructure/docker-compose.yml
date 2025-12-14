@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # Backend API
+  backend:
+    build: ./backend
+    container_name: aicryptohub-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - REDIS_URL=redis://redis:6379
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+    depends_on:
+      - redis
+    networks:
+      - aicryptohub
+
+  # Frontend
+  frontend:
+    build: ./frontend
+    container_name: aicryptohub-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NUXT_PUBLIC_API_BASE=http://backend:8000/api/v1
+    depends_on:
+      - backend
+    networks:
+      - aicryptohub
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: aicryptohub-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - aicryptohub
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: aicryptohub-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infrastructure/nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - aicryptohub
+
+networks:
+  aicryptohub:
+    driver: bridge
+
+volumes:
+  redis_data:

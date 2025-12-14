@@ -1,0 +1,83 @@
+/* Main CSS - Custom styles on top of Tailwind */
+
+/* Base styles */
+:root {
+    --aihub-bg-primary: #0a0f1a;
+    --aihub-bg-secondary: #0f1625;
+    --aihub-bg-card: #141c2b;
+    --aihub-border: rgba(255, 255, 255, 0.08);
+    --aihub-text-primary: #f0f4f8;
+    --aihub-text-secondary: #a0aec0;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: var(--aihub-bg-primary);
+    color: var(--aihub-text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--aihub-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(56, 239, 235, 0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(56, 239, 235, 0.5);
+}
+
+/* Card glass effect */
+.glass-card {
+    background: rgba(20, 28, 43, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+}
+
+/* Gradient text */
+.gradient-text {
+    background: linear-gradient(135deg, #38efeb, #9f7aea);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Signal badges */
+.signal-buy {
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.15);
+}
+
+.signal-sell {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.15);
+}
+
+.signal-hold {
+    color: #f97316;
+    background: rgba(249, 115, 22, 0.15);
+}
+
+/* Price change colors */
+.price-up {
+    color: #22c55e;
+}
+
+.price-down {
+    color: #ef4444;
+}

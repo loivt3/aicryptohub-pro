@@ -1,0 +1,46 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "strict": true,
+        "jsx": "preserve",
+        "importHelpers": true,
+        "experimentalDecorators": true,
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "forceConsistentCasingInFileNames": true,
+        "useDefineForClassFields": true,
+        "sourceMap": true,
+        "baseUrl": ".",
+        "types": [
+            "@types/node"
+        ],
+        "paths": {
+            "~/*": [
+                "./*"
+            ],
+            "@/*": [
+                "./*"
+            ]
+        },
+        "lib": [
+            "ESNext",
+            "DOM",
+            "DOM.Iterable"
+        ]
+    },
+    "include": [
+        "nuxt.config.ts",
+        ".nuxt/nuxt.d.ts",
+        "**/*.ts",
+        "**/*.tsx",
+        "**/*.vue"
+    ],
+    "exclude": [
+        "node_modules",
+        ".nuxt",
+        "dist"
+    ]
+}
