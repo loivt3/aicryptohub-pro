@@ -3,11 +3,11 @@
     <template v-if="!isMobile">
       <DesktopHeader />
       <main class="desktop-main">
-        <DesktopPortfolio />
+        <DesktopOnChain />
       </main>
     </template>
     <template v-else>
-      <MobilePortfolio />
+      <MobileOnChain />
     </template>
   </div>
 </template>
@@ -16,8 +16,8 @@
 const { isMobile } = useDevice()
 
 useSeoMeta({
-  title: 'Portfolio | AI Crypto Hub',
-  description: 'Track your cryptocurrency portfolio with real-time P&L.',
+  title: 'On-Chain Signals | AI Crypto Hub',
+  description: 'Blockchain analytics, whale tracking, and exchange flows.',
 })
 </script>
 

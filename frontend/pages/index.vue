@@ -1,130 +1,223 @@
 <template>
-  <div>
-    <!-- Hero Section -->
-    <section class="relative py-20 overflow-hidden">
-      <div class="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent"></div>
-      <div class="max-w-7xl mx-auto px-4 relative">
-        <div class="text-center mb-12">
-          <h1 class="text-4xl md:text-5xl font-bold mb-4">
-            <span class="gradient-text">AI-Powered</span> Crypto Analysis
-          </h1>
-          <p class="text-xl text-gray-400 max-w-2xl mx-auto">
-            Real-time market data, sentiment analysis, and on-chain signals powered by advanced AI.
-          </p>
-        </div>
-        
-        <!-- Market Stats Cards -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-          <div v-for="stat in marketStats" :key="stat.label" class="glass-card p-4">
-            <p class="text-sm text-gray-400 mb-1">{{ stat.label }}</p>
-            <p class="text-xl font-bold">{{ stat.value }}</p>
-            <p :class="stat.change >= 0 ? 'price-up' : 'price-down'" class="text-sm">
-              {{ stat.change >= 0 ? '+' : '' }}{{ stat.change }}%
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
+  <div class="app-container" :class="{ 'mobile': isMobile }">
+    <!-- Mobile Layout -->
+    <template v-if="isMobile">
+      <!-- Mobile Header -->
+      <MobileLayout 
+        :activeTab="activeTab" 
+        @update:activeTab="activeTab = $event"
+        @openSearch="showSearch = true"
+      />
+      
+      <!-- Mobile Content -->
+      <main class="mobile-main">
+        <MobileDashboard v-if="activeTab === 'dashboard'" />
+        <MobileMarket v-else-if="activeTab === 'market'" />
+        <MobileAnalysis v-else-if="activeTab === 'analysis'" />
+        <MobilePortfolio v-else-if="activeTab === 'portfolio'" />
+        <MobileAlerts v-else-if="activeTab === 'alerts'" />
+        <MobileOnChain v-else-if="activeTab === 'onchain'" />
+        <MobileAIChat v-else-if="activeTab === 'aichat'" />
+      </main>
+      
+      <!-- Mobile Search Overlay -->
+      <MobileSearch :isOpen="showSearch" @close="showSearch = false" @select="onCoinSelect" />
+    </template>
     
-    <!-- Top Coins Table -->
-    <section class="py-12">
-      <div class="max-w-7xl mx-auto px-4">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-2xl font-bold">Top Cryptocurrencies</h2>
-          <NuxtLink to="/market" class="text-primary hover:underline">
-            View All →
-          </NuxtLink>
-        </div>
-        
-        <div class="glass-card overflow-hidden">
-          <table class="w-full">
-            <thead class="border-b border-white/5">
-              <tr class="text-left text-sm text-gray-400">
-                <th class="p-4">#</th>
-                <th class="p-4">Coin</th>
-                <th class="p-4 text-right">Price</th>
-                <th class="p-4 text-right">24h</th>
-                <th class="p-4 text-right hidden md:table-cell">Market Cap</th>
-                <th class="p-4 text-right hidden md:table-cell">AI Signal</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr 
-                v-for="coin in topCoins" 
-                :key="coin.symbol"
-                class="border-b border-white/5 hover:bg-white/5 transition-colors"
-              >
-                <td class="p-4 text-gray-400">{{ coin.rank }}</td>
-                <td class="p-4">
-                  <div class="flex items-center gap-3">
-                    <img :src="coin.image" :alt="coin.name" class="w-8 h-8 rounded-full" />
-                    <div>
-                      <p class="font-medium">{{ coin.name }}</p>
-                      <p class="text-sm text-gray-400">{{ coin.symbol }}</p>
-                    </div>
-                  </div>
-                </td>
-                <td class="p-4 text-right font-mono">${{ formatPrice(coin.price) }}</td>
-                <td class="p-4 text-right" :class="coin.change24h >= 0 ? 'price-up' : 'price-down'">
-                  {{ coin.change24h >= 0 ? '+' : '' }}{{ coin.change24h.toFixed(2) }}%
-                </td>
-                <td class="p-4 text-right hidden md:table-cell text-gray-400">
-                  ${{ formatMarketCap(coin.marketCap) }}
-                </td>
-                <td class="p-4 text-right hidden md:table-cell">
-                  <span 
-                    class="px-2 py-1 text-xs font-medium rounded"
-                    :class="`signal-${coin.signal.toLowerCase()}`"
-                  >
-                    {{ coin.signal }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
+    <!-- Desktop Layout -->
+    <template v-else>
+      <DesktopHeader @openSearch="showSearch = true" />
+      <main class="desktop-main">
+        <DesktopDashboard />
+      </main>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-// SEO Meta
-definePageMeta({
-  title: 'Dashboard',
-})
+import '~/assets/css/mobile.css'
 
+// Device detection
+const { isMobile } = useDevice()
+
+// Mobile state
+const activeTab = ref('dashboard')
+const showSearch = ref(false)
+
+// SEO
 useSeoMeta({
-  title: 'Dashboard - AI Crypto Hub',
-  description: 'Real-time cryptocurrency dashboard with AI-powered market analysis and signals.',
+  title: 'AI Crypto Hub - AI-Powered Crypto Analysis',
+  description: 'Real-time cryptocurrency dashboard with AI-powered market analysis, sentiment signals, and on-chain data.',
 })
 
-// Mock data - will be replaced with API calls
-const marketStats = ref([
-  { label: 'Total Market Cap', value: '$3.2T', change: 2.5 },
-  { label: 'BTC Dominance', value: '52.3%', change: -0.3 },
-  { label: 'Fear & Greed', value: '72', change: 5 },
-  { label: '24h Volume', value: '$142B', change: 8.2 },
-])
-
-const topCoins = ref([
-  { rank: 1, name: 'Bitcoin', symbol: 'BTC', price: 98500, change24h: 2.4, marketCap: 1900000000000, signal: 'BUY', image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png' },
-  { rank: 2, name: 'Ethereum', symbol: 'ETH', price: 3450, change24h: 1.8, marketCap: 415000000000, signal: 'HOLD', image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png' },
-  { rank: 3, name: 'Solana', symbol: 'SOL', price: 185, change24h: 5.2, marketCap: 82000000000, signal: 'BUY', image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png' },
-  { rank: 4, name: 'XRP', symbol: 'XRP', price: 2.35, change24h: -1.2, marketCap: 135000000000, signal: 'HOLD', image: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png' },
-  { rank: 5, name: 'Cardano', symbol: 'ADA', price: 1.05, change24h: 3.1, marketCap: 37000000000, signal: 'BUY', image: 'https://assets.coingecko.com/coins/images/975/small/cardano.png' },
-])
-
-// Utility functions
-const formatPrice = (price: number) => {
-  if (price >= 1) return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  return price.toFixed(6)
-}
-
-const formatMarketCap = (cap: number) => {
-  if (cap >= 1e12) return (cap / 1e12).toFixed(2) + 'T'
-  if (cap >= 1e9) return (cap / 1e9).toFixed(2) + 'B'
-  if (cap >= 1e6) return (cap / 1e6).toFixed(2) + 'M'
-  return cap.toLocaleString()
+const onCoinSelect = (coin: any) => {
+  console.log('Selected coin:', coin)
+  navigateTo(`/coin/${coin.coin_id}`)
 }
 </script>
+
+<style>
+/* Base App Styles */
+.app-container {
+  min-height: 100vh;
+  background: #0b0f19;
+  color: #ffffff;
+}
+
+.app-container.mobile {
+  padding-bottom: 70px;
+}
+
+/* Mobile Main */
+.mobile-main {
+  padding: 0 12px;
+}
+
+/* Desktop Main */
+.desktop-main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #38efeb, #9f7aea);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glass card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+}
+
+/* Text utilities */
+.m-text-success { color: #22c55e !important; }
+.m-text-danger { color: #ef4444 !important; }
+.m-text-muted { color: rgba(255, 255, 255, 0.5) !important; }
+.m-text-accent { color: #38efeb !important; }
+
+/* Common section styles */
+.m-section {
+  margin-bottom: 16px;
+}
+
+.m-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.m-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.m-section-link {
+  font-size: 12px;
+  color: #38efeb;
+  text-decoration: none;
+}
+
+/* Stats scroll container */
+.m-stats-scroll {
+  overflow-x: auto;
+  margin: 0 -12px;
+  padding: 0 12px 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.m-stats-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.m-stats-container {
+  display: flex;
+  gap: 8px;
+}
+
+/* List styles */
+.m-list {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.m-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.m-list-item:last-child {
+  border-bottom: none;
+}
+
+.m-list-item:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.m-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.m-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.m-info-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  display: block;
+}
+
+.m-info-subtitle {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  display: block;
+}
+
+.m-price-col {
+  text-align: right;
+  min-width: 80px;
+}
+
+/* Bottom spacer */
+.m-bottom-spacer {
+  height: 20px;
+}
+
+/* Spinner */
+.m-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #38efeb;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+</style>
