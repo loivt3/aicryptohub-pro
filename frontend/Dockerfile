@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Install dependencies
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 # Copy source and build
 COPY . .
@@ -19,9 +19,7 @@ WORKDIR /app
 COPY --from=builder /app/.output ./.output
 COPY --from=builder /app/package*.json ./
 
-# Install production dependencies only
-RUN npm ci --production
-
 EXPOSE 3000
 
 CMD ["node", ".output/server/index.mjs"]
+
