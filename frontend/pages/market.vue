@@ -13,6 +13,8 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({ layout: 'blank' })
+
 const { isMobile } = useDevice()
 
 useSeoMeta({
@@ -34,3 +36,4 @@ useSeoMeta({
   padding: 0 24px;
 }
 </style>
+

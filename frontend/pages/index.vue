@@ -37,6 +37,11 @@
 <script setup lang="ts">
 import '~/assets/css/mobile.css'
 
+// Use blank layout (no default header)
+definePageMeta({
+  layout: 'blank'
+})
+
 // Device detection
 const { isMobile } = useDevice()
 
@@ -55,6 +60,7 @@ const onCoinSelect = (coin: any) => {
   navigateTo(`/coin/${coin.coin_id}`)
 }
 </script>
+
 
 <style>
 /* Base App Styles */
