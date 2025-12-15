@@ -71,6 +71,10 @@
           <button class="d-icon-btn" title="Settings">
             <Icon name="ph:gear" class="w-5 h-5" />
           </button>
+          <!-- Theme Toggle -->
+          <button class="d-icon-btn d-theme-toggle" :title="isDark ? 'Light Mode' : 'Dark Mode'" @click="toggleTheme">
+            <Icon :name="isDark ? 'ph:sun' : 'ph:moon'" class="w-5 h-5" />
+          </button>
         </div>
         
         <div class="d-user-menu">
@@ -84,6 +88,7 @@
 
 <script setup lang="ts">
 const route = useRoute()
+const { isDark, toggleTheme } = useTheme()
 
 defineEmits(['openSearch'])
 
@@ -130,9 +135,10 @@ const formatPrice = (price: number) => {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(11, 15, 25, 0.95);
+  background: var(--bg-primary);
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border);
+  transition: background-color 0.3s, border-color 0.3s;
 }
 
 /* Ticker Bar */
@@ -141,8 +147,8 @@ const formatPrice = (price: number) => {
   justify-content: space-between;
   align-items: center;
   padding: 6px 24px;
-  background: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
   font-size: 12px;
 }
 
