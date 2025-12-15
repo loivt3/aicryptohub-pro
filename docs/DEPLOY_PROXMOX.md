@@ -169,7 +169,7 @@ DEBUG=false
 ```bash
 # Tạo file .env cho frontend
 cat > frontend/.env << 'EOF'
-NUXT_PUBLIC_API_BASE=https://api.aicryptohub.io/api/v1
+NUXT_PUBLIC_API_BASE=https://api.ziqvy.com.io/api/v1
 EOF
 ```
 
