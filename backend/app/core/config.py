@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     # External APIs
     COINGECKO_API_KEY: str = ""
     ETHERSCAN_API_KEY: str = ""
+    COINMARKETCAP_API_KEY: str = ""
     
     # JWT
     JWT_SECRET_KEY: str = ""
@@ -48,6 +49,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"  # Ignore extra env vars
 
 
 settings = Settings()
