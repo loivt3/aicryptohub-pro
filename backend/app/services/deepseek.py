@@ -202,7 +202,7 @@ def get_deepseek_service() -> DeepSeekService:
     """Get DeepSeek service singleton"""
     global _deepseek_service
     if _deepseek_service is None:
-        from config import get_settings
+        from app.core.config import get_settings
         settings = get_settings()
         _deepseek_service = DeepSeekService(settings.deepseek_api_key)
     return _deepseek_service

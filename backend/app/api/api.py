@@ -6,6 +6,7 @@ Combines all endpoint routers into a single API router
 from fastapi import APIRouter
 
 from app.api.endpoints import market, portfolio, sentiment, auth, onchain
+from app.api.endpoints import triggers, realtime
 
 api_router = APIRouter()
 
@@ -28,6 +29,12 @@ api_router.include_router(
     tags=["On-Chain Data"]
 )
 
+# Real-time streaming
+api_router.include_router(
+    realtime.router,
+    tags=["Real-time"]
+)
+
 # Auth endpoints
 api_router.include_router(
     auth.router,
@@ -41,3 +48,10 @@ api_router.include_router(
     prefix="/portfolio",
     tags=["Portfolio"]
 )
+
+# Admin/trigger endpoints
+api_router.include_router(
+    triggers.router,
+    tags=["Triggers"]
+)
+

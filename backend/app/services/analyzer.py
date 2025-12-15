@@ -14,10 +14,11 @@ from ta.momentum import RSIIndicator, StochasticOscillator
 from ta.trend import MACD, ADXIndicator, EMAIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
 
-from config import Settings
-from services.database import DatabaseService
+from app.core.config import Settings
+from app.services.database import DatabaseService
 
 logger = logging.getLogger(__name__)
+
 
 
 class AnalyzerService:
@@ -43,7 +44,7 @@ class AnalyzerService:
             Analysis results summary
         """
         # Import monitoring
-        from services.monitoring import increment_counter, record_duration, set_gauge
+        from app.services.monitoring import increment_counter, record_duration, set_gauge
         
         start_time = time.time()
         
@@ -107,7 +108,7 @@ class AnalyzerService:
             True if fetched and saved successfully
         """
         try:
-            from services.data_fetcher import get_data_fetcher
+            from app.services.data_fetcher import get_data_fetcher
             fetcher = get_data_fetcher()
             
             # Get symbol from coin_id

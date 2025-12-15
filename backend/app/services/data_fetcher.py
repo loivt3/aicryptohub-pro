@@ -588,7 +588,7 @@ class DataFetcherService:
     
     async def fetch_and_save_coins(self) -> Dict[str, Any]:
         """Fetch from all sources and save"""
-        from services.monitoring import increment_counter, record_duration
+        from app.services.monitoring import increment_counter, record_duration
         import time
         
         start = time.time()
@@ -642,8 +642,8 @@ _data_fetcher: Optional[DataFetcherService] = None
 def get_data_fetcher() -> DataFetcherService:
     global _data_fetcher
     if _data_fetcher is None:
-        from services.database import get_db_service
-        from config import get_settings
+        from app.services.database import get_db_service
+        from app.core.config import get_settings
         settings = get_settings()
         
         coingecko_key = getattr(settings, 'coingecko_api_key', '')

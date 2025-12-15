@@ -11,7 +11,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import QueuePool
 
-from config import get_settings
+from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 

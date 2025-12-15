@@ -330,7 +330,7 @@ def get_gemini_service() -> GeminiService:
     """Get Gemini service singleton"""
     global _gemini_service
     if _gemini_service is None:
-        from config import get_settings
+        from app.core.config import get_settings
         settings = get_settings()
         _gemini_service = GeminiService(settings.gemini_api_key)
     return _gemini_service

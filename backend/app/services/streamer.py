@@ -129,7 +129,7 @@ class MarketStreamer:
         
         # Broadcast to Socket.io clients
         try:
-            from services.socketio_server import broadcast_prices
+            from app.services.socketio_server import broadcast_prices
             await broadcast_prices(payload)
         except Exception as e:
             pass  # Socket.io not initialized yet
@@ -257,7 +257,7 @@ def get_market_streamer(redis_url: str = None) -> MarketStreamer:
     """Get or create market streamer singleton"""
     global _streamer
     if _streamer is None:
-        from config import get_settings
+        from app.core.config import get_settings
         settings = get_settings()
         url = redis_url or getattr(settings, 'redis_url', 'redis://localhost:6379/0')
         _streamer = MarketStreamer(url)
