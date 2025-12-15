@@ -1,42 +1,32 @@
 <template>
   <div class="d-dashboard">
-    <!-- Hero Section -->
-    <section class="d-hero">
-      <div class="d-hero-content">
-        <h1 class="d-hero-title">
-          <span class="gradient-text">AI-Powered</span> Crypto Analysis
-        </h1>
-        <p class="d-hero-subtitle">
-          Real-time market data, sentiment analysis, and on-chain signals powered by advanced AI.
-        </p>
-      </div>
-    </section>
-    
-    <!-- Stats Grid - Matching Mobile Style -->
+    <!-- Stats Cards Row (WordPress Style) -->
     <section class="d-section">
       <div class="d-stats-grid">
+        <!-- Total Market Cap -->
         <div class="d-stat-card">
           <div class="d-stat-header">
             <span class="d-stat-label">TOTAL MARKET CAP</span>
-            <span class="d-stat-change" :class="marketCapChange >= 0 ? 'up' : 'down'">
-              {{ marketCapChange >= 0 ? '▲' : '▼' }} {{ Math.abs(marketCapChange).toFixed(2) }}%
+            <span class="d-stat-change" :class="avgChange >= 0 ? 'up' : 'down'">
+              {{ avgChange >= 0 ? '▲' : '▼' }} {{ Math.abs(avgChange).toFixed(2) }}%
             </span>
           </div>
-          <div class="d-stat-value">{{ formatMarketCap(totalMarketCap) }}</div>
+          <div class="d-stat-value">{{ formatCurrency(totalMarketCap) }}</div>
           <div class="d-stat-sparkline">
-            <svg viewBox="0 0 200 50" preserveAspectRatio="none">
+            <svg viewBox="0 0 120 40" preserveAspectRatio="none">
               <defs>
-                <linearGradient id="dSparkGreen" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgba(34, 197, 94, 0.3)" />
-                  <stop offset="100%" stop-color="transparent" />
+                <linearGradient id="sparkGreen" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="rgba(34, 197, 94, 0.4)" />
+                  <stop offset="100%" stop-color="rgba(34, 197, 94, 0)" />
                 </linearGradient>
               </defs>
-              <path d="M0,40 C20,35 40,25 60,30 C80,35 100,15 120,20 C140,25 160,10 180,15 C190,17 200,12 200,12 L200,50 L0,50 Z" fill="url(#dSparkGreen)" />
-              <path d="M0,40 C20,35 40,25 60,30 C80,35 100,15 120,20 C140,25 160,10 180,15 C190,17 200,12 200,12" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M0,35 C8,32 16,28 24,25 C32,22 40,30 48,24 C56,18 64,22 72,16 C80,10 88,15 96,12 C104,9 112,14 120,10 L120,40 L0,40 Z" fill="url(#sparkGreen)" />
+              <path d="M0,35 C8,32 16,28 24,25 C32,22 40,30 48,24 C56,18 64,22 72,16 C80,10 88,15 96,12 C104,9 112,14 120,10" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round"/>
             </svg>
           </div>
         </div>
 
+        <!-- BTC Dominance -->
         <div class="d-stat-card">
           <div class="d-stat-header">
             <span class="d-stat-label">BTC DOMINANCE</span>
@@ -45,36 +35,55 @@
             </span>
           </div>
           <div class="d-stat-value">{{ btcDominance.toFixed(1) }}%</div>
-          <div class="d-stat-bar">
-            <div class="d-stat-bar-fill" :style="{ width: btcDominance + '%' }"></div>
+          <div class="d-stat-progress">
+            <div class="d-stat-bar" :style="{ width: btcDominance + '%' }"></div>
           </div>
         </div>
 
-        <div class="d-stat-card d-stat-card-gauge">
+        <!-- Fear & Greed with Gauge -->
+        <div class="d-stat-card d-stat-card--gauge">
           <div class="d-stat-header">
             <span class="d-stat-label">FEAR & GREED INDEX</span>
           </div>
-          <div class="d-gauge-container">
-            <AsiGauge :score="fearGreedValue" :size="100" />
-            <div class="d-gauge-label" :class="fearGreedClass">{{ fearGreedLabel }}</div>
+          <div class="d-gauge-wrapper">
+            <svg viewBox="0 0 100 60" class="d-gauge-svg">
+              <defs>
+                <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#ef4444" />
+                  <stop offset="25%" stop-color="#f97316" />
+                  <stop offset="50%" stop-color="#eab308" />
+                  <stop offset="75%" stop-color="#84cc16" />
+                  <stop offset="100%" stop-color="#22c55e" />
+                </linearGradient>
+              </defs>
+              <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8" stroke-linecap="round"/>
+              <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="url(#gaugeGrad)" stroke-width="8" stroke-linecap="round"/>
+              <line :x1="50" :y1="50" :x2="50 + 28 * Math.cos((180 - fearGreedValue * 1.8) * Math.PI / 180)" :y2="50 - 28 * Math.sin((180 - fearGreedValue * 1.8) * Math.PI / 180)" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="50" cy="50" r="4" fill="#1a1f2e" stroke="#fff" stroke-width="2"/>
+            </svg>
+            <div class="d-gauge-value">
+              <span class="d-gauge-number" :class="fearGreedClass">{{ fearGreedValue }}</span>
+              <span class="d-gauge-label">{{ fearGreedLabel }}</span>
+            </div>
           </div>
         </div>
 
+        <!-- 24H Volume -->
         <div class="d-stat-card">
           <div class="d-stat-header">
             <span class="d-stat-label">24H VOLUME</span>
           </div>
-          <div class="d-stat-value">{{ formatMarketCap(volume24h) }}</div>
+          <div class="d-stat-value">{{ formatCurrency(total24hVolume) }}</div>
           <div class="d-stat-sparkline">
-            <svg viewBox="0 0 200 50" preserveAspectRatio="none">
+            <svg viewBox="0 0 120 40" preserveAspectRatio="none">
               <defs>
-                <linearGradient id="dSparkCyan" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgba(56, 189, 248, 0.3)" />
-                  <stop offset="100%" stop-color="transparent" />
+                <linearGradient id="sparkCyan" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="rgba(56, 189, 248, 0.4)" />
+                  <stop offset="100%" stop-color="rgba(56, 189, 248, 0)" />
                 </linearGradient>
               </defs>
-              <path d="M0,35 C20,30 40,40 60,25 C80,10 100,30 120,20 C140,10 160,35 180,20 C190,15 200,18 200,18 L200,50 L0,50 Z" fill="url(#dSparkCyan)" />
-              <path d="M0,35 C20,30 40,40 60,25 C80,10 100,30 120,20 C140,10 160,35 180,20 C190,15 200,18 200,18" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M0,28 C10,22 20,30 30,18 C40,6 50,20 60,14 C70,8 80,25 90,15 C100,5 110,18 120,12 L120,40 L0,40 Z" fill="url(#sparkCyan)" />
+              <path d="M0,28 C10,22 20,30 30,18 C40,6 50,20 60,14 C70,8 80,25 90,15 C100,5 110,18 120,12" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"/>
             </svg>
           </div>
         </div>
@@ -83,13 +92,16 @@
 
     <!-- Main Content Grid -->
     <div class="d-content-grid">
-      <!-- Main Area - Top Coins Table -->
+      <!-- Coins Table -->
       <section class="d-main-section">
         <div class="d-section-header">
-          <h2 class="d-section-title">Top Cryptocurrencies</h2>
-          <NuxtLink to="/market" class="d-section-link">View All →</NuxtLink>
+          <h2 class="d-section-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            Top Cryptocurrencies
+          </h2>
+          <span class="d-section-note">ASI = AI Sentiment Index</span>
         </div>
-        
+
         <div class="d-table-card">
           <table class="d-table">
             <thead>
@@ -97,102 +109,82 @@
                 <th>#</th>
                 <th>Coin</th>
                 <th class="text-right">Price</th>
-                <th class="text-right">1h</th>
                 <th class="text-right">24h</th>
                 <th class="text-right">7d</th>
                 <th class="text-right">Market Cap</th>
-                <th class="text-right">ASI</th>
-                <th class="text-right">Signal</th>
+                <th>ASI</th>
+                <th>Signal</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(coin, index) in topCoins" :key="coin.coin_id" @click="openCoin(coin.coin_id)">
-                <td class="d-rank">{{ index + 1 }}</td>
+              <tr v-for="(coin, idx) in topCoins" :key="coin.id" @click="navigateTo(`/coin/${coin.id}`)">
+                <td><span class="d-rank">{{ idx + 1 }}</span></td>
                 <td>
                   <div class="d-coin-cell">
-                    <img :src="coin.image" :alt="coin.name" class="d-coin-avatar" />
+                    <img :src="coin.image" class="d-coin-avatar" />
                     <div>
-                      <p class="d-coin-name">{{ coin.name }}</p>
-                      <p class="d-coin-symbol">{{ coin.symbol }}</p>
+                      <span class="d-coin-name">{{ coin.symbol }}</span>
+                      <span class="d-coin-symbol">{{ coin.name }}</span>
                     </div>
                   </div>
                 </td>
-                <td class="text-right font-mono">${{ formatPrice(coin.price) }}</td>
-                <td class="text-right" :class="coin.change_1h >= 0 ? 'text-success' : 'text-danger'">
-                  {{ coin.change_1h >= 0 ? '+' : '' }}{{ coin.change_1h?.toFixed(2) }}%
+                <td class="text-right font-mono">{{ formatPrice(coin.price) }}</td>
+                <td class="text-right" :class="coin.change24h >= 0 ? 'text-success' : 'text-danger'">
+                  {{ coin.change24h >= 0 ? '+' : '' }}{{ coin.change24h.toFixed(2) }}%
                 </td>
-                <td class="text-right" :class="coin.change_24h >= 0 ? 'text-success' : 'text-danger'">
-                  {{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(2) }}%
+                <td class="text-right" :class="coin.change7d >= 0 ? 'text-success' : 'text-danger'">
+                  {{ coin.change7d >= 0 ? '+' : '' }}{{ coin.change7d.toFixed(2) }}%
                 </td>
-                <td class="text-right" :class="coin.change_7d >= 0 ? 'text-success' : 'text-danger'">
-                  {{ coin.change_7d >= 0 ? '+' : '' }}{{ coin.change_7d?.toFixed(2) }}%
-                </td>
-                <td class="text-right text-muted">${{ formatMarketCap(coin.market_cap) }}</td>
-                <td class="text-right">
+                <td class="text-right font-mono">{{ formatMarketCap(coin.marketCap) }}</td>
+                <td>
                   <div class="d-asi-cell">
-                    <div class="d-asi-bar">
-                      <div class="d-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
-                    </div>
-                    <span class="d-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
+                    <div class="d-asi-bar"><div class="d-asi-fill" :class="getAsiClass(coin.asi)" :style="{ width: coin.asi + '%' }"></div></div>
+                    <span class="d-asi-value" :class="getAsiClass(coin.asi)">{{ coin.asi }}</span>
                   </div>
                 </td>
-                <td class="text-right">
-                  <span class="d-signal-badge" :class="getSignalClass(coin.signal)">{{ coin.signal }}</span>
-                </td>
+                <td><span class="d-signal" :class="'signal-' + coin.signal.toLowerCase()">{{ coin.signal }}</span></td>
               </tr>
             </tbody>
           </table>
         </div>
       </section>
-      
+
       <!-- Sidebar -->
       <aside class="d-sidebar">
         <!-- AI Signals Summary -->
         <div class="d-sidebar-card">
-          <h3 class="d-sidebar-title">🤖 AI Market Signals</h3>
+          <h3 class="d-sidebar-title">📊 AI Market Signals</h3>
           <div class="d-signals-summary">
-            <div class="d-signal-stat">
-              <span class="d-signal-count buy">{{ signalCounts.buy }}</span>
-              <span class="d-signal-label">Buy</span>
-            </div>
-            <div class="d-signal-stat">
-              <span class="d-signal-count hold">{{ signalCounts.hold }}</span>
-              <span class="d-signal-label">Neutral</span>
-            </div>
-            <div class="d-signal-stat">
-              <span class="d-signal-count sell">{{ signalCounts.sell }}</span>
-              <span class="d-signal-label">Sell</span>
-            </div>
-          </div>
-          <div class="d-signal-bar">
-            <div class="d-signal-fill buy" :style="{ width: (signalCounts.buy / 250 * 100) + '%' }"></div>
-            <div class="d-signal-fill hold" :style="{ width: (signalCounts.hold / 250 * 100) + '%' }"></div>
-            <div class="d-signal-fill sell" :style="{ width: (signalCounts.sell / 250 * 100) + '%' }"></div>
+            <div class="d-signal-stat buy"><span class="d-signal-count">{{ signalCounts.buy }}</span><span class="d-signal-label">Buy</span></div>
+            <div class="d-signal-stat hold"><span class="d-signal-count">{{ signalCounts.hold }}</span><span class="d-signal-label">Neutral</span></div>
+            <div class="d-signal-stat sell"><span class="d-signal-count">{{ signalCounts.sell }}</span><span class="d-signal-label">Sell</span></div>
           </div>
         </div>
-        
-        <!-- Trending -->
+
+        <!-- Trending Coins -->
         <div class="d-sidebar-card">
           <h3 class="d-sidebar-title">🔥 Trending</h3>
           <div class="d-trending-list">
-            <div v-for="coin in trendingCoins" :key="coin.coin_id" class="d-trending-item" @click="openCoin(coin.coin_id)">
-              <img :src="coin.image" :alt="coin.name" class="d-trending-avatar" />
-              <span class="d-trending-symbol">{{ coin.symbol }}</span>
-              <span class="d-trending-change" :class="coin.change_24h >= 0 ? 'up' : 'down'">
-                {{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(1) }}%
-              </span>
+            <div v-for="coin in trendingCoins" :key="coin.id" class="d-trending-item">
+              <img :src="coin.image" class="d-trending-avatar" />
+              <div class="d-trending-info">
+                <span class="d-trending-name">{{ coin.symbol }}</span>
+                <span class="d-trending-change" :class="coin.change >= 0 ? 'up' : 'down'">{{ coin.change >= 0 ? '+' : '' }}{{ coin.change.toFixed(1) }}%</span>
+              </div>
             </div>
           </div>
         </div>
-        
+
         <!-- Whale Activity -->
         <div class="d-sidebar-card">
           <h3 class="d-sidebar-title">🐋 Whale Activity</h3>
           <div class="d-whale-list">
             <div v-for="tx in whaleTransactions" :key="tx.id" class="d-whale-item">
               <span class="d-whale-type" :class="tx.type">{{ tx.type === 'buy' ? '🟢' : '🔴' }}</span>
-              <span class="d-whale-coin">{{ tx.symbol }}</span>
-              <span class="d-whale-amount">${{ tx.value }}</span>
+              <div class="d-whale-info">
+                <span class="d-whale-amount">{{ tx.amount }} {{ tx.symbol }}</span>
+                <span class="d-whale-value">${{ tx.value }}</span>
+              </div>
               <span class="d-whale-time">{{ tx.time }}</span>
             </div>
           </div>
@@ -203,507 +195,154 @@
 </template>
 
 <script setup lang="ts">
-const router = useRouter()
-
-// Market Stats
+// Stats data
 const totalMarketCap = ref(3200000000000)
-const marketCapChange = ref(2.5)
+const avgChange = ref(2.5)
 const btcDominance = ref(52.3)
 const btcDomChange = ref(-0.3)
 const fearGreedValue = ref(72)
-const volume24h = ref(142000000000)
-
-const fearGreedClass = computed(() => {
-  if (fearGreedValue.value >= 60) return 'greed'
-  if (fearGreedValue.value <= 40) return 'fear'
-  return 'neutral'
-})
+const total24hVolume = ref(142000000000)
 
 const fearGreedLabel = computed(() => {
   if (fearGreedValue.value >= 75) return 'Extreme Greed'
-  if (fearGreedValue.value >= 60) return 'Greed'
-  if (fearGreedValue.value >= 40) return 'Neutral'
+  if (fearGreedValue.value >= 55) return 'Greed'
+  if (fearGreedValue.value >= 45) return 'Neutral'
   if (fearGreedValue.value >= 25) return 'Fear'
   return 'Extreme Fear'
 })
 
-// Top Coins
+const fearGreedClass = computed(() => {
+  if (fearGreedValue.value >= 55) return 'greed'
+  if (fearGreedValue.value >= 45) return 'neutral'
+  return 'fear'
+})
+
+// Coins data
 const topCoins = ref([
-  { coin_id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png', price: 98500, change_1h: 0.3, change_24h: 2.4, change_7d: 5.8, market_cap: 1900000000000, asi_score: 72, signal: 'BUY' },
-  { coin_id: 'ethereum', symbol: 'ETH', name: 'Ethereum', image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png', price: 3450, change_1h: -0.1, change_24h: 1.8, change_7d: 3.2, market_cap: 415000000000, asi_score: 58, signal: 'HOLD' },
-  { coin_id: 'solana', symbol: 'SOL', name: 'Solana', image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png', price: 185, change_1h: 0.8, change_24h: 5.2, change_7d: 12.4, market_cap: 82000000000, asi_score: 78, signal: 'STRONG_BUY' },
-  { coin_id: 'ripple', symbol: 'XRP', name: 'XRP', image: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png', price: 2.35, change_1h: -0.2, change_24h: -1.2, change_7d: 8.5, market_cap: 135000000000, asi_score: 52, signal: 'HOLD' },
-  { coin_id: 'cardano', symbol: 'ADA', name: 'Cardano', image: 'https://assets.coingecko.com/coins/images/975/small/cardano.png', price: 1.05, change_1h: 0.4, change_24h: 3.1, change_7d: 6.2, market_cap: 37000000000, asi_score: 65, signal: 'BUY' },
-  { coin_id: 'dogecoin', symbol: 'DOGE', name: 'Dogecoin', image: 'https://assets.coingecko.com/coins/images/5/small/dogecoin.png', price: 0.32, change_1h: -0.5, change_24h: -2.1, change_7d: -4.3, market_cap: 47000000000, asi_score: 35, signal: 'SELL' },
-  { coin_id: 'avalanche', symbol: 'AVAX', name: 'Avalanche', image: 'https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png', price: 42, change_1h: 0.6, change_24h: 4.5, change_7d: 9.8, market_cap: 17000000000, asi_score: 70, signal: 'BUY' },
+  { id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png', price: 98500, change24h: 2.4, change7d: 5.8, marketCap: 1900000000000, asi: 78, signal: 'BUY' },
+  { id: 'ethereum', symbol: 'ETH', name: 'Ethereum', image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png', price: 3450, change24h: 1.8, change7d: 4.2, marketCap: 415000000000, asi: 65, signal: 'HOLD' },
+  { id: 'solana', symbol: 'SOL', name: 'Solana', image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png', price: 185, change24h: 5.2, change7d: 12.4, marketCap: 82000000000, asi: 82, signal: 'BUY' },
+  { id: 'xrp', symbol: 'XRP', name: 'XRP', image: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png', price: 2.35, change24h: -1.2, change7d: 8.5, marketCap: 135000000000, asi: 58, signal: 'HOLD' },
+  { id: 'cardano', symbol: 'ADA', name: 'Cardano', image: 'https://assets.coingecko.com/coins/images/975/small/cardano.png', price: 0.98, change24h: 3.1, change7d: 15.2, marketCap: 34000000000, asi: 71, signal: 'BUY' },
 ])
 
-const signalCounts = ref({ buy: 127, hold: 89, sell: 34 })
+const signalCounts = computed(() => ({
+  buy: topCoins.value.filter(c => c.signal === 'BUY').length * 25,
+  hold: topCoins.value.filter(c => c.signal === 'HOLD').length * 18,
+  sell: topCoins.value.filter(c => c.signal === 'SELL').length * 7,
+}))
 
 const trendingCoins = ref([
-  { coin_id: 'solana', symbol: 'SOL', image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png', change_24h: 12.5 },
-  { coin_id: 'sui', symbol: 'SUI', image: 'https://assets.coingecko.com/coins/images/26375/small/sui_asset.jpeg', change_24h: 8.4 },
-  { coin_id: 'render', symbol: 'RNDR', image: 'https://assets.coingecko.com/coins/images/11636/small/rndr.png', change_24h: 6.2 },
-  { coin_id: 'injective', symbol: 'INJ', image: 'https://assets.coingecko.com/coins/images/12882/small/Secondary_Symbol.png', change_24h: 5.8 },
+  { id: 'pepe', symbol: 'PEPE', image: 'https://assets.coingecko.com/coins/images/29850/small/pepe.png', change: 45.2 },
+  { id: 'bonk', symbol: 'BONK', image: 'https://assets.coingecko.com/coins/images/28600/small/bonk.jpg', change: 28.5 },
+  { id: 'wif', symbol: 'WIF', image: 'https://assets.coingecko.com/coins/images/33566/small/dogwifhat.jpg', change: 18.3 },
 ])
 
 const whaleTransactions = ref([
-  { id: 1, symbol: 'BTC', type: 'buy', value: '49.2M', time: '2h' },
-  { id: 2, symbol: 'ETH', type: 'sell', value: '31.5M', time: '4h' },
-  { id: 3, symbol: 'SOL', type: 'buy', value: '28.1M', time: '6h' },
+  { id: 1, type: 'buy', symbol: 'BTC', amount: '500', value: '49.2M', time: '2h' },
+  { id: 2, type: 'sell', symbol: 'ETH', amount: '15K', value: '51.7M', time: '4h' },
+  { id: 3, type: 'buy', symbol: 'SOL', amount: '250K', value: '46.2M', time: '5h' },
 ])
 
-const openCoin = (coinId: string) => {
-  router.push(`/coin/${coinId}`)
-}
-
-const formatPrice = (price: number) => {
-  if (price >= 1) return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  return price.toFixed(6)
-}
-
-const formatMarketCap = (cap: number) => {
-  if (cap >= 1e12) return (cap / 1e12).toFixed(2) + 'T'
-  if (cap >= 1e9) return (cap / 1e9).toFixed(2) + 'B'
-  if (cap >= 1e6) return (cap / 1e6).toFixed(2) + 'M'
-  return cap.toLocaleString()
-}
-
-const getAsiClass = (score: number) => {
-  if (score >= 60) return 'positive'
-  if (score <= 40) return 'negative'
-  return 'neutral'
-}
-
-const getSignalClass = (signal: string) => {
-  if (signal?.includes('BUY')) return 'buy'
-  if (signal?.includes('SELL')) return 'sell'
-  return 'hold'
-}
+const formatCurrency = (n: number) => '$' + (n >= 1e12 ? (n/1e12).toFixed(2) + 'T' : n >= 1e9 ? (n/1e9).toFixed(2) + 'B' : n.toLocaleString())
+const formatPrice = (p: number) => '$' + (p >= 1 ? p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : p.toFixed(6))
+const formatMarketCap = (n: number) => n >= 1e12 ? '$' + (n/1e12).toFixed(2) + 'T' : '$' + (n/1e9).toFixed(1) + 'B'
+const getAsiClass = (v: number) => v >= 60 ? 'positive' : v <= 40 ? 'negative' : 'neutral'
 </script>
 
 <style scoped>
-.d-dashboard {
-  padding: 0 0 40px;
-}
-
-/* Hero */
-.d-hero {
-  text-align: center;
-  padding: 48px 0;
-  background: linear-gradient(180deg, rgba(56, 239, 235, 0.05) 0%, transparent 100%);
-}
-
-.d-hero-title {
-  font-size: 48px;
-  font-weight: 700;
-  margin-bottom: 16px;
-}
-
-.d-hero-subtitle {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.6);
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-/* Section */
-.d-section {
-  margin-bottom: 32px;
-}
-
-.d-section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.d-section-title {
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0;
-}
-
-.d-section-link {
-  color: #38efeb;
-  text-decoration: none;
-  font-size: 14px;
-}
-
-.d-section-link:hover {
-  text-decoration: underline;
-}
+.d-dashboard { padding: 24px 0; }
+.d-section { margin-bottom: 24px; }
+.d-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.d-section-title { display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 600; margin: 0; color: var(--text-primary); }
+.d-section-note { font-size: 12px; color: var(--text-muted); }
 
 /* Stats Grid */
-.d-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-.d-stat-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 20px;
-  overflow: hidden;
-}
-
-.d-stat-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.d-stat-label {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.d-stat-change {
-  font-size: 12px;
-  font-weight: 600;
-}
-
+.d-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.d-stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; transition: all 0.3s; }
+.d-stat-card:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+.d-stat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.d-stat-label { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.5px; }
+.d-stat-change { font-size: 12px; font-weight: 600; }
 .d-stat-change.up { color: #22c55e; }
 .d-stat-change.down { color: #ef4444; }
-
-.d-stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: #ffffff;
-  margin-bottom: 12px;
-}
-
-.d-stat-sparkline {
-  height: 50px;
-  margin: 0 -20px -20px;
-}
-
-.d-stat-sparkline svg {
-  width: 100%;
-  height: 100%;
-}
-
-.d-stat-bar {
-  height: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.d-stat-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #f97316, #fb923c);
-  border-radius: 4px;
-}
+.d-stat-value { font-size: 28px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; }
+.d-stat-sparkline { height: 40px; }
+.d-stat-sparkline svg { width: 100%; height: 100%; }
+.d-stat-progress { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+.d-stat-bar { height: 100%; background: linear-gradient(90deg, #f97316, #fb923c); border-radius: 3px; transition: width 0.5s; }
 
 /* Gauge */
-.d-stat-card-gauge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.d-gauge-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.d-gauge-label {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.d-gauge-label.greed { color: #22c55e; }
-.d-gauge-label.fear { color: #ef4444; }
-.d-gauge-label.neutral { color: #f97316; }
+.d-stat-card--gauge { display: flex; flex-direction: column; }
+.d-gauge-wrapper { display: flex; flex-direction: column; align-items: center; flex: 1; }
+.d-gauge-svg { width: 100%; max-width: 140px; }
+.d-gauge-value { text-align: center; margin-top: -10px; }
+.d-gauge-number { font-size: 32px; font-weight: 700; display: block; }
+.d-gauge-number.greed { color: #22c55e; }
+.d-gauge-number.neutral { color: #eab308; }
+.d-gauge-number.fear { color: #ef4444; }
+.d-gauge-label { font-size: 12px; color: var(--text-muted); }
 
 /* Content Grid */
-.d-content-grid {
-  display: grid;
-  grid-template-columns: 1fr 360px;
-  gap: 24px;
-}
-
-/* Table */
-.d-table-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.d-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.d-table th,
-.d-table td {
-  padding: 14px 16px;
-  text-align: left;
-}
-
-.d-table th {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-  font-weight: 500;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  text-transform: uppercase;
-}
-
-.d-table tbody tr {
-  cursor: pointer;
-  transition: background 0.2s;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.d-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.d-rank {
-  color: rgba(255, 255, 255, 0.4);
-  font-weight: 500;
-}
-
-.d-coin-cell {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.d-coin-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-}
-
-.d-coin-name {
-  font-weight: 600;
-  margin: 0;
-}
-
-.d-coin-symbol {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-  margin: 0;
-}
-
+.d-content-grid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; }
+.d-table-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.d-table { width: 100%; border-collapse: collapse; }
+.d-table th, .d-table td { padding: 14px 16px; text-align: left; }
+.d-table th { font-size: 12px; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--border); background: var(--bg-secondary); }
+.d-table tbody tr { border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s; }
+.d-table tbody tr:hover { background: var(--bg-card-hover); }
+.d-rank { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: rgba(56, 239, 235, 0.15); border-radius: 50%; font-size: 11px; font-weight: 600; color: #38efeb; }
+.d-coin-cell { display: flex; align-items: center; gap: 12px; }
+.d-coin-avatar { width: 32px; height: 32px; border-radius: 50%; }
+.d-coin-name { display: block; font-weight: 600; color: var(--text-primary); }
+.d-coin-symbol { display: block; font-size: 12px; color: var(--text-muted); }
 .text-right { text-align: right; }
 .text-success { color: #22c55e; }
 .text-danger { color: #ef4444; }
-.text-muted { color: rgba(255, 255, 255, 0.5); }
-.font-mono { font-family: 'SF Mono', monospace; }
+.font-mono { font-family: 'SF Mono', Monaco, monospace; }
 
-/* ASI Cell */
-.d-asi-cell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-.d-asi-bar {
-  width: 50px;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.d-asi-fill {
-  height: 100%;
-  border-radius: 3px;
-}
-
+/* ASI Bar */
+.d-asi-cell { display: flex; align-items: center; gap: 8px; }
+.d-asi-bar { width: 60px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+.d-asi-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
 .d-asi-fill.positive { background: linear-gradient(90deg, #22c55e, #4ade80); }
+.d-asi-fill.neutral { background: linear-gradient(90deg, #eab308, #fbbf24); }
 .d-asi-fill.negative { background: linear-gradient(90deg, #ef4444, #f87171); }
-.d-asi-fill.neutral { background: linear-gradient(90deg, #f97316, #fb923c); }
-
-.d-asi-value {
-  font-size: 13px;
-  font-weight: 600;
-  min-width: 24px;
-}
-
+.d-asi-value { font-size: 12px; font-weight: 600; min-width: 24px; }
 .d-asi-value.positive { color: #22c55e; }
+.d-asi-value.neutral { color: #eab308; }
 .d-asi-value.negative { color: #ef4444; }
-.d-asi-value.neutral { color: #f97316; }
 
 /* Signal Badge */
-.d-signal-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.d-signal-badge.buy {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
-}
-
-.d-signal-badge.sell {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-}
-
-.d-signal-badge.hold {
-  background: rgba(249, 115, 22, 0.2);
-  color: #f97316;
-}
+.d-signal { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+.signal-buy { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+.signal-hold { background: rgba(234, 179, 8, 0.15); color: #eab308; }
+.signal-sell { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
 
 /* Sidebar */
-.d-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.d-sidebar-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 20px;
-}
-
-.d-sidebar-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0 0 16px;
-}
-
-/* Signals Summary */
-.d-signals-summary {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.d-signal-stat {
-  text-align: center;
-}
-
-.d-signal-count {
-  display: block;
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.d-signal-count.buy { color: #22c55e; }
-.d-signal-count.hold { color: #f97316; }
-.d-signal-count.sell { color: #ef4444; }
-
-.d-signal-label {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.d-signal-bar {
-  height: 8px;
-  border-radius: 4px;
-  display: flex;
-  overflow: hidden;
-}
-
-.d-signal-fill {
-  height: 100%;
-}
-
-.d-signal-fill.buy { background: #22c55e; }
-.d-signal-fill.hold { background: #f97316; }
-.d-signal-fill.sell { background: #ef4444; }
-
-/* Trending */
-.d-trending-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.d-trending-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.d-trending-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.d-trending-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-}
-
-.d-trending-symbol {
-  flex: 1;
-  font-weight: 600;
-}
-
-.d-trending-change {
-  font-size: 13px;
-  font-weight: 600;
-}
-
+.d-sidebar { display: flex; flex-direction: column; gap: 16px; }
+.d-sidebar-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+.d-sidebar-title { font-size: 16px; font-weight: 600; margin: 0 0 16px; color: var(--text-primary); }
+.d-signals-summary { display: flex; justify-content: space-around; text-align: center; }
+.d-signal-stat { padding: 12px; }
+.d-signal-count { display: block; font-size: 28px; font-weight: 700; }
+.d-signal-stat.buy .d-signal-count { color: #22c55e; }
+.d-signal-stat.hold .d-signal-count { color: #eab308; }
+.d-signal-stat.sell .d-signal-count { color: #ef4444; }
+.d-signal-label { font-size: 12px; color: var(--text-muted); }
+.d-trending-list { display: flex; flex-direction: column; gap: 12px; }
+.d-trending-item { display: flex; align-items: center; gap: 12px; }
+.d-trending-avatar { width: 32px; height: 32px; border-radius: 50%; }
+.d-trending-info { flex: 1; }
+.d-trending-name { font-weight: 600; display: block; color: var(--text-primary); }
+.d-trending-change { font-size: 12px; font-weight: 600; }
 .d-trending-change.up { color: #22c55e; }
 .d-trending-change.down { color: #ef4444; }
-
-/* Whale */
-.d-whale-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.d-whale-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-}
-
-.d-whale-type {
-  font-size: 12px;
-}
-
-.d-whale-coin {
-  font-weight: 600;
-  flex: 1;
-}
-
-.d-whale-amount {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.d-whale-time {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 11px;
-}
-
-@media (max-width: 1200px) {
-  .d-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .d-content-grid {
-    grid-template-columns: 1fr;
-  }
-}
+.d-whale-list { display: flex; flex-direction: column; gap: 12px; }
+.d-whale-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(255,255,255,0.04); border-radius: 10px; }
+.d-whale-type { font-size: 16px; }
+.d-whale-info { flex: 1; }
+.d-whale-amount { display: block; font-weight: 600; font-size: 13px; color: var(--text-primary); }
+.d-whale-value { font-size: 11px; color: var(--text-muted); }
+.d-whale-time { font-size: 11px; color: var(--text-dimmed); }
 </style>
