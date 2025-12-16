@@ -1,14 +1,15 @@
 """
 On-Chain Data Endpoints
-Port từ PHP class-rest-api.php và Python services
+Fetches real on-chain data from database
 """
 
 from datetime import datetime
 from typing import Optional
-import random
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
+from app.services.database import get_database_service
 
 router = APIRouter()
 
@@ -18,6 +19,8 @@ class WhaleActivity(BaseModel):
     tx_count_24h: int
     change_24h_pct: float
     net_flow_usd: float
+    inflow_usd: float = 0
+    outflow_usd: float = 0
 
 
 class NetworkHealth(BaseModel):
@@ -27,146 +30,202 @@ class NetworkHealth(BaseModel):
     trend: str
 
 
+class HolderSignals(BaseModel):
+    signal: str
+    top10_change_pct: float
+    accumulation_score: float
+
+
 class OnChainSignals(BaseModel):
     coin_id: str
     overall_signal: str
     bullish_probability: float
+    confidence_score: float = 50.0
     whale_activity: WhaleActivity
     network_health: NetworkHealth
+    holder_signals: Optional[HolderSignals] = None
     ai_prediction: Optional[str] = None
     ai_summary: Optional[str] = None
     last_updated: Optional[datetime] = None
 
 
-# Realistic mock data for popular coins
-MOCK_ONCHAIN_DATA = {
-    "bitcoin": {
-        "overall_signal": "BULLISH",
-        "bullish_probability": 65.5,
-        "whale_tx": 1284,
-        "whale_change": 8.5,
-        "net_flow": -45200000,  # Negative = outflow from exchanges (bullish)
-        "dau": 892000,
-        "dau_change": 4.2,
-        "trend": "INCREASING"
-    },
-    "ethereum": {
-        "overall_signal": "NEUTRAL",
-        "bullish_probability": 52.3,
-        "whale_tx": 2156,
-        "whale_change": -2.1,
-        "net_flow": 12500000,
-        "dau": 456000,
-        "dau_change": -1.5,
-        "trend": "STABLE"
-    },
-    "solana": {
-        "overall_signal": "BULLISH",
-        "bullish_probability": 72.8,
-        "whale_tx": 567,
-        "whale_change": 15.3,
-        "net_flow": -8900000,
-        "dau": 245000,
-        "dau_change": 12.4,
-        "trend": "INCREASING"
-    }
-}
-
-
-def get_mock_data_for_coin(coin_id: str) -> dict:
-    """Get mock on-chain data for a coin"""
-    if coin_id in MOCK_ONCHAIN_DATA:
-        return MOCK_ONCHAIN_DATA[coin_id]
-    
-    # Generate random but reasonable values for other coins
-    signals = ["BULLISH", "NEUTRAL", "BEARISH"]
-    trends = ["INCREASING", "STABLE", "DECREASING"]
-    
-    return {
-        "overall_signal": random.choice(signals),
-        "bullish_probability": round(random.uniform(35, 75), 1),
-        "whale_tx": random.randint(50, 500),
-        "whale_change": round(random.uniform(-10, 15), 1),
-        "net_flow": random.randint(-10000000, 10000000),
-        "dau": random.randint(10000, 200000),
-        "dau_change": round(random.uniform(-5, 10), 1),
-        "trend": random.choice(trends)
-    }
-
-
 @router.get("/summary")
 async def get_onchain_summary():
-    """Get all on-chain metrics summary"""
-    return {
-        "success": True,
-        "data": {
-            "btc": MOCK_ONCHAIN_DATA.get("bitcoin", {}),
-            "eth": MOCK_ONCHAIN_DATA.get("ethereum", {}),
-            "defi": {
-                "tvl": 45200000000,
-                "tvl_change_24h": 2.5,
-            },
-        },
-        "timestamp": datetime.now().isoformat(),
-    }
+    """Get on-chain summary for top coins"""
+    try:
+        db = get_database_service()
+        data = db.get_onchain_summary()
+        
+        # Group by signal type
+        summary = {
+            "btc": None,
+            "eth": None,
+            "coins": [],
+            "stats": {
+                "bullish_count": 0,
+                "bearish_count": 0,
+                "neutral_count": 0,
+            }
+        }
+        
+        for coin in data:
+            signal = coin.get("overall_signal", "NEUTRAL")
+            if signal == "BULLISH":
+                summary["stats"]["bullish_count"] += 1
+            elif signal == "BEARISH":
+                summary["stats"]["bearish_count"] += 1
+            else:
+                summary["stats"]["neutral_count"] += 1
+            
+            if coin.get("coin_id") == "bitcoin":
+                summary["btc"] = coin
+            elif coin.get("coin_id") == "ethereum":
+                summary["eth"] = coin
+            else:
+                summary["coins"].append(coin)
+        
+        return {
+            "success": True,
+            "data": summary,
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "data": None,
+        }
 
 
 @router.get("/btc")
 async def get_onchain_btc():
     """Get Bitcoin on-chain metrics"""
-    return {
-        "success": True,
-        "data": {
-            "hash_rate": 580000000,
-            "active_addresses": 892000,
-            "exchange_reserves": 2100000,
-            "exchange_flow_24h": -45200000,
-        },
-    }
+    try:
+        db = get_database_service()
+        data = db.get_onchain_signals("bitcoin")
+        
+        if not data:
+            return {
+                "success": False,
+                "error": "No on-chain data for bitcoin",
+                "data": None,
+            }
+        
+        return {
+            "success": True,
+            "data": {
+                "whale_tx_count_24h": data.get("whale_tx_count_24h", 0),
+                "whale_net_flow_usd": data.get("whale_net_flow_usd", 0),
+                "whale_signal": data.get("whale_signal", "NEUTRAL"),
+                "dau_current": data.get("dau_current", 0),
+                "dau_change_1d_pct": data.get("dau_change_1d_pct", 0),
+                "network_signal": data.get("network_signal", "NEUTRAL"),
+                "overall_signal": data.get("overall_signal", "NEUTRAL"),
+                "bullish_probability": data.get("bullish_probability", 50),
+            },
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "data": None,
+        }
 
 
 @router.get("/eth")
 async def get_onchain_eth():
     """Get Ethereum on-chain metrics"""
-    return {
-        "success": True,
-        "data": {
-            "gas_price": 25.5,
-            "staking_rate": 27.8,
-            "defi_tvl": 45200000000,
-            "exchange_flow_24h": 12500000,
-        },
-    }
+    try:
+        db = get_database_service()
+        data = db.get_onchain_signals("ethereum")
+        
+        if not data:
+            return {
+                "success": False,
+                "error": "No on-chain data for ethereum",
+                "data": None,
+            }
+        
+        return {
+            "success": True,
+            "data": {
+                "whale_tx_count_24h": data.get("whale_tx_count_24h", 0),
+                "whale_net_flow_usd": data.get("whale_net_flow_usd", 0),
+                "whale_signal": data.get("whale_signal", "NEUTRAL"),
+                "dau_current": data.get("dau_current", 0),
+                "dau_change_1d_pct": data.get("dau_change_1d_pct", 0),
+                "network_signal": data.get("network_signal", "NEUTRAL"),
+                "overall_signal": data.get("overall_signal", "NEUTRAL"),
+                "bullish_probability": data.get("bullish_probability", 50),
+            },
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "data": None,
+        }
 
 
-@router.get("/signals/{coin_id}", response_model=OnChainSignals)
+@router.get("/signals/{coin_id}")
 async def get_onchain_signals(coin_id: str):
     """Get on-chain signals for a specific coin"""
-    data = get_mock_data_for_coin(coin_id)
-    
-    # Determine whale signal based on net flow
-    whale_signal = "BULLISH" if data["net_flow"] < 0 else "BEARISH" if data["net_flow"] > 5000000 else "NEUTRAL"
-    # Determine network signal based on DAU change
-    network_signal = "BULLISH" if data["dau_change"] > 5 else "BEARISH" if data["dau_change"] < -5 else "NEUTRAL"
-    
-    return OnChainSignals(
-        coin_id=coin_id,
-        overall_signal=data["overall_signal"],
-        bullish_probability=data["bullish_probability"],
-        whale_activity=WhaleActivity(
-            signal=whale_signal,
-            tx_count_24h=data["whale_tx"],
-            change_24h_pct=data["whale_change"],
-            net_flow_usd=data["net_flow"],
-        ),
-        network_health=NetworkHealth(
-            signal=network_signal,
-            dau_current=data["dau"],
-            dau_change_1d_pct=data["dau_change"],
-            trend=data["trend"],
-        ),
-        ai_prediction=f"{data['overall_signal']} - {data['bullish_probability']:.1f}% probability",
-        ai_summary=f"On-chain data for {coin_id} suggests {data['overall_signal'].lower()} sentiment",
-        last_updated=datetime.now(),
-    )
-
+    try:
+        db = get_database_service()
+        data = db.get_onchain_signals(coin_id)
+        
+        if not data:
+            # Return empty/neutral data if no signals exist
+            return OnChainSignals(
+                coin_id=coin_id,
+                overall_signal="NEUTRAL",
+                bullish_probability=50.0,
+                confidence_score=0.0,
+                whale_activity=WhaleActivity(
+                    signal="NEUTRAL",
+                    tx_count_24h=0,
+                    change_24h_pct=0.0,
+                    net_flow_usd=0.0,
+                    inflow_usd=0.0,
+                    outflow_usd=0.0,
+                ),
+                network_health=NetworkHealth(
+                    signal="NEUTRAL",
+                    dau_current=0,
+                    dau_change_1d_pct=0.0,
+                    trend="STABLE",
+                ),
+                ai_summary=f"No on-chain data available for {coin_id}",
+            )
+        
+        # Build response from database data
+        return OnChainSignals(
+            coin_id=coin_id,
+            overall_signal=data.get("overall_signal") or "NEUTRAL",
+            bullish_probability=float(data.get("bullish_probability") or 50),
+            confidence_score=float(data.get("confidence_score") or 50),
+            whale_activity=WhaleActivity(
+                signal=data.get("whale_signal") or "NEUTRAL",
+                tx_count_24h=int(data.get("whale_tx_count_24h") or 0),
+                change_24h_pct=float(data.get("whale_tx_change_pct") or 0),
+                net_flow_usd=float(data.get("whale_net_flow_usd") or 0),
+                inflow_usd=float(data.get("whale_inflow_usd") or 0),
+                outflow_usd=float(data.get("whale_outflow_usd") or 0),
+            ),
+            network_health=NetworkHealth(
+                signal=data.get("network_signal") or "NEUTRAL",
+                dau_current=int(data.get("dau_current") or 0),
+                dau_change_1d_pct=float(data.get("dau_change_1d_pct") or 0),
+                trend=data.get("dau_trend") or "STABLE",
+            ),
+            holder_signals=HolderSignals(
+                signal=data.get("holder_signal") or "NEUTRAL",
+                top10_change_pct=float(data.get("top10_change_pct") or 0),
+                accumulation_score=float(data.get("accumulation_score") or 50),
+            ) if data.get("holder_signal") else None,
+            ai_prediction=data.get("ai_prediction"),
+            ai_summary=data.get("ai_summary"),
+            last_updated=data.get("updated_at"),
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

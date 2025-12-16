@@ -252,6 +252,87 @@ class DatabaseService:
             logger.error(f"Failed to fetch sentiment for {coin_id}: {e}")
             return None
 
+    def get_onchain_signals(self, coin_id: str) -> Optional[Dict[str, Any]]:
+        """Get on-chain signals for a specific coin from onchain_signals table"""
+        query = text("""
+            SELECT 
+                coin_id,
+                -- Whale Activity
+                whale_tx_count_24h,
+                whale_tx_change_pct,
+                whale_inflow_usd,
+                whale_outflow_usd,
+                whale_net_flow_usd,
+                whale_signal,
+                -- Network Health / DAU
+                dau_current,
+                dau_prev_day,
+                dau_change_1d_pct,
+                dau_trend,
+                network_signal,
+                -- Top Holders
+                top10_change_pct,
+                accumulation_score,
+                holder_signal,
+                -- Overall
+                overall_signal,
+                bullish_probability,
+                confidence_score,
+                ai_prediction,
+                ai_summary,
+                -- Metadata
+                last_whale_update,
+                last_dau_update,
+                updated_at
+            FROM onchain_signals
+            WHERE coin_id = :coin_id
+            LIMIT 1
+        """)
+        
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(query, {"coin_id": coin_id})
+                row = result.fetchone()
+                
+                if row:
+                    columns = result.keys()
+                    return {col: convert_db_value(col, val) for col, val in zip(columns, row)}
+                return None
+        except Exception as e:
+            logger.error(f"Failed to fetch onchain signals for {coin_id}: {e}")
+            return None
+
+    def get_onchain_summary(self) -> Dict[str, Any]:
+        """Get on-chain summary for top coins"""
+        query = text("""
+            SELECT 
+                coin_id,
+                overall_signal,
+                bullish_probability,
+                whale_net_flow_usd,
+                whale_signal,
+                dau_current,
+                dau_change_1d_pct,
+                network_signal,
+                updated_at
+            FROM onchain_signals
+            ORDER BY updated_at DESC NULLS LAST
+            LIMIT 20
+        """)
+        
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(query)
+                rows = result.fetchall()
+                columns = result.keys()
+                
+                return [
+                    {col: convert_db_value(col, val) for col, val in zip(columns, row)}
+                    for row in rows
+                ]
+        except Exception as e:
+            logger.error(f"Failed to fetch onchain summary: {e}")
+            return []
     
     def _get_symbol_for_coin(self, coin_id: str) -> Optional[str]:
         """
