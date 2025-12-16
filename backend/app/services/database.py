@@ -676,3 +676,8 @@ def get_db_service() -> DatabaseService:
         settings = get_settings()
         _db_service = DatabaseService(settings.database_url)
     return _db_service
+
+
+# Alias for compatibility
+get_database_service = get_db_service
+
