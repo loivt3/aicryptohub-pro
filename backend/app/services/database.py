@@ -93,19 +93,19 @@ class DatabaseService:
                 coin_id,
                 symbol,
                 name,
-                image,
-                current_price as price,
-                price_change_percentage_1h as change_1h,
-                price_change_percentage_24h as change_24h,
-                price_change_percentage_7d as change_7d,
+                image_url as image,
+                price,
+                price_change_1h as change_1h,
+                change_24h,
+                price_change_7d as change_7d,
                 market_cap,
-                market_cap_rank,
+                rank as market_cap_rank,
                 volume_24h,
                 high_24h,
                 low_24h,
                 last_updated
             FROM aihub_coins
-            WHERE current_price > 0
+            WHERE price > 0
             ORDER BY {order_column} DESC NULLS LAST
             LIMIT :limit
         """)
@@ -132,15 +132,14 @@ class DatabaseService:
                 coin_id,
                 symbol,
                 name,
-                image,
-                current_price as price,
-                price_change_percentage_1h as change_1h,
-                price_change_percentage_24h as change_24h,
-                price_change_percentage_7d as change_7d,
-                price_change_percentage_30d as change_30d,
-                price_change_percentage_1y as change_1y,
+                image_url as image,
+                price,
+                price_change_1h as change_1h,
+                change_24h,
+                price_change_7d as change_7d,
+                price_change_30d as change_30d,
                 market_cap,
-                market_cap_rank,
+                rank as market_cap_rank,
                 volume_24h,
                 high_24h,
                 low_24h,
@@ -177,7 +176,7 @@ class DatabaseService:
                 s.analyzed_at
             FROM aihub_coins c
             LEFT JOIN aihub_sentiment s ON UPPER(c.symbol) = UPPER(s.symbol)
-            WHERE c.current_price > 0
+            WHERE c.price > 0
             ORDER BY c.market_cap DESC NULLS LAST
             LIMIT :limit
         """)
