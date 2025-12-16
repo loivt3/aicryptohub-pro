@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.api import api_router
+from app.api.endpoints import admin_ws
 from app.core.config import settings
 
 # Configure logging
@@ -27,6 +28,9 @@ startup_time = datetime.now()
 async def lifespan(app: FastAPI):
     """Application lifespan handler"""
     logger.info("Starting AI Crypto Hub Pro API...")
+    
+    # Setup WebSocket logging for admin console
+    admin_ws.setup_websocket_logging()
     
     # Initialize database connection
     # TODO: Initialize DB pool
@@ -60,6 +64,9 @@ app.add_middleware(
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+# Include WebSocket router for admin logs
+app.include_router(admin_ws.router)
+
 
 @app.get("/health")
 async def health_check():
@@ -70,3 +77,4 @@ async def health_check():
         "version": settings.APP_VERSION,
         "uptime_seconds": (datetime.now() - startup_time).total_seconds(),
     }
+
