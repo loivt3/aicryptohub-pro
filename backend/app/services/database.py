@@ -6,6 +6,7 @@ SQLAlchemy connection and operations for PostgreSQL
 import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
@@ -14,6 +15,29 @@ from sqlalchemy.pool import QueuePool
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
+
+
+# Columns that should remain as strings (not converted to float)
+STRING_COLUMNS = {'coin_id', 'symbol', 'name', 'image', 'last_updated', 'provider', 'reason', 'signal', 'analyzed_at'}
+
+
+def convert_db_value(col: str, val: Any) -> Any:
+    """Convert database values to JSON-serializable types"""
+    if val is None:
+        return None
+    if col in STRING_COLUMNS:
+        return str(val) if val else val
+    if isinstance(val, Decimal):
+        return float(val)
+    if isinstance(val, (int, float)):
+        return float(val)
+    # Try to convert string numbers
+    if isinstance(val, str):
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return val
+    return val
 
 
 class DatabaseService:
@@ -117,8 +141,7 @@ class DatabaseService:
                 columns = result.keys()
                 
                 return [
-                    {col: (float(val) if isinstance(val, (int, float)) and col not in ['coin_id', 'symbol', 'name', 'image', 'last_updated'] else val) 
-                     for col, val in zip(columns, row)}
+                    {col: convert_db_value(col, val) for col, val in zip(columns, row)}
                     for row in rows
                 ]
         except Exception as e:
@@ -156,7 +179,7 @@ class DatabaseService:
                 
                 if row:
                     columns = result.keys()
-                    return {col: val for col, val in zip(columns, row)}
+                    return {col: convert_db_value(col, val) for col, val in zip(columns, row)}
                 return None
         except Exception as e:
             logger.error(f"Failed to fetch coin {coin_id}: {e}")
@@ -188,8 +211,7 @@ class DatabaseService:
                 columns = result.keys()
                 
                 return [
-                    {col: (int(val) if col == 'asi_score' and val else val) 
-                     for col, val in zip(columns, row)}
+                    {col: convert_db_value(col, val) for col, val in zip(columns, row)}
                     for row in rows
                 ]
         except Exception as e:
@@ -221,7 +243,8 @@ class DatabaseService:
                 
                 if row:
                     columns = result.keys()
-                    data = {col: val for col, val in zip(columns, row)}
+                    data = {col: convert_db_value(col, val) for col, val in zip(columns, row)}
+                    # Ensure asi_score is an integer
                     data['asi_score'] = int(data.get('asi_score') or 50)
                     return data
                 return None
