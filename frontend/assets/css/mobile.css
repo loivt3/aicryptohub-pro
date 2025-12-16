@@ -1,14 +1,74 @@
 /**
- * Mobile Layout Design System for Nuxt.js
- * Ported from WordPress AI Hub Pro mobile-layout.css
+ * Mobile Layout Design System - Modern Fintech Style
+ * Premium Dark Theme with Glassmorphism & Neon Accents
  * 
- * Color System:
- * - Primary: #38efeb (cyan)
- * - Success: #22c55e / #3fb950
- * - Danger: #ef4444 / #f85149
- * - Background: #0b0f19
- * - Card: rgba(255, 255, 255, 0.06-0.08)
+ * Design System:
+ * - Background: True Black/Dark for OLED
+ * - Accents: Neon gradients (Cyan → Blue)
+ * - Typography: Monospace for numbers
+ * - Effects: Glassmorphism, Neon glow
  */
+
+:root {
+    /* === COLORS === */
+    /* Background */
+    --bg-primary: #0a0a0a;
+    --bg-secondary: #111111;
+    --bg-card: #141414;
+    --bg-elevated: #1a1a1a;
+    --bg-glass: rgba(20, 20, 20, 0.8);
+
+    /* Neon Accents */
+    --accent-primary: #00d4ff;
+    --accent-secondary: #0066ff;
+    --accent-gradient: linear-gradient(135deg, #00d4ff, #0066ff);
+    --accent-purple: #a855f7;
+
+    /* Status Colors */
+    --success: #00ff88;
+    --success-dim: rgba(0, 255, 136, 0.15);
+    --danger: #ff4757;
+    --danger-dim: rgba(255, 71, 87, 0.15);
+    --warning: #ffa502;
+    --warning-dim: rgba(255, 165, 2, 0.15);
+
+    /* Text */
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-muted: rgba(255, 255, 255, 0.4);
+    --text-accent: var(--accent-primary);
+
+    /* Borders */
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-default: rgba(255, 255, 255, 0.1);
+    --border-accent: rgba(0, 212, 255, 0.3);
+
+    /* === SPACING === */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 24px;
+
+    /* === RADIUS === */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-full: 9999px;
+
+    /* === TYPOGRAPHY === */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'SF Mono', 'Roboto Mono', 'IBM Plex Mono', monospace;
+
+    /* === EFFECTS === */
+    --blur-sm: blur(8px);
+    --blur-md: blur(12px);
+    --blur-lg: blur(20px);
+    --glow-accent: 0 0 20px rgba(0, 212, 255, 0.4);
+    --glow-success: 0 0 20px rgba(0, 255, 136, 0.4);
+    --glow-danger: 0 0 20px rgba(255, 71, 87, 0.4);
+}
 
 /* ===========================================
    Base & Reset
@@ -16,11 +76,11 @@
 .mobile-layout {
     width: 100%;
     min-height: 100vh;
-    padding: 8px;
-    padding-bottom: 80px;
-    background: #0b0f19;
-    color: #ffffff;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: var(--space-md);
+    padding-bottom: 90px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
     font-size: 14px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
@@ -147,7 +207,7 @@
 }
 
 /* ===========================================
-   Bottom Navigation
+   Bottom Navigation - Glassmorphism
    =========================================== */
 .m-bottom-nav {
     position: fixed;
@@ -158,62 +218,66 @@
     display: flex;
     justify-content: space-around;
     align-items: center;
-    min-height: 60px;
-    padding: 8px;
-    padding-bottom: max(8px, env(safe-area-inset-bottom));
-    background: linear-gradient(180deg, rgba(11, 15, 25, 0.98) 0%, #0b0f19 100%);
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    min-height: 65px;
+    padding: var(--space-sm) var(--space-md);
+    padding-bottom: max(var(--space-sm), env(safe-area-inset-bottom));
+    /* Glassmorphism */
+    background: var(--bg-glass);
+    border-top: 1px solid var(--border-subtle);
+    backdrop-filter: var(--blur-lg);
+    -webkit-backdrop-filter: var(--blur-lg);
 }
 
 .m-nav-item {
     flex: 1;
-    max-width: 68px;
+    max-width: 72px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: 6px 4px;
+    gap: 2px;
+    padding: var(--space-sm) var(--space-xs);
     background: transparent;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
-    min-height: 48px;
-    transition: all 0.2s ease;
+    min-height: 52px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     -webkit-tap-highlight-color: transparent;
 }
 
 .m-nav-item:active {
-    transform: scale(0.92);
+    transform: scale(0.9);
 }
 
 .m-nav-icon {
-    width: 20px;
-    height: 20px;
-    color: rgba(255, 255, 255, 0.5);
-    transition: all 0.2s ease;
+    width: 24px;
+    height: 24px;
+    color: var(--text-muted);
+    transition: all 0.25s ease;
 }
 
 .m-nav-item.active .m-nav-icon {
-    color: #38efeb;
-    filter: drop-shadow(0 0 6px rgba(56, 239, 235, 0.6));
+    color: var(--accent-primary);
+    filter: drop-shadow(var(--glow-accent));
 }
 
+/* Hide labels for cleaner look - icon only */
 .m-nav-label {
     font-size: 9px;
     font-weight: 500;
     letter-spacing: 0.3px;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-muted);
     white-space: nowrap;
     text-transform: uppercase;
     transition: all 0.2s ease;
+    opacity: 0.7;
 }
 
 .m-nav-item.active .m-nav-label {
-    color: #38efeb;
+    color: var(--accent-primary);
     font-weight: 600;
+    opacity: 1;
 }
 
 /* ===========================================
@@ -265,54 +329,63 @@
     gap: 8px;
 }
 
-/* Stats Card Pro (with sparkline/gauge) */
+/* Stats Card Pro (with sparkline/gauge) - Premium Style */
 .m-stat-card-pro {
     flex: 0 0 auto;
-    min-width: 140px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 12px;
+    min-width: 150px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
     overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.m-stat-card-pro:hover {
+    border-color: var(--border-accent);
+    box-shadow: var(--glow-accent);
 }
 
 .m-stat-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 4px;
+    margin-bottom: var(--space-xs);
 }
 
 .m-stat-label {
-    font-size: 9px;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: 10px;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    font-weight: 500;
 }
 
 .m-stat-change {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
+    font-family: var(--font-mono);
 }
 
 .m-stat-change.positive {
-    color: #22c55e;
+    color: var(--success);
 }
 
 .m-stat-change.negative {
-    color: #ef4444;
+    color: var(--danger);
 }
 
 .m-stat-value-large {
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 700;
-    color: #ffffff;
-    margin-bottom: 8px;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    margin-bottom: var(--space-sm);
 }
 
 .m-stat-sparkline {
-    height: 32px;
-    margin: 0 -12px -12px;
+    height: 36px;
+    margin: 0 calc(var(--space-lg) * -1) calc(var(--space-lg) * -1);
 }
 
 .m-stat-sparkline svg {
@@ -322,12 +395,12 @@
 
 /* Gauge Card */
 .m-stat-card-gauge {
-    min-width: 130px;
+    min-width: 140px;
 }
 
 .m-gauge-wrapper {
-    height: 50px;
-    margin-bottom: 4px;
+    height: 56px;
+    margin-bottom: var(--space-xs);
 }
 
 .m-gauge-svg {
@@ -343,77 +416,87 @@
 }
 
 .m-gauge-number {
-    font-size: 20px;
+    font-size: 24px;
     font-weight: 700;
+    font-family: var(--font-mono);
 }
 
 .m-gauge-number.greed {
-    color: #22c55e;
+    color: var(--success);
+    text-shadow: var(--glow-success);
 }
 
 .m-gauge-number.fear {
-    color: #ef4444;
+    color: var(--danger);
+    text-shadow: var(--glow-danger);
 }
 
 .m-gauge-number.neutral {
-    color: #eab308;
+    color: var(--warning);
 }
 
 .m-gauge-label {
     font-size: 9px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
     text-transform: uppercase;
+    font-weight: 500;
 }
 
 /* ===========================================
-   List & Accordion
+   List & Accordion - Premium Style
    =========================================== */
 .m-list {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
     overflow: hidden;
 }
 
 .m-list--dark {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--bg-secondary);
 }
 
 .m-list-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px;
+    gap: var(--space-md);
+    padding: var(--space-lg);
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s ease;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.m-list-item:last-child {
+    border-bottom: none;
 }
 
 .m-list-item:active {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--bg-elevated);
 }
 
 .m-list-item--expanded {
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--bg-elevated);
 }
 
 /* Rank Badge */
 .m-rank {
-    width: 22px;
-    height: 22px;
-    min-width: 22px;
-    background: rgba(56, 239, 235, 0.15);
-    border-radius: 50%;
-    font-size: 11px;
-    font-weight: 600;
-    color: #38efeb;
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    background: rgba(0, 212, 255, 0.15);
+    border-radius: var(--radius-full);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--accent-primary);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .m-rank--danger {
-    background: rgba(248, 81, 73, 0.15);
-    color: #f85149;
+    background: var(--danger-dim);
+    color: var(--danger);
 }
 
 .m-rank--info {
@@ -423,10 +506,11 @@
 
 /* Avatar */
 .m-avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-full);
     object-fit: cover;
+    border: 2px solid var(--border-subtle);
 }
 
 /* Info Block */
@@ -436,20 +520,31 @@
 }
 
 .m-info-title {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 2px;
 }
 
 .m-info-subtitle {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    color: var(--text-secondary);
 }
 
 /* Price Column */
 .m-price-col {
     text-align: right;
-    min-width: 80px;
+    min-width: 90px;
+}
+
+.m-price-col .m-info-title {
+    font-family: var(--font-mono);
+    font-size: 15px;
+}
+
+.m-price-col .m-info-subtitle {
+    font-family: var(--font-mono);
 }
 
 /* Meta Row (ASI bar) */
