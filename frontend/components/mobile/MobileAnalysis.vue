@@ -41,20 +41,24 @@
     <section class="m-section">
       <h3 class="m-section-title">Top AI Signals</h3>
       <div class="m-list">
-        <div v-for="coin in topSignals" :key="coin.coin_id" class="m-list-item" @click="expandedCoin = expandedCoin === coin.coin_id ? null : coin.coin_id">
-          <img :src="coin.image" class="m-avatar" />
-          <div class="m-info">
-            <span class="m-info-title">{{ coin.symbol }}</span>
-            <span class="m-info-subtitle">{{ coin.name }}</span>
-          </div>
-          <div class="m-asi-mini">
-            <div class="m-asi-bar-mini">
-              <div class="m-asi-fill-mini" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
+        <div v-for="coin in topSignals" :key="coin.coin_id" class="m-signal-card" @click="expandedCoin = expandedCoin === coin.coin_id ? null : coin.coin_id">
+          <!-- Row 1: Coin info + Signal -->
+          <div class="m-signal-row">
+            <img :src="coin.image" class="m-avatar" />
+            <div class="m-info">
+              <span class="m-info-title">{{ coin.symbol }}</span>
+              <span class="m-info-subtitle">{{ coin.name }}</span>
             </div>
-            <span class="m-asi-label" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
+            <span class="m-signal-badge" :class="getSignalClass(coin.signal)">{{ coin.signal }}</span>
           </div>
-          <span class="m-signal-badge" :class="getSignalClass(coin.signal)">{{ coin.signal }}</span>
-          <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" :class="{ 'rotate-90': expandedCoin === coin.coin_id }" />
+          <!-- Row 2: ASI Bar -->
+          <div class="m-asi-row">
+            <div class="m-asi-bar">
+              <div class="m-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
+            </div>
+            <span class="m-asi-label" :class="getAsiClass(coin.asi_score)">ASI: {{ coin.asi_score }}</span>
+            <Icon name="ph:caret-down" class="w-4 h-4 opacity-50" :class="{ 'rotate-180': expandedCoin === coin.coin_id }" />
+          </div>
         </div>
         
         <!-- Expanded Panel -->
@@ -199,6 +203,47 @@ const getSignalClass = (signal: string) => {
 .m-signal-legend .buy { color: #22c55e; }
 .m-signal-legend .hold { color: #f97316; }
 .m-signal-legend .sell { color: #ef4444; }
+
+/* Signal Card - 2 row layout */
+.m-signal-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.m-signal-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.m-asi-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.m-asi-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.m-asi-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.m-asi-fill.positive { background: linear-gradient(90deg, #22c55e, #4ade80); }
+.m-asi-fill.negative { background: linear-gradient(90deg, #ef4444, #f87171); }
+.m-asi-fill.neutral { background: linear-gradient(90deg, #f97316, #fb923c); }
 
 /* ASI Mini Bar */
 .m-asi-mini {
