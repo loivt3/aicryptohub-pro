@@ -40,6 +40,12 @@ const routes = [
                 component: () => import('@/views/data/NewsCurationView.vue'),
                 meta: { title: 'News Curation', parent: 'data-management' }
             },
+            {
+                path: 'data/corrections',
+                name: 'market-corrections',
+                component: () => import('@/views/data/MarketCorrectionsView.vue'),
+                meta: { title: 'Market Corrections', parent: 'data-management' }
+            },
 
             // System Configuration
             {

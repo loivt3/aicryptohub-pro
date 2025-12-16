@@ -205,62 +205,76 @@ async def get_service_logs(service_id: str, lines: int = 100):
 
 # ==================== Settings ====================
 
-# In-memory settings (TODO: Move to Redis/DB)
-_backend_settings = BackendSettings()
-_frontend_settings = FrontendSettings()
-_ai_settings = AISettings()
+from app.services.admin_settings import get_settings_service, BackendSettings as BSModel, FrontendSettings as FSModel, AISettings as ASModel
 
 
 @router.get("/settings/backend")
 async def get_backend_settings():
     """Get backend settings (masked API keys)"""
-    settings = _backend_settings.model_dump()
-    # Mask API keys
-    for key in ["coingecko_api_key", "etherscan_api_key", "gemini_api_key", "deepseek_api_key"]:
-        if settings.get(key):
-            settings[key] = "***" + settings[key][-4:] if len(settings[key]) > 4 else "***"
-    return settings
+    service = get_settings_service()
+    return service.get_backend_settings_masked()
 
 
 @router.post("/settings/backend")
 async def update_backend_settings(settings: BackendSettings):
     """Update backend settings"""
-    global _backend_settings
-    _backend_settings = settings
-    # TODO: Save to database/Redis
-    # TODO: Update environment variables or config files
-    return {"success": True, "message": "Backend settings updated"}
+    service = get_settings_service()
+    bs = BSModel(
+        coingecko_api_key=settings.coingecko_api_key or "",
+        etherscan_api_key=settings.etherscan_api_key or "",
+        gemini_api_key=settings.gemini_api_key or "",
+        deepseek_api_key=settings.deepseek_api_key or "",
+        market_sync_interval=settings.market_sync_interval,
+        ai_analysis_interval=settings.ai_analysis_interval,
+        onchain_sync_interval=settings.onchain_sync_interval,
+    )
+    service.save_backend_settings(bs)
+    return {"success": True, "message": "Backend settings saved to Redis"}
 
 
 @router.get("/settings/frontend")
 async def get_frontend_settings():
     """Get frontend settings"""
-    return _frontend_settings.model_dump()
+    service = get_settings_service()
+    return service.get_frontend_settings().model_dump()
 
 
 @router.post("/settings/frontend")
 async def update_frontend_settings(settings: FrontendSettings):
     """Update frontend settings"""
-    global _frontend_settings
-    _frontend_settings = settings
-    # TODO: Save to database/Redis
-    # TODO: Broadcast update event to frontend
-    return {"success": True, "message": "Frontend settings updated"}
+    service = get_settings_service()
+    fs = FSModel(
+        site_name=settings.site_name,
+        banner_image_url=settings.banner_image_url or "",
+        announcement_text=settings.announcement_text or "",
+        maintenance_mode=settings.maintenance_mode,
+        meta_title=settings.meta_title or "",
+        meta_description=settings.meta_description or "",
+    )
+    service.save_frontend_settings(fs)
+    return {"success": True, "message": "Frontend settings saved to Redis"}
 
 
 @router.get("/settings/ai")
 async def get_ai_settings():
     """Get AI tuning settings"""
-    return _ai_settings.model_dump()
+    service = get_settings_service()
+    return service.get_ai_settings().model_dump()
 
 
 @router.post("/settings/ai")
 async def update_ai_settings(settings: AISettings):
     """Update AI tuning settings"""
-    global _ai_settings
-    _ai_settings = settings
-    # TODO: Save to database/Redis
-    return {"success": True, "message": "AI settings updated"}
+    service = get_settings_service()
+    ai = ASModel(
+        system_prompt=settings.system_prompt or "",
+        rsi_overbought=settings.rsi_overbought,
+        rsi_oversold=settings.rsi_oversold,
+        whale_threshold=settings.whale_threshold,
+        sentiment_weight=settings.sentiment_weight,
+    )
+    service.save_ai_settings(ai)
+    return {"success": True, "message": "AI settings saved to Redis"}
 
 
 # ==================== Data Management ====================

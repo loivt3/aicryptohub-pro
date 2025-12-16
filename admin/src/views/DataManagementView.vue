@@ -22,7 +22,7 @@
 
       <!-- Market Corrections -->
       <n-gi>
-        <n-card hoverable>
+        <n-card hoverable @click="$router.push({ name: 'market-corrections' })">
           <template #cover>
             <div class="card-cover" style="background: linear-gradient(135deg, #f59e0b, #d97706)">
               📊

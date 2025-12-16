@@ -6,6 +6,7 @@ Combines all endpoint routers into a single API router
 from fastapi import APIRouter
 
 from app.api.endpoints import market, portfolio, sentiment, auth, onchain, admin
+from app.api.endpoints import admin_data, admin_users
 from app.api.endpoints import triggers, realtime
 
 api_router = APIRouter()
@@ -61,4 +62,19 @@ api_router.include_router(
     prefix="/admin",
     tags=["Admin Console"]
 )
+
+# Admin Data Management
+api_router.include_router(
+    admin_data.router,
+    prefix="/admin/data",
+    tags=["Admin Data"]
+)
+
+# Admin Users & Audit
+api_router.include_router(
+    admin_users.router,
+    prefix="/admin",
+    tags=["Admin Users"]
+)
+
 
