@@ -75,6 +75,162 @@ class DatabaseService:
             logger.error(f"Database connection test failed: {e}")
             return False
     
+    def get_market_data(self, limit: int = 100, orderby: str = "market_cap") -> List[Dict[str, Any]]:
+        """
+        Get market data for all coins
+        
+        Args:
+            limit: Max number of coins to return
+            orderby: Column to order by
+            
+        Returns:
+            List of coin data dicts
+        """
+        order_column = "market_cap" if orderby == "market_cap" else orderby
+        
+        query = text(f"""
+            SELECT 
+                coin_id,
+                symbol,
+                name,
+                image,
+                current_price as price,
+                price_change_percentage_1h as change_1h,
+                price_change_percentage_24h as change_24h,
+                price_change_percentage_7d as change_7d,
+                market_cap,
+                market_cap_rank,
+                volume_24h,
+                high_24h,
+                low_24h,
+                last_updated
+            FROM aihub_coins
+            WHERE current_price > 0
+            ORDER BY {order_column} DESC NULLS LAST
+            LIMIT :limit
+        """)
+        
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(query, {"limit": limit})
+                rows = result.fetchall()
+                columns = result.keys()
+                
+                return [
+                    {col: (float(val) if isinstance(val, (int, float)) and col not in ['coin_id', 'symbol', 'name', 'image', 'last_updated'] else val) 
+                     for col, val in zip(columns, row)}
+                    for row in rows
+                ]
+        except Exception as e:
+            logger.error(f"Failed to fetch market data: {e}")
+            return []
+    
+    def get_coin_by_id(self, coin_id: str) -> Optional[Dict[str, Any]]:
+        """Get single coin data by coin_id"""
+        query = text("""
+            SELECT 
+                coin_id,
+                symbol,
+                name,
+                image,
+                current_price as price,
+                price_change_percentage_1h as change_1h,
+                price_change_percentage_24h as change_24h,
+                price_change_percentage_7d as change_7d,
+                price_change_percentage_30d as change_30d,
+                price_change_percentage_1y as change_1y,
+                market_cap,
+                market_cap_rank,
+                volume_24h,
+                high_24h,
+                low_24h,
+                last_updated
+            FROM aihub_coins
+            WHERE coin_id = :coin_id
+            LIMIT 1
+        """)
+        
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(query, {"coin_id": coin_id})
+                row = result.fetchone()
+                
+                if row:
+                    columns = result.keys()
+                    return {col: val for col, val in zip(columns, row)}
+                return None
+        except Exception as e:
+            logger.error(f"Failed to fetch coin {coin_id}: {e}")
+            return None
+    
+    def get_sentiment_data(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """Get sentiment data for all coins"""
+        query = text("""
+            SELECT 
+                c.coin_id,
+                c.symbol,
+                c.name,
+                COALESCE(s.sentiment_score * 100, 50) as asi_score,
+                COALESCE(s.ai_signal, 'HOLD') as signal,
+                s.sentiment_reason as reason,
+                s.provider,
+                s.analyzed_at
+            FROM aihub_coins c
+            LEFT JOIN aihub_sentiment s ON UPPER(c.symbol) = UPPER(s.symbol)
+            WHERE c.current_price > 0
+            ORDER BY c.market_cap DESC NULLS LAST
+            LIMIT :limit
+        """)
+        
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(query, {"limit": limit})
+                rows = result.fetchall()
+                columns = result.keys()
+                
+                return [
+                    {col: (int(val) if col == 'asi_score' and val else val) 
+                     for col, val in zip(columns, row)}
+                    for row in rows
+                ]
+        except Exception as e:
+            logger.error(f"Failed to fetch sentiment data: {e}")
+            return []
+    
+    def get_coin_sentiment(self, coin_id: str) -> Optional[Dict[str, Any]]:
+        """Get sentiment data for a specific coin"""
+        query = text("""
+            SELECT 
+                c.coin_id,
+                c.symbol,
+                c.name,
+                COALESCE(s.sentiment_score * 100, 50) as asi_score,
+                COALESCE(s.ai_signal, 'HOLD') as signal,
+                s.sentiment_reason as reason,
+                s.provider,
+                s.analyzed_at
+            FROM aihub_coins c
+            LEFT JOIN aihub_sentiment s ON UPPER(c.symbol) = UPPER(s.symbol)
+            WHERE c.coin_id = :coin_id
+            LIMIT 1
+        """)
+        
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(query, {"coin_id": coin_id})
+                row = result.fetchone()
+                
+                if row:
+                    columns = result.keys()
+                    data = {col: val for col, val in zip(columns, row)}
+                    data['asi_score'] = int(data.get('asi_score') or 50)
+                    return data
+                return None
+        except Exception as e:
+            logger.error(f"Failed to fetch sentiment for {coin_id}: {e}")
+            return None
+
+    
     def _get_symbol_for_coin(self, coin_id: str) -> Optional[str]:
         """
         Get trading symbol for a coin_id dynamically from coins table

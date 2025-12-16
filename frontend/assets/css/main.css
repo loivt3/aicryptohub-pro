@@ -1,333 +1,383 @@
 /**
- * AI Crypto Hub - Unified Design System
- * Premium Dark Theme for Desktop & Mobile
- * Modern Fintech Style with Glassmorphism & Neon Accents
+ * AI Crypto Hub - Ported from WordPress ai-hub-pro
+ * Low-poly Cyberpunk/Neon Theme
  */
 
-/* ===========================================
-   CSS Custom Properties (Design Tokens)
-   =========================================== */
+/* ============================
+   CSS Variables (from ai-hub-pro)
+   ============================ */
 :root {
-    /* === COLORS === */
-    /* Background Hierarchy */
-    --bg-primary: #0a0a0a;
-    --bg-secondary: #111111;
-    --bg-card: #141414;
-    --bg-elevated: #1a1a1a;
-    --bg-glass: rgba(20, 20, 20, 0.85);
-    --bg-glass-light: rgba(30, 30, 30, 0.9);
+    /* Dark backgrounds - matching WordPress */
+    --aihub-bg-primary: #0b0f19;
+    --aihub-bg-secondary: #111827;
+    --aihub-bg-card: #1a1f2e;
+    --aihub-bg-hover: #1e2538;
 
-    /* Neon Accents */
-    --accent-primary: #00d4ff;
-    --accent-secondary: #0066ff;
-    --accent-gradient: linear-gradient(135deg, #00d4ff, #0066ff);
-    --accent-purple: #a855f7;
-    --accent-purple-gradient: linear-gradient(135deg, #a855f7, #6366f1);
+    /* Neon accent colors */
+    --aihub-accent-orange: #ff6b35;
+    --aihub-accent-green: #00E676;
+    --aihub-accent-red: #FF5252;
+    --aihub-accent-blue: #58a6ff;
+    --aihub-accent-purple: #a855f7;
+    --aihub-accent-yellow: #FFD700;
+    --aihub-accent-cyan: #38efeb;
 
-    /* Status Colors */
-    --success: #00ff88;
-    --success-dim: rgba(0, 255, 136, 0.15);
-    --danger: #ff4757;
-    --danger-dim: rgba(255, 71, 87, 0.15);
-    --warning: #ffa502;
-    --warning-dim: rgba(255, 165, 2, 0.15);
+    /* Semantic colors */
+    --aihub-success: #22c55e;
+    --aihub-danger: #ef4444;
+    --aihub-warning: #f97316;
+    --aihub-info: #38bdf8;
 
-    /* Text Hierarchy */
-    --text-primary: #ffffff;
-    --text-secondary: rgba(255, 255, 255, 0.7);
-    --text-muted: rgba(255, 255, 255, 0.4);
-    --text-accent: var(--accent-primary);
+    /* Text colors */
+    --aihub-text-primary: #ffffff;
+    --aihub-text-secondary: #a0aec0;
+    --aihub-text-muted: #6b7280;
 
     /* Borders */
-    --border-subtle: rgba(255, 255, 255, 0.06);
-    --border-default: rgba(255, 255, 255, 0.1);
-    --border-accent: rgba(0, 212, 255, 0.3);
+    --aihub-border: rgba(255, 255, 255, 0.08);
+    --aihub-border-light: rgba(255, 255, 255, 0.04);
 
-    /* === SPACING === */
-    --space-xs: 4px;
-    --space-sm: 8px;
-    --space-md: 12px;
-    --space-lg: 16px;
-    --space-xl: 24px;
-    --space-2xl: 32px;
-    --space-3xl: 48px;
+    /* Spacing */
+    --aihub-spacing-xs: 0.25rem;
+    --aihub-spacing-sm: 0.5rem;
+    --aihub-spacing-md: 1rem;
+    --aihub-spacing-lg: 1.5rem;
+    --aihub-spacing-xl: 2rem;
 
-    /* === RADIUS === */
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 20px;
-    --radius-2xl: 24px;
-    --radius-full: 9999px;
+    /* Radius */
+    --aihub-radius-sm: 6px;
+    --aihub-radius-md: 10px;
+    --aihub-radius-lg: 14px;
 
-    /* === TYPOGRAPHY === */
-    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-mono: 'SF Mono', 'Roboto Mono', 'IBM Plex Mono', monospace;
+    /* Transition */
+    --aihub-transition: 200ms ease;
 
-    /* === EFFECTS === */
-    --blur-sm: blur(8px);
-    --blur-md: blur(12px);
-    --blur-lg: blur(20px);
-    --glow-accent: 0 0 20px rgba(0, 212, 255, 0.4);
-    --glow-success: 0 0 20px rgba(0, 255, 136, 0.4);
-    --glow-danger: 0 0 20px rgba(255, 71, 87, 0.4);
-    --glow-purple: 0 0 20px rgba(168, 85, 247, 0.4);
+    /* Font */
+    --aihub-font-mono: 'SF Mono', Monaco, 'Courier New', monospace;
 
-    /* === TRANSITIONS === */
-    --transition-fast: 0.15s ease;
-    --transition-normal: 0.25s ease;
-    --transition-slow: 0.4s ease;
-    --transition-bounce: 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    /* Legacy aliases for components */
+    --bg-primary: var(--aihub-bg-primary);
+    --bg-secondary: var(--aihub-bg-secondary);
+    --bg-card: var(--aihub-bg-card);
+    --bg-elevated: var(--aihub-bg-hover);
+    --border: var(--aihub-border);
+    --border-hover: rgba(56, 239, 235, 0.4);
+    --text-primary: var(--aihub-text-primary);
+    --text-secondary: var(--aihub-text-secondary);
+    --text-muted: var(--aihub-text-muted);
+    --bg-card-hover: var(--aihub-bg-hover);
+    --text-dimmed: rgba(255, 255, 255, 0.3);
 }
 
-/* ===========================================
+/* ============================
    Base Styles
-   =========================================== */
+   ============================ */
 html {
     scroll-behavior: smooth;
 }
 
 body {
-    font-family: var(--font-sans);
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--aihub-bg-primary);
+    color: var(--aihub-text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    line-height: 1.6;
+    font-size: 14px;
+    line-height: 1.5;
 }
 
-/* ===========================================
-   Scrollbar - Premium Style
-   =========================================== */
+/* ============================
+   Scrollbar (WordPress style)
+   ============================ */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--bg-secondary);
+    background: var(--aihub-bg-secondary);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, var(--accent-primary), var(--accent-secondary));
-    border-radius: var(--radius-full);
+    background: rgba(56, 239, 235, 0.3);
+    border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-primary);
+    background: rgba(56, 239, 235, 0.5);
 }
 
-/* ===========================================
-   Glass Card - Glassmorphism Effect
-   =========================================== */
-.glass-card {
-    background: var(--bg-glass);
-    backdrop-filter: var(--blur-md);
-    -webkit-backdrop-filter: var(--blur-md);
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-lg);
-    transition: all var(--transition-normal);
+/* ============================
+   Card Components (from WordPress)
+   ============================ */
+.glass-card,
+.aihub-card {
+    background: var(--aihub-bg-card);
+    border: 1px solid var(--aihub-border);
+    border-radius: var(--aihub-radius-lg);
+    padding: var(--aihub-spacing-lg);
+    transition: var(--aihub-transition);
 }
 
-.glass-card:hover {
-    border-color: var(--border-accent);
-    box-shadow: var(--glow-accent);
+.glass-card:hover,
+.aihub-card:hover {
+    border-color: rgba(56, 239, 235, 0.4);
 }
 
-/* Premium Card */
-.premium-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-xl);
-    padding: var(--space-xl);
-    transition: all var(--transition-normal);
+/* Section Card - Glassmorphism */
+.aihub-section-card {
+    background: linear-gradient(180deg, rgba(26, 31, 46, 0.9), rgba(17, 24, 39, 0.95));
+    border: 1px solid rgba(56, 239, 235, 0.1);
+    border-radius: var(--aihub-radius-lg);
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
 }
 
-.premium-card:hover {
+.aihub-section-card:hover {
+    border-color: rgba(56, 239, 235, 0.3);
+    box-shadow: 0 8px 30px rgba(56, 239, 235, 0.1);
     transform: translateY(-2px);
-    border-color: var(--border-accent);
-    box-shadow: var(--glow-accent);
 }
 
-/* ===========================================
-   Gradient Text
-   =========================================== */
-.gradient-text {
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+/* Stat Card */
+.aihub-stat-card {
+    background: var(--aihub-bg-card);
+    border: 1px solid var(--aihub-border);
+    border-radius: var(--aihub-radius-md);
+    padding: var(--aihub-spacing-lg);
+    transition: var(--aihub-transition);
 }
 
-.gradient-text-purple {
-    background: var(--accent-purple-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+.aihub-stat-card:hover {
+    border-color: var(--aihub-accent-blue);
 }
 
-/* ===========================================
-   Signal Badges - With Glow
-   =========================================== */
+/* ============================
+   Badge Components (from WordPress)
+   ============================ */
+.aihub-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+/* Index/Meta badge */
+.index-badge,
+.tbl-badge,
+.sc-badge,
+.meta-badge {
+    background: rgba(56, 239, 235, 0.15);
+    color: var(--aihub-accent-cyan);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--aihub-font-mono);
+}
+
+/* Change badge */
+.card-change-badge,
+.stat-change {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.card-change-badge.positive,
+.stat-change.positive {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--aihub-success);
+}
+
+.card-change-badge.negative,
+.stat-change.negative {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--aihub-danger);
+}
+
+/* Signal badges */
+.signal-badge,
 .signal-buy,
-.signal-strong-buy {
-    color: var(--success);
-    background: var(--success-dim);
-    padding: 4px 12px;
-    border-radius: var(--radius-full);
-    font-weight: 600;
-    font-size: 12px;
-    text-transform: uppercase;
-}
-
 .signal-sell,
-.signal-strong-sell {
-    color: var(--danger);
-    background: var(--danger-dim);
-    padding: 4px 12px;
-    border-radius: var(--radius-full);
-    font-weight: 600;
-    font-size: 12px;
-    text-transform: uppercase;
-}
-
 .signal-hold {
-    color: var(--warning);
-    background: var(--warning-dim);
-    padding: 4px 12px;
-    border-radius: var(--radius-full);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
     font-weight: 600;
-    font-size: 12px;
     text-transform: uppercase;
 }
 
-/* ===========================================
-   Price Colors - With Optional Glow
-   =========================================== */
-.price-up {
-    color: var(--success);
+.signal-badge.buy,
+.signal-buy {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--aihub-success);
 }
 
-.price-up.glow {
-    text-shadow: var(--glow-success);
+.signal-badge.sell,
+.signal-sell {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--aihub-danger);
 }
 
-.price-down {
-    color: var(--danger);
+.signal-badge.hold,
+.signal-hold {
+    background: rgba(234, 179, 8, 0.15);
+    color: #eab308;
 }
 
-.price-down.glow {
-    text-shadow: var(--glow-danger);
+/* ============================
+   Table Styles (from WordPress)
+   ============================ */
+.aihub-table {
+    width: 100%;
+    border-collapse: collapse;
 }
 
-/* ===========================================
-   Typography Utilities
-   =========================================== */
+.aihub-table th {
+    text-align: left;
+    padding: var(--aihub-spacing-md);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--aihub-text-muted);
+    border-bottom: 1px solid var(--aihub-border);
+    background: var(--aihub-bg-secondary);
+}
+
+.aihub-table td {
+    padding: var(--aihub-spacing-md);
+    border-bottom: 1px solid var(--aihub-border-light);
+}
+
+.aihub-table tbody tr {
+    transition: var(--aihub-transition);
+}
+
+.aihub-table tbody tr:hover {
+    background: rgba(56, 239, 235, 0.03);
+}
+
+/* ============================
+   Gradient Text
+   ============================ */
+.gradient-text {
+    background: linear-gradient(135deg, #38efeb, #9f7aea);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ============================
+   Price Colors
+   ============================ */
+.price-up,
+.positive {
+    color: var(--aihub-accent-green);
+}
+
+.price-down,
+.negative {
+    color: var(--aihub-accent-red);
+}
+
+/* ============================
+   Real-time Flash Effects
+   ============================ */
+@keyframes aihub-flash-up {
+    0% {
+        background-color: rgba(0, 230, 118, 0.5);
+        box-shadow: 0 0 20px rgba(0, 230, 118, 0.6);
+    }
+
+    100% {
+        background-color: transparent;
+        box-shadow: none;
+    }
+}
+
+@keyframes aihub-flash-down {
+    0% {
+        background-color: rgba(255, 82, 82, 0.5);
+        box-shadow: 0 0 20px rgba(255, 82, 82, 0.6);
+    }
+
+    100% {
+        background-color: transparent;
+        box-shadow: none;
+    }
+}
+
+.aihub-flash-up {
+    animation: aihub-flash-up 1.2s ease-out !important;
+    border-left: 3px solid var(--aihub-accent-green) !important;
+}
+
+.aihub-flash-down {
+    animation: aihub-flash-down 1.2s ease-out !important;
+    border-left: 3px solid var(--aihub-accent-red) !important;
+}
+
+/* Live indicator */
+.aihub-live-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--aihub-accent-green);
+    font-weight: 600;
+}
+
+.aihub-live-dot {
+    width: 10px;
+    height: 10px;
+    background: var(--aihub-accent-green);
+    border-radius: 50%;
+    animation: aihub-pulse 1s ease-in-out infinite;
+    box-shadow: 0 0 12px var(--aihub-accent-green);
+}
+
+@keyframes aihub-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
+}
+
+/* ============================
+   Utility Classes
+   ============================ */
 .font-mono {
-    font-family: var(--font-mono);
+    font-family: var(--aihub-font-mono);
 }
 
 .text-accent {
-    color: var(--accent-primary);
+    color: var(--aihub-accent-cyan);
 }
 
 .text-muted {
-    color: var(--text-muted);
+    color: var(--aihub-text-muted);
 }
 
-.text-secondary {
-    color: var(--text-secondary);
+.text-right {
+    text-align: right;
 }
 
-/* ===========================================
-   Button Styles - Premium
-   =========================================== */
-.btn-primary {
-    background: var(--accent-gradient);
-    color: #000;
-    font-weight: 600;
-    padding: var(--space-md) var(--space-xl);
-    border-radius: var(--radius-md);
-    border: none;
-    cursor: pointer;
-    transition: all var(--transition-normal);
-}
-
-.btn-primary:hover {
-    box-shadow: var(--glow-accent);
-    transform: translateY(-1px);
-}
-
-.btn-primary:active {
-    transform: scale(0.98);
-}
-
-.btn-secondary {
-    background: var(--bg-elevated);
-    color: var(--text-primary);
-    border: 1px solid var(--border-default);
-    padding: var(--space-md) var(--space-xl);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    transition: all var(--transition-normal);
-}
-
-.btn-secondary:hover {
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
-}
-
-/* ===========================================
-   Animations
-   =========================================== */
-@keyframes pulse-glow {
-
-    0%,
-    100% {
-        box-shadow: 0 0 5px rgba(0, 212, 255, 0.3);
-    }
-
-    50% {
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
-    }
-}
-
-@keyframes float {
-
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-
-    50% {
-        transform: translateY(-5px);
-    }
-}
-
-@keyframes shimmer {
-    0% {
-        background-position: -200% 0;
-    }
-
-    100% {
-        background-position: 200% 0;
-    }
-}
-
-.animate-pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
-}
-
-.animate-float {
-    animation: float 3s ease-in-out infinite;
-}
-
-/* Loading shimmer */
-.shimmer {
-    background: linear-gradient(90deg,
-            var(--bg-card) 25%,
-            var(--bg-elevated) 50%,
-            var(--bg-card) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
+.text-center {
+    text-align: center;
 }

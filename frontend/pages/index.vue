@@ -2,23 +2,19 @@
   <div class="app-container" :class="{ 'mobile': isMobile }">
     <!-- Mobile Layout -->
     <template v-if="isMobile">
-      <!-- Mobile Header -->
-      <MobileLayout 
-        :activeTab="activeTab" 
-        @update:activeTab="activeTab = $event"
+      <MobileDashboard 
+        v-if="activeTab === 'dashboard'"
+        :activeTab="activeTab"
+        :alertCount="alertCount"
+        @setTab="activeTab = $event"
         @openSearch="showSearch = true"
       />
-      
-      <!-- Mobile Content -->
-      <main class="mobile-main">
-        <MobileDashboard v-if="activeTab === 'dashboard'" />
-        <MobileMarket v-else-if="activeTab === 'market'" />
-        <MobileAnalysis v-else-if="activeTab === 'analysis'" />
-        <MobilePortfolio v-else-if="activeTab === 'portfolio'" />
-        <MobileAlerts v-else-if="activeTab === 'alerts'" />
-        <MobileOnChain v-else-if="activeTab === 'onchain'" />
-        <MobileAIChat v-else-if="activeTab === 'aichat'" />
-      </main>
+      <MobileMarket v-else-if="activeTab === 'market'" />
+      <MobileAnalysis v-else-if="activeTab === 'analysis'" />
+      <MobilePortfolio v-else-if="activeTab === 'portfolio'" />
+      <MobileAlerts v-else-if="activeTab === 'alerts'" />
+      <MobileAIChat v-else-if="activeTab === 'aichat'" />
+      <MobileNews v-else-if="activeTab === 'news'" />
       
       <!-- Mobile Search Overlay -->
       <MobileSearch :isOpen="showSearch" @close="showSearch = false" @select="onCoinSelect" />
@@ -48,6 +44,7 @@ const { isMobile } = useDevice()
 // Mobile state
 const activeTab = ref('dashboard')
 const showSearch = ref(false)
+const alertCount = ref(3)
 
 // SEO
 useSeoMeta({
