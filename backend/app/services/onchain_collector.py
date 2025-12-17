@@ -1,35 +1,117 @@
 """
-On-Chain Data Collector Service for AI Hub
-Collects whale transactions, DAU, and top holder data from Etherscan V2 API
+On-Chain Data Collector Service for AI Hub - OPTIMIZED VERSION
+Production-grade, high-accuracy signal engine using FREE APIs (Etherscan/BscScan)
+
+FEATURES:
+- Dynamic chain configuration with block times
+- Built-in exchange addresses with DB fallback
+- Exponential backoff retry for rate limits
+- Smart money filtering (exclude bridges/exchanges)
+- Historical data seeding for cold start
 """
 import asyncio
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Set
 from datetime import datetime, timedelta
 from decimal import Decimal
 import httpx
 
 logger = logging.getLogger(__name__)
 
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+
 # Etherscan V2 unified endpoint
 ETHERSCAN_V2_BASE = "https://api.etherscan.io/v2/api"
 
-# Whale threshold in USD
-WHALE_THRESHOLD_USD = 100_000
+# Chain-specific configuration
+CHAIN_CONFIG = {
+    1:     {'slug': 'ethereum',  'block_time': 12,   'whale_threshold': 100000, 'native_decimals': 18},
+    56:    {'slug': 'bsc',       'block_time': 3,    'whale_threshold': 50000,  'native_decimals': 18},
+    137:   {'slug': 'polygon',   'block_time': 2,    'whale_threshold': 25000,  'native_decimals': 18},
+    42161: {'slug': 'arbitrum',  'block_time': 0.26, 'whale_threshold': 50000,  'native_decimals': 18},
+    10:    {'slug': 'optimism',  'block_time': 2,    'whale_threshold': 30000,  'native_decimals': 18},
+    43114: {'slug': 'avalanche', 'block_time': 2,    'whale_threshold': 30000,  'native_decimals': 18},
+    8453:  {'slug': 'base',      'block_time': 2,    'whale_threshold': 30000,  'native_decimals': 18},
+    250:   {'slug': 'fantom',    'block_time': 1,    'whale_threshold': 20000,  'native_decimals': 18},
+    25:    {'slug': 'cronos',    'block_time': 5.8,  'whale_threshold': 20000,  'native_decimals': 18},
+    324:   {'slug': 'zksync',    'block_time': 1,    'whale_threshold': 30000,  'native_decimals': 18},
+}
 
-# Known exchange addresses (loaded from DB at runtime)
+# Built-in known exchange hot wallet addresses (fallback when DB is empty)
+KNOWN_EXCHANGES = {
+    # Binance Hot Wallets
+    '0x28c6c06298d514db089934071355e5743bf21d60': {'label': 'Binance Hot 14', 'exchange': 'Binance', 'is_deposit': False},
+    '0x21a31ee1afc51d94c2efccaa2092ad1028285549': {'label': 'Binance 20', 'exchange': 'Binance', 'is_deposit': False},
+    '0xdfd5293d8e347dfe59e90efd55b2956a1343963d': {'label': 'Binance 8', 'exchange': 'Binance', 'is_deposit': False},
+    '0x56eddb7aa87536c09ccc2793473599fd21a8b17f': {'label': 'Binance 16', 'exchange': 'Binance', 'is_deposit': False},
+    '0x9696f59e4d72e237be84ffd425dcad154bf96976': {'label': 'Binance 18', 'exchange': 'Binance', 'is_deposit': False},
+    
+    # Coinbase
+    '0x503828976d22510aad0201ac7ec88293211d23da': {'label': 'Coinbase 2', 'exchange': 'Coinbase', 'is_deposit': False},
+    '0x71660c4005ba85c37ccec55d0c4493e66fe775d3': {'label': 'Coinbase 3', 'exchange': 'Coinbase', 'is_deposit': False},
+    '0xddfabcdc4d8ffc6d5beaf154f18b778f892a0740': {'label': 'Coinbase 4', 'exchange': 'Coinbase', 'is_deposit': False},
+    
+    # OKX (OKEx)
+    '0x6cc5f688a315f3dc28a7781717a9a798a59fda7b': {'label': 'OKX', 'exchange': 'OKX', 'is_deposit': False},
+    '0x236f9f97e0e62388479bf9e5ba4889e46b0273c3': {'label': 'OKX 2', 'exchange': 'OKX', 'is_deposit': False},
+    '0xa7efae728d2936e78bda97dc267687568dd593f3': {'label': 'OKX 3', 'exchange': 'OKX', 'is_deposit': False},
+    
+    # Kraken
+    '0x2910543af39aba0cd09dbb2d50200b3e800a63d2': {'label': 'Kraken 4', 'exchange': 'Kraken', 'is_deposit': False},
+    '0x0a869d79a7052c7f1b55a8ebabbea3420f0d1e13': {'label': 'Kraken 6', 'exchange': 'Kraken', 'is_deposit': False},
+    
+    # Bybit
+    '0xf89d7b9c864f589bbf53a82105107622b35eaa40': {'label': 'Bybit', 'exchange': 'Bybit', 'is_deposit': False},
+    '0x1db92e2eebc8e0c075a02bea49a2935bcd2dfcf4': {'label': 'Bybit 2', 'exchange': 'Bybit', 'is_deposit': False},
+    
+    # KuCoin
+    '0x2b5634c42055806a59e9107ed44d43c426e58258': {'label': 'KuCoin', 'exchange': 'KuCoin', 'is_deposit': False},
+    '0x689c56aef474df92d44a1b70850f808488f9769c': {'label': 'KuCoin 2', 'exchange': 'KuCoin', 'is_deposit': False},
+    
+    # Huobi/HTX
+    '0x5401dbf7da53e1c9dbf484e3d69505815f2f5e6e': {'label': 'HTX', 'exchange': 'HTX', 'is_deposit': False},
+    '0xecd0d12e21805553f6287c3d8e28dc27e8e37a8a': {'label': 'HTX 2', 'exchange': 'HTX', 'is_deposit': False},
+    
+    # Gate.io
+    '0x0d0707963952f2fba59dd06f2b425ace40b492fe': {'label': 'Gate.io', 'exchange': 'Gate.io', 'is_deposit': False},
+    '0x1c4b70a3968436b9a0a9cf5205c787eb81bb558c': {'label': 'Gate.io 2', 'exchange': 'Gate.io', 'is_deposit': False},
+}
+
+# Null/burn addresses to exclude
+NULL_ADDRESSES = {
+    '0x0000000000000000000000000000000000000000',
+    '0x000000000000000000000000000000000000dead',
+    '0xdead000000000000000000000000000000000000',
+}
+
+# Known bridge/protocol addresses to exclude from "smart money"
+KNOWN_BRIDGES = {
+    '0x40ec5b33f54e0e8a33a975908c5ba1c14e5bbbdf': 'Polygon Bridge',
+    '0xa3a7b6f88361f48403514059f1f16c8e78d60eec': 'Arbitrum Bridge',
+    '0x99c9fc46f92e8a1c0dec1b1747d010903e884be1': 'Optimism Bridge',
+}
+
+# Known staking contracts to exclude
+KNOWN_STAKING = {
+    '0x00000000219ab540356cbb839cbe05303d7705fa': 'ETH 2.0 Deposit Contract',
+}
+
+# Runtime storage for exchange addresses (DB + fallback merged)
 EXCHANGE_ADDRESSES: Dict[str, Dict] = {}
 
 
 class OnChainCollector:
     """
-    Collector service for on-chain data:
+    Production-grade collector service for on-chain data:
     - Whale transactions (>$100K)
     - Daily Active Addresses (DAU)
-    - Top holder tracking
+    - Top holder tracking (filtered for smart money only)
     """
     
     REQUEST_DELAY = 0.25  # 4 requests/sec for Etherscan free tier
+    MAX_RETRIES = 3       # Retry with exponential backoff
     
     def __init__(self, db_service, api_key: str = None):
         """
@@ -43,6 +125,7 @@ class OnChainCollector:
         self.api_key = api_key or ""
         self._last_request = 0
         self._client = None
+        self._contract_cache: Dict[str, bool] = {}  # Cache for is_contract checks
         
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client"""
@@ -62,53 +145,86 @@ class OnChainCollector:
         self,
         chain_id: int,
         params: Dict[str, Any],
+        max_retries: int = None,
     ) -> Optional[Dict]:
         """
-        Make request to Etherscan V2 unified API
+        Make request to Etherscan V2 unified API with exponential backoff retry
         
         Args:
             chain_id: Chain ID (1 for ETH, 56 for BSC, etc.)
             params: API parameters
+            max_retries: Override default max retries
             
         Returns:
             API response or None on error
         """
-        await self._rate_limit()
+        retries = max_retries or self.MAX_RETRIES
         
-        try:
-            client = await self._get_client()
+        for attempt in range(retries):
+            await self._rate_limit()
             
-            # Build params with chainid and apikey
-            # Etherscan V2 requires chainid as a parameter
-            params["chainid"] = chain_id
-            params["apikey"] = self.api_key
-            
-            # Use base URL without query string
-            url = ETHERSCAN_V2_BASE
-            
-            response = await client.get(url, params=params)
-            response.raise_for_status()
-            
-            data = response.json()
-            
-            # Check for success - Etherscan V2 uses different response format
-            if data.get("status") == "1":
-                return data
-            elif data.get("result") and isinstance(data.get("result"), list):
-                # Some endpoints return result directly without status
-                return data
-            else:
-                error_msg = data.get("message") or data.get("result") or "Unknown error"
-                logger.warning(f"Etherscan error for chain {chain_id}: {error_msg}")
-                return None
+            try:
+                client = await self._get_client()
                 
-        except Exception as e:
-            logger.error(f"Etherscan request failed: {e}")
-            return None
-            
+                # Build params with chainid and apikey
+                params["chainid"] = chain_id
+                params["apikey"] = self.api_key
+                
+                url = ETHERSCAN_V2_BASE
+                response = await client.get(url, params=params)
+                
+                # Handle rate limiting with exponential backoff
+                if response.status_code == 429:
+                    wait_time = 2 ** attempt  # 1s, 2s, 4s
+                    logger.warning(f"Rate limited, waiting {wait_time}s (attempt {attempt + 1}/{retries})")
+                    await asyncio.sleep(wait_time)
+                    continue
+                    
+                # Handle server errors with retry
+                if response.status_code >= 500:
+                    wait_time = 2 ** attempt
+                    logger.warning(f"Server error {response.status_code}, waiting {wait_time}s")
+                    await asyncio.sleep(wait_time)
+                    continue
+                    
+                response.raise_for_status()
+                data = response.json()
+                
+                # Check for success
+                if data.get("status") == "1":
+                    return data
+                elif data.get("result") and isinstance(data.get("result"), list):
+                    return data
+                else:
+                    error_msg = data.get("message") or data.get("result") or "Unknown error"
+                    # Don't retry on "No transactions found" type errors
+                    if "No transactions" in str(error_msg) or "No records" in str(error_msg):
+                        return data  # Return empty result, not error
+                    logger.warning(f"Etherscan error for chain {chain_id}: {error_msg}")
+                    return None
+                    
+            except httpx.TimeoutException:
+                wait_time = 2 ** attempt
+                logger.warning(f"Timeout, waiting {wait_time}s (attempt {attempt + 1}/{retries})")
+                await asyncio.sleep(wait_time)
+                continue
+                
+            except Exception as e:
+                if attempt < retries - 1:
+                    wait_time = 2 ** attempt
+                    logger.warning(f"Request failed: {e}, retrying in {wait_time}s")
+                    await asyncio.sleep(wait_time)
+                else:
+                    logger.error(f"Etherscan request failed after {retries} attempts: {e}")
+                    
+        return None
+        
     async def load_exchange_addresses(self):
-        """Load known exchange addresses from database"""
+        """Load known exchange addresses from database and merge with built-in fallback"""
         global EXCHANGE_ADDRESSES
+        
+        # Start with built-in addresses as fallback
+        EXCHANGE_ADDRESSES = {k.lower(): v for k, v in KNOWN_EXCHANGES.items()}
         
         try:
             query = """
@@ -118,6 +234,7 @@ class OnChainCollector:
             """
             rows = await self.db.fetch_all(query)
             
+            # Merge DB addresses (DB takes precedence)
             for row in rows:
                 addr = row['address'].lower()
                 EXCHANGE_ADDRESSES[addr] = {
@@ -126,14 +243,91 @@ class OnChainCollector:
                     'is_deposit': row['is_deposit'],
                 }
                 
-            logger.info(f"Loaded {len(EXCHANGE_ADDRESSES)} known exchange addresses")
+            logger.info(f"Loaded {len(EXCHANGE_ADDRESSES)} known exchange addresses (DB + fallback)")
             
         except Exception as e:
-            logger.error(f"Failed to load exchange addresses: {e}")
+            logger.warning(f"Failed to load DB exchange addresses (using fallback): {e}")
+            logger.info(f"Using {len(EXCHANGE_ADDRESSES)} built-in exchange addresses")
             
     def _is_exchange_address(self, address: str) -> Optional[Dict]:
         """Check if address is a known exchange wallet"""
         return EXCHANGE_ADDRESSES.get(address.lower())
+        
+    def _is_excluded_address(self, address: str, contract_address: str = None) -> bool:
+        """Check if address should be excluded from smart money analysis"""
+        addr = address.lower()
+        
+        # Null/burn addresses
+        if addr in NULL_ADDRESSES:
+            return True
+            
+        # Contract itself
+        if contract_address and addr == contract_address.lower():
+            return True
+            
+        # Exchange addresses
+        if self._is_exchange_address(addr):
+            return True
+            
+        # Known bridges
+        if addr in KNOWN_BRIDGES:
+            return True
+            
+        # Known staking contracts
+        if addr in KNOWN_STAKING:
+            return True
+            
+        return False
+        
+    async def _is_contract(self, chain_id: int, address: str) -> bool:
+        """
+        Check if address is a contract using Etherscan getcode API
+        
+        Args:
+            chain_id: Chain ID
+            address: Address to check
+            
+        Returns:
+            True if address is a contract
+        """
+        addr = address.lower()
+        
+        # Check cache first
+        cache_key = f"{chain_id}:{addr}"
+        if cache_key in self._contract_cache:
+            return self._contract_cache[cache_key]
+            
+        try:
+            params = {
+                "module": "proxy",
+                "action": "eth_getCode",
+                "address": address,
+                "tag": "latest",
+            }
+            
+            response = await self._etherscan_request(chain_id, params, max_retries=1)
+            
+            if response and response.get("result"):
+                code = response["result"]
+                is_contract = code != "0x" and len(code) > 2
+                self._contract_cache[cache_key] = is_contract
+                return is_contract
+                
+        except Exception as e:
+            logger.debug(f"Failed to check if {address} is contract: {e}")
+            
+        return False
+        
+    def _get_blocks_per_hour(self, chain_id: int) -> int:
+        """Calculate blocks per hour for a specific chain"""
+        config = CHAIN_CONFIG.get(chain_id, {'block_time': 12})
+        block_time = config['block_time']
+        return int(3600 / block_time)
+        
+    def _get_whale_threshold(self, chain_id: int) -> int:
+        """Get whale threshold for a specific chain"""
+        config = CHAIN_CONFIG.get(chain_id, {'whale_threshold': 100000})
+        return config['whale_threshold']
         
     async def collect_whale_transactions(
         self,
@@ -146,10 +340,10 @@ class OnChainCollector:
         hours_back: int = 24,
     ) -> List[Dict]:
         """
-        Collect whale transactions (>$100K) for a token
+        Collect whale transactions (>threshold) for a token
         
         Uses Etherscan tokentx API to get ERC20 transfers
-        Filters by USD value threshold
+        Filters by USD value threshold (dynamic per chain)
         
         Args:
             coin_id: Coin identifier (e.g., 'ethereum')
@@ -164,13 +358,9 @@ class OnChainCollector:
             List of whale transactions
         """
         whale_txs = []
+        whale_threshold = self._get_whale_threshold(chain_id)
         
         try:
-            # Calculate block range (approximate)
-            # ETH: ~12 sec/block, BSC: ~3 sec/block
-            blocks_per_hour = 300 if chain_id == 1 else 1200
-            start_block = 'latest'  # Will paginate backwards
-            
             params = {
                 "module": "account",
                 "action": "tokentx",
@@ -199,8 +389,8 @@ class OnChainCollector:
                 token_value = raw_value / (10 ** token_decimals)
                 usd_value = token_value * token_price_usd
                 
-                # Filter by whale threshold
-                if usd_value >= WHALE_THRESHOLD_USD:
+                # Filter by whale threshold (dynamic per chain)
+                if usd_value >= whale_threshold:
                     from_addr = tx.get("from", "").lower()
                     to_addr = tx.get("to", "").lower()
                     
@@ -235,7 +425,7 @@ class OnChainCollector:
                     
                     whale_txs.append(whale_tx)
                     
-            logger.info(f"Found {len(whale_txs)} whale transactions for {coin_id}")
+            logger.info(f"Found {len(whale_txs)} whale transactions for {coin_id} (threshold: ${whale_threshold:,})")
             
         except Exception as e:
             logger.error(f"Failed to collect whale txs for {coin_id}: {e}")
@@ -265,6 +455,7 @@ class OnChainCollector:
             List of whale transactions
         """
         whale_txs = []
+        whale_threshold = self._get_whale_threshold(chain_id)
         
         if not self.api_key or native_price_usd <= 0:
             logger.warning(f"Cannot collect native whale txs: missing API key or price")
@@ -272,7 +463,6 @@ class OnChainCollector:
             
         try:
             # For native tokens, we look at large transfers to/from known exchange addresses
-            # We'll query multiple exchange addresses
             exchange_addrs = list(EXCHANGE_ADDRESSES.keys())[:10]  # Top 10 exchanges
             
             cutoff_timestamp = datetime.utcnow() - timedelta(hours=hours_back)
@@ -281,13 +471,12 @@ class OnChainCollector:
                 if not exchange_addr:
                     continue
                     
-                # Get transactions for this exchange address
                 params = {
                     "module": "account",
                     "action": "txlist",
                     "address": exchange_addr,
                     "page": 1,
-                    "offset": 50,  # Limit per exchange
+                    "offset": 50,
                     "sort": "desc",
                 }
                 
@@ -301,23 +490,20 @@ class OnChainCollector:
                     if tx.get("isError") == "1":
                         continue
                         
-                    # Parse timestamp
                     tx_time = datetime.fromtimestamp(int(tx.get("timeStamp", 0)))
                     
                     if tx_time < cutoff_timestamp:
-                        break  # Stop if older than cutoff
+                        break
                         
-                    # Calculate value in USD (native token value is in wei)
+                    # Calculate value in USD
                     raw_value = int(tx.get("value", 0))
-                    native_value = raw_value / (10 ** 18)  # Native tokens use 18 decimals
+                    native_value = raw_value / (10 ** 18)
                     usd_value = native_value * native_price_usd
                     
-                    # Filter by whale threshold
-                    if usd_value >= WHALE_THRESHOLD_USD:
+                    if usd_value >= whale_threshold:
                         from_addr = tx.get("from", "").lower()
                         to_addr = tx.get("to", "").lower()
                         
-                        # Classify transaction
                         from_exchange = self._is_exchange_address(from_addr)
                         to_exchange = self._is_exchange_address(to_addr)
                         
@@ -340,7 +526,7 @@ class OnChainCollector:
                             "value_usd": round(usd_value, 2),
                             "value_native": native_value,
                             "tx_type": tx_type,
-                            "is_exchange_related": True,  # Always true for exchange-focused queries
+                            "is_exchange_related": True,
                             "exchange_name": exchange_name,
                             "block_number": int(tx.get("blockNumber", 0)),
                             "tx_timestamp": tx_time,
@@ -416,7 +602,6 @@ class OnChainCollector:
             Dict with whale signals
         """
         try:
-            # Get whale tx count for current period
             query_current = """
                 SELECT 
                     COUNT(*) as tx_count,
@@ -429,7 +614,6 @@ class OnChainCollector:
             
             current = await self.db.fetch_one(query_current, coin_id)
             
-            # Get previous period for comparison
             query_prev = """
                 SELECT COUNT(*) as tx_count
                 FROM whale_transactions
@@ -444,7 +628,7 @@ class OnChainCollector:
             tx_count_prev = prev['tx_count'] if prev else 0
             inflow = float(current['inflow']) if current else 0
             outflow = float(current['outflow']) if current else 0
-            net_flow = inflow - outflow  # Positive = bearish (more going to exchanges)
+            net_flow = inflow - outflow
             
             # Calculate change percentage
             if tx_count_prev > 0:
@@ -518,7 +702,6 @@ class OnChainCollector:
                 return {"active_addresses": 0, "tx_count": 0}
                 
             today = datetime.utcnow().date()
-            today_start = datetime.combine(today, datetime.min.time())
             
             unique_addresses = set()
             tx_count = 0
@@ -542,7 +725,6 @@ class OnChainCollector:
                 "tx_count": tx_count,
             }
             
-            # Save to database
             await self._save_dau_snapshot(dau_data)
             
             return dau_data
@@ -588,7 +770,6 @@ class OnChainCollector:
             DAU signals dict
         """
         try:
-            # Get last 7 days of DAU data
             query = """
                 SELECT date, active_addresses
                 FROM daily_active_addresses
@@ -614,7 +795,6 @@ class OnChainCollector:
             dau_3d_ago = rows[2]['active_addresses'] if len(rows) > 2 else dau_current
             dau_7d_ago = rows[-1]['active_addresses'] if len(rows) >= 7 else dau_current
             
-            # Calculate changes
             def calc_change(current, prev):
                 if prev > 0:
                     return ((current - prev) / prev) * 100
@@ -624,10 +804,8 @@ class OnChainCollector:
             change_3d = calc_change(dau_current, dau_3d_ago)
             change_7d = calc_change(dau_current, dau_7d_ago)
             
-            # Calculate 7-day average
             dau_avg_7d = sum(r['active_addresses'] for r in rows) / len(rows)
             
-            # Determine trend
             if change_3d > 10:
                 trend = "GROWING"
                 signal = "BULLISH"
@@ -667,8 +845,7 @@ class OnChainCollector:
     ) -> List[Dict]:
         """
         Collect top token holders using Etherscan token holder API
-        
-        Note: This API may require paid tier for some chains
+        FILTERED: Excludes exchanges, bridges, null addresses (smart money only)
         
         Args:
             coin_id: Coin identifier
@@ -678,17 +855,15 @@ class OnChainCollector:
             limit: Number of holders to fetch
             
         Returns:
-            List of top holders
+            List of top holders (smart money only)
         """
         try:
-            # Etherscan doesn't have direct top holders API for all tokens
-            # We'll use TokenHolderList for verified tokens
             params = {
                 "module": "token",
                 "action": "tokenholderlist",
                 "contractaddress": contract_address,
                 "page": 1,
-                "offset": min(limit, 100),
+                "offset": min(limit * 2, 200),  # Fetch extra to account for filtered addresses
             }
             
             response = await self._etherscan_request(chain_id, params)
@@ -698,14 +873,27 @@ class OnChainCollector:
                 return []
                 
             holders = []
-            for idx, holder in enumerate(response.get("result", []), 1):
+            rank = 1
+            
+            for holder in response.get("result", []):
+                addr = holder.get("TokenHolderAddress", "").lower()
+                
+                # SMART MONEY FILTER: Skip excluded addresses
+                if self._is_excluded_address(addr, contract_address):
+                    continue
+                    
                 holders.append({
-                    "rank": idx,
-                    "address": holder.get("TokenHolderAddress", ""),
+                    "rank": rank,
+                    "address": addr,
                     "balance": holder.get("TokenHolderQuantity", "0"),
                     "pct": 0,  # Would need total supply calculation
                 })
+                rank += 1
                 
+                if rank > limit:
+                    break
+                    
+            logger.info(f"Found {len(holders)} smart money holders for {coin_id} (filtered from {len(response.get('result', []))})")
             return holders
             
         except Exception as e:
@@ -726,7 +914,6 @@ class OnChainCollector:
             Holder signals dict
         """
         try:
-            # Get latest and 7-day-ago snapshots
             query = """
                 SELECT snapshot_date, top10_total_balance, top10_pct_of_supply
                 FROM top_holder_snapshots
@@ -740,7 +927,7 @@ class OnChainCollector:
             if not rows or len(rows) < 2:
                 return {
                     "top10_change_pct": 0,
-                    "accumulation_score": 50,  # Neutral
+                    "accumulation_score": 50,
                     "holder_signal": "NEUTRAL",
                 }
                 
@@ -752,9 +939,6 @@ class OnChainCollector:
             else:
                 change_pct = 0
                 
-            # Calculate accumulation score (0-100)
-            # >5% accumulation = 80+
-            # Distribution = <20
             if change_pct > 5:
                 score = min(100, 80 + change_pct)
                 signal = "BULLISH"
@@ -837,9 +1021,8 @@ class OnChainCollector:
         score = weighted_sum / total_weight
         
         # Convert to probability (0-100%)
-        bullish_prob = (score + 1) * 50  # Maps -1..1 to 0..100
+        bullish_prob = (score + 1) * 50
         
-        # Determine overall signal
         if score > 0.3:
             overall = "BULLISH"
         elif score < -0.3:
@@ -852,6 +1035,100 @@ class OnChainCollector:
             "bullish_probability": round(bullish_prob, 2),
             "confidence_score": round(abs(score) * 100, 2),
         }
+        
+    async def seed_historical_data(
+        self,
+        coin_id: str,
+        chain_slug: str,
+        chain_id: int,
+        contract_address: str,
+        days: int = 7,
+    ) -> Dict[str, Any]:
+        """
+        Seed historical data for a new coin to solve cold start problem
+        
+        This creates 7 days of estimated DAU snapshots based on available data,
+        ensuring the dashboard shows trends immediately
+        
+        Args:
+            coin_id: Coin identifier
+            chain_slug: Chain slug
+            chain_id: Chain ID
+            contract_address: Token contract address
+            days: Number of days to backfill (default 7)
+            
+        Returns:
+            Summary of seeded data
+        """
+        logger.info(f"Seeding {days} days of historical data for {coin_id}")
+        
+        seeded = {
+            "coin_id": coin_id,
+            "days_seeded": 0,
+            "dau_snapshots": [],
+        }
+        
+        try:
+            # Get recent transactions to estimate historical activity
+            params = {
+                "module": "account",
+                "action": "tokentx",
+                "contractaddress": contract_address,
+                "page": 1,
+                "offset": 1000,  # Fetch more for historical estimation
+                "sort": "desc",
+            }
+            
+            response = await self._etherscan_request(chain_id, params)
+            
+            if not response or not response.get("result"):
+                logger.warning(f"No transaction data for seeding {coin_id}")
+                return seeded
+                
+            txs = response.get("result", [])
+            
+            # Group transactions by date
+            daily_addresses: Dict[str, Set[str]] = {}
+            daily_tx_count: Dict[str, int] = {}
+            
+            for tx in txs:
+                tx_time = datetime.fromtimestamp(int(tx.get("timeStamp", 0)))
+                date_str = tx_time.date().isoformat()
+                
+                if date_str not in daily_addresses:
+                    daily_addresses[date_str] = set()
+                    daily_tx_count[date_str] = 0
+                    
+                daily_addresses[date_str].add(tx.get("from", "").lower())
+                daily_addresses[date_str].add(tx.get("to", "").lower())
+                daily_tx_count[date_str] += 1
+                
+            # Insert snapshots for each day with data
+            for date_str, addresses in daily_addresses.items():
+                addresses.discard("")  # Remove empty
+                
+                dau_data = {
+                    "coin_id": coin_id,
+                    "chain_slug": chain_slug,
+                    "date": datetime.fromisoformat(date_str).date(),
+                    "active_addresses": len(addresses),
+                    "tx_count": daily_tx_count[date_str],
+                }
+                
+                await self._save_dau_snapshot(dau_data)
+                seeded["dau_snapshots"].append({
+                    "date": date_str,
+                    "dau": len(addresses),
+                    "tx_count": daily_tx_count[date_str],
+                })
+                seeded["days_seeded"] += 1
+                
+            logger.info(f"Seeded {seeded['days_seeded']} days of data for {coin_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to seed historical data for {coin_id}: {e}")
+            
+        return seeded
         
     async def collect_and_analyze(
         self,
@@ -878,7 +1155,6 @@ class OnChainCollector:
         """
         logger.info(f"Collecting on-chain data for {coin_id}")
         
-        # Initialize with defaults
         result = {
             "coin_id": coin_id,
             "whale_signals": {},
@@ -894,14 +1170,12 @@ class OnChainCollector:
                 
             # Collect whale transactions
             if contract_address and token_price_usd > 0:
-                # ERC20 token - use tokentx API
                 whale_txs = await self.collect_whale_transactions(
                     coin_id, chain_slug, chain_id, contract_address,
                     token_price_usd, token_decimals
                 )
                 await self.save_whale_transactions(whale_txs)
             elif token_price_usd > 0:
-                # Native token (ETH, BNB) - use txlist API
                 whale_txs = await self.collect_native_whale_transactions(
                     coin_id, chain_slug, chain_id, token_price_usd
                 )
