@@ -219,7 +219,7 @@ class DatabaseService:
             return []
     
     def get_coin_sentiment(self, coin_id: str) -> Optional[Dict[str, Any]]:
-        """Get sentiment data for a specific coin"""
+        """Get sentiment data for a specific coin (by coin_id or symbol)"""
         query = text("""
             SELECT 
                 c.coin_id,
@@ -232,7 +232,8 @@ class DatabaseService:
                 s.analyzed_at
             FROM aihub_coins c
             LEFT JOIN aihub_sentiment s ON UPPER(c.symbol) = UPPER(s.symbol)
-            WHERE c.coin_id = :coin_id
+            WHERE c.coin_id = :coin_id 
+               OR UPPER(c.symbol) = UPPER(:coin_id)
             LIMIT 1
         """)
         

@@ -424,7 +424,7 @@ class MultiSourceFetcher:
         """Merge data from all sources and save to DB"""
         from sqlalchemy import text
         
-        stats = {"total": 0, "saved": 0, "updated": 0}
+        stats = {"total": 0, "saved": 0, "updated": 0, "source": "none"}
         
         # Primary: CoinGecko (most complete data)
         coins_map = {}
@@ -450,6 +450,34 @@ class MultiSourceFetcher:
                     "source": "coingecko",
                 }
         
+        # FALLBACK: If CoinGecko failed, use Binance data directly
+        if len(coins_map) == 0:
+            logger.warning("CoinGecko returned 0 items, using Binance as fallback")
+            
+            for ticker in data.get("binance", []):
+                symbol = ticker.get("symbol", "")
+                if symbol.endswith("USDT"):
+                    base = symbol[:-4].upper()
+                    price = float(ticker.get("lastPrice", 0) or 0)
+                    if price > 0:
+                        coins_map[base.lower()] = {
+                            "coin_id": base.lower(),
+                            "symbol": base,
+                            "name": base,
+                            "image": "",
+                            "current_price": price,
+                            "market_cap": 0,
+                            "market_cap_rank": 0,
+                            "price_change_percentage_24h": float(ticker.get("priceChangePercent", 0) or 0),
+                            "total_volume": float(ticker.get("quoteVolume", 0) or 0),
+                            "high_24h": float(ticker.get("highPrice", 0) or 0),
+                            "low_24h": float(ticker.get("lowPrice", 0) or 0),
+                            "source": "binance",
+                        }
+            stats["source"] = "binance_fallback"
+        else:
+            stats["source"] = "coingecko"
+        
         # Enrich with Binance real-time prices
         binance_map = {}
         for ticker in data.get("binance", []):
@@ -457,9 +485,9 @@ class MultiSourceFetcher:
             if symbol.endswith("USDT"):
                 base = symbol[:-4]
                 binance_map[base] = {
-                    "price": float(ticker.get("lastPrice", 0)),
-                    "volume": float(ticker.get("volume", 0)),
-                    "change_24h": float(ticker.get("priceChangePercent", 0)),
+                    "price": float(ticker.get("lastPrice", 0) or 0),
+                    "volume": float(ticker.get("volume", 0) or 0),
+                    "change_24h": float(ticker.get("priceChangePercent", 0) or 0),
                 }
         
         # Update prices from Binance (more real-time)
@@ -470,13 +498,17 @@ class MultiSourceFetcher:
                 # Only update if Binance has valid data
                 if binance_data["price"] > 0:
                     coin_data["current_price"] = binance_data["price"]
-                    coin_data["source"] = "binance+coingecko"
+                    if coin_data.get("source") == "coingecko":
+                        coin_data["source"] = "binance+coingecko"
         
         stats["total"] = len(coins_map)
         
+        # Skip save if no data (preserve existing DB records)
+        if stats["total"] == 0:
+            logger.warning("No data to save, skipping to preserve existing records")
+            return stats
+        
         # Batch insert/update - matching existing schema
-        # Schema: symbol (UNIQUE), name, image_url, price, change_24h, volume_24h, 
-        #         market_cap, rank, high_24h, low_24h, coin_id
         query = text("""
             INSERT INTO aihub_coins (
                 symbol, name, image_url, price, change_24h, volume_24h,
@@ -486,16 +518,16 @@ class MultiSourceFetcher:
                 :market_cap, :rank, :high_24h, :low_24h, :coin_id, :last_updated
             )
             ON CONFLICT (symbol) DO UPDATE SET
-                name = EXCLUDED.name,
-                image_url = EXCLUDED.image_url,
+                name = COALESCE(NULLIF(EXCLUDED.name, ''), aihub_coins.name),
+                image_url = COALESCE(NULLIF(EXCLUDED.image_url, ''), aihub_coins.image_url),
                 price = EXCLUDED.price,
                 change_24h = EXCLUDED.change_24h,
                 volume_24h = EXCLUDED.volume_24h,
-                market_cap = EXCLUDED.market_cap,
-                rank = EXCLUDED.rank,
+                market_cap = CASE WHEN EXCLUDED.market_cap > 0 THEN EXCLUDED.market_cap ELSE aihub_coins.market_cap END,
+                rank = CASE WHEN EXCLUDED.rank > 0 THEN EXCLUDED.rank ELSE aihub_coins.rank END,
                 high_24h = EXCLUDED.high_24h,
                 low_24h = EXCLUDED.low_24h,
-                coin_id = EXCLUDED.coin_id,
+                coin_id = COALESCE(NULLIF(EXCLUDED.coin_id, ''), aihub_coins.coin_id),
                 last_updated = EXCLUDED.last_updated
         """)
         
@@ -507,13 +539,13 @@ class MultiSourceFetcher:
                         "symbol": coin_data.get("symbol", "").upper(),
                         "name": coin_data.get("name", ""),
                         "image_url": coin_data.get("image", ""),
-                        "price": coin_data.get("current_price", 0),
-                        "change_24h": coin_data.get("price_change_percentage_24h", 0),
-                        "volume_24h": coin_data.get("total_volume", 0),
-                        "market_cap": coin_data.get("market_cap", 0),
-                        "rank": coin_data.get("market_cap_rank", 0),
-                        "high_24h": coin_data.get("high_24h", 0),
-                        "low_24h": coin_data.get("low_24h", 0),
+                        "price": coin_data.get("current_price", 0) or 0,
+                        "change_24h": coin_data.get("price_change_percentage_24h", 0) or 0,
+                        "volume_24h": coin_data.get("total_volume", 0) or 0,
+                        "market_cap": coin_data.get("market_cap", 0) or 0,
+                        "rank": coin_data.get("market_cap_rank", 0) or 0,
+                        "high_24h": coin_data.get("high_24h", 0) or 0,
+                        "low_24h": coin_data.get("low_24h", 0) or 0,
                         "coin_id": coin_data.get("coin_id", ""),
                         "last_updated": datetime.now()
                     })
