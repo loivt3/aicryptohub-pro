@@ -29,6 +29,14 @@ const routes = [
                 meta: { title: 'Fetcher Manager', icon: 'refresh' }
             },
 
+            // AI Workers Manager
+            {
+                path: 'ai-workers',
+                name: 'ai-workers',
+                component: () => import('@/views/AIWorkersView.vue'),
+                meta: { title: 'AI Workers', icon: 'bulb' }
+            },
+
             // Data Management (CMS)
             {
                 path: 'data',

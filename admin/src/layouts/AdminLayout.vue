@@ -100,6 +100,7 @@ import {
   LogOutOutline,
   RefreshOutline,
   NotificationsOutline,
+  BulbOutline,
 } from '@vicons/ionicons5'
 
 const route = useRoute()
@@ -133,6 +134,11 @@ const menuOptions = [
     label: 'Fetcher Manager',
     key: 'fetcher-manager',
     icon: renderIcon(RefreshOutline),
+  },
+  {
+    label: 'AI Workers',
+    key: 'ai-workers',
+    icon: renderIcon(BulbOutline),
   },
   {
     label: 'Data Management',
