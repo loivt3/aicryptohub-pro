@@ -50,33 +50,55 @@ async def run_fetcher_job():
     
     try:
         from app.services.data_fetcher import get_data_fetcher
-        from app.api.endpoints.admin_fetcher import FETCH_STATE, DATA_SOURCES
+        from app.api.endpoints.admin_fetcher import FETCH_STATE, DATA_SOURCES, add_fetch_log
         
         logger.info("Scheduler: Starting fetcher job...")
+        add_fetch_log("scheduler", "info", "Starting scheduled fetch job")
         
         # Update fetcher state
         FETCH_STATE["is_running"] = True
         for source in DATA_SOURCES:
             FETCH_STATE["source_status"][source["id"]] = {"status": "running"}
         
+        start_time = datetime.now()
         fetcher = get_data_fetcher()
         result = await fetcher.fetch_and_save_coins()
+        duration_ms = int((datetime.now() - start_time).total_seconds() * 1000)
         
         # Update states
         SCHEDULER_STATE["fetcher"]["last_result"] = result
         FETCH_STATE["last_fetch_time"] = datetime.now()
         
+        items_count = result.get("fetched", 0) if isinstance(result, dict) else 0
+        
         for source in DATA_SOURCES:
             FETCH_STATE["source_status"][source["id"]] = {
                 "status": "ready",
                 "last_fetch": datetime.now().isoformat(),
+                "items_fetched": items_count // len(DATA_SOURCES),
+                "duration_ms": duration_ms // len(DATA_SOURCES),
             }
+        
+        # Add success log
+        add_fetch_log(
+            "multi-source", "info", 
+            f"Fetch complete: {items_count} items from {len(DATA_SOURCES)} sources",
+            items_count=items_count,
+            duration_ms=duration_ms
+        )
         
         logger.info(f"Scheduler: Fetcher job complete - {result}")
         
     except Exception as e:
         logger.error(f"Scheduler: Fetcher job failed - {e}")
         SCHEDULER_STATE["fetcher"]["last_result"] = {"error": str(e)}
+        
+        # Add error log
+        try:
+            from app.api.endpoints.admin_fetcher import add_fetch_log
+            add_fetch_log("scheduler", "error", f"Fetch failed: {str(e)}")
+        except:
+            pass
     finally:
         SCHEDULER_STATE["fetcher"]["is_running"] = False
         from app.api.endpoints.admin_fetcher import FETCH_STATE

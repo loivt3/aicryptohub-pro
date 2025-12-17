@@ -53,7 +53,6 @@ class FetchTriggerResponse(BaseModel):
     job_id: str
     message: str
 
-
 # ==================== In-Memory State ====================
 # Track current fetch status (will be replaced by Redis in production)
 
@@ -63,6 +62,26 @@ FETCH_STATE = {
     "last_fetch_time": None,
     "source_status": {},
 }
+
+# In-memory fetch logs (last 100 entries)
+FETCH_LOGS = []
+MAX_LOGS = 100
+
+def add_fetch_log(source: str, level: str, message: str, items_count: int = 0, duration_ms: int = 0):
+    """Add a log entry to in-memory storage"""
+    global FETCH_LOGS
+    FETCH_LOGS.insert(0, {
+        "id": len(FETCH_LOGS) + 1,
+        "timestamp": datetime.now().isoformat(),
+        "source": source,
+        "level": level,
+        "message": message,
+        "items_count": items_count,
+        "duration_ms": duration_ms,
+    })
+    # Keep only last MAX_LOGS
+    if len(FETCH_LOGS) > MAX_LOGS:
+        FETCH_LOGS = FETCH_LOGS[:MAX_LOGS]
 
 # Define all data sources
 DATA_SOURCES = [
@@ -123,62 +142,9 @@ async def get_fetcher_status():
 
 @router.get("/fetcher/logs")
 async def get_fetcher_logs(limit: int = 50):
-    """Get recent fetch logs from database"""
-    db = get_database_service()
-    
-    try:
-        with db.engine.connect() as conn:
-            # Try to get logs from admin_api_logs filtered by fetch endpoints
-            result = conn.execute(
-                text("""
-                    SELECT id, created_at, endpoint, status_code, duration_ms, error_message
-                    FROM admin_api_logs 
-                    WHERE endpoint LIKE '%/trigger%' OR endpoint LIKE '%/fetch%'
-                    ORDER BY created_at DESC
-                    LIMIT :limit
-                """),
-                {"limit": limit}
-            )
-            rows = result.fetchall()
-            
-            logs = []
-            for row in rows:
-                # Determine source from endpoint
-                endpoint = row[2] or ""
-                source = "system"
-                if "fetch" in endpoint:
-                    source = "multi-source"
-                elif "ohlcv" in endpoint:
-                    source = "binance"
-                
-                logs.append({
-                    "id": row[0],
-                    "timestamp": row[1].isoformat() if row[1] else None,
-                    "source": source,
-                    "level": "error" if row[3] >= 400 else "info",
-                    "message": row[5] or f"Endpoint: {endpoint}",
-                    "items_count": 0,
-                    "duration_ms": row[4] or 0,
-                })
-            
-            return {"logs": logs}
-            
-    except Exception as e:
-        logger.error(f"Failed to get fetch logs: {e}")
-        # Return mock logs if table doesn't exist
-        return {
-            "logs": [
-                {
-                    "id": 1,
-                    "timestamp": datetime.now().isoformat(),
-                    "source": "system",
-                    "level": "info",
-                    "message": "Fetcher logs will appear here after fetch jobs run",
-                    "items_count": 0,
-                    "duration_ms": 0,
-                }
-            ]
-        }
+    """Get recent fetch logs from in-memory storage"""
+    # Return in-memory logs (populated by scheduler and manual triggers)
+    return {"logs": FETCH_LOGS[:limit]}
 
 
 @router.post("/fetcher/trigger", response_model=FetchTriggerResponse)

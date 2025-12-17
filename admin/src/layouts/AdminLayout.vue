@@ -129,16 +129,11 @@ const menuOptions = [
     label: 'Process Manager',
     key: 'process-manager',
     icon: renderIcon(SettingsOutline),
-  },
-  {
-    label: 'Fetcher Manager',
-    key: 'fetcher-manager',
-    icon: renderIcon(RefreshOutline),
-  },
-  {
-    label: 'AI Workers',
-    key: 'ai-workers',
-    icon: renderIcon(FlashOutline),
+    children: [
+      { label: 'Overview', key: 'process-manager' },
+      { label: 'Fetcher Manager', key: 'fetcher-manager' },
+      { label: 'AI Workers', key: 'ai-workers' },
+    ],
   },
   {
     label: 'Data Management',
