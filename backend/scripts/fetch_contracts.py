@@ -12,6 +12,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import httpx
+from sqlalchemy import text
 from app.core.config import settings
 from app.services.database import DatabaseService
 
@@ -34,11 +35,12 @@ CHAIN_MAPPING = {
 }
 
 
-async def get_all_coins(db: DatabaseService) -> list:
+def get_all_coins(db: DatabaseService) -> list:
     """Get all coin_ids from aihub_coins table"""
-    query = "SELECT coin_id FROM aihub_coins ORDER BY market_cap DESC NULLS LAST"
-    rows = db.get_session().execute(query).fetchall()
-    return [row[0] for row in rows]
+    query = text("SELECT coin_id FROM aihub_coins ORDER BY market_cap DESC NULLS LAST")
+    with db.get_session() as session:
+        rows = session.execute(query).fetchall()
+        return [row[0] for row in rows]
 
 
 async def fetch_coin_details(client: httpx.AsyncClient, coin_id: str) -> dict:
@@ -104,10 +106,10 @@ def extract_contracts(coin_data: dict) -> list:
     return contracts
 
 
-async def save_contract(db: DatabaseService, coin_id: str, symbol: str, name: str, contract: dict):
+def save_contract(db: DatabaseService, coin_id: str, symbol: str, name: str, contract: dict):
     """Save contract to tokens_on_chain table"""
     try:
-        query = """
+        query = text("""
             INSERT INTO tokens_on_chain (coin_id, chain_id, contract_address, token_symbol, token_name, decimals)
             VALUES (:coin_id, :chain_id, :contract_address, :symbol, :name, :decimals)
             ON CONFLICT (chain_id, contract_address) DO UPDATE SET
@@ -116,7 +118,7 @@ async def save_contract(db: DatabaseService, coin_id: str, symbol: str, name: st
                 token_name = EXCLUDED.token_name,
                 decimals = EXCLUDED.decimals,
                 updated_at = NOW()
-        """
+        """)
         
         with db.get_session() as session:
             session.execute(query, {
@@ -152,8 +154,8 @@ async def main():
         logger.error("Failed to connect to database")
         return
         
-    # Get all coins
-    coins = await get_all_coins(db)
+    # Get all coins (sync function)
+    coins = get_all_coins(db)
     logger.info(f"Found {len(coins)} coins in database")
     
     # Fetch contracts for each coin
@@ -180,7 +182,7 @@ async def main():
                 continue
                 
             for contract in contracts:
-                success = await save_contract(db, coin_id, symbol, name, contract)
+                success = save_contract(db, coin_id, symbol, name, contract)
                 if success:
                     saved += 1
                     logger.info(f"  Saved: {contract['platform']} -> {contract['contract_address'][:20]}...")
