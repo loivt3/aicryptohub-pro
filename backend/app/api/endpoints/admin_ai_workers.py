@@ -39,6 +39,7 @@ class AIWorkersStatusResponse(BaseModel):
     total_coins: int = 0
     analyzed_count: int = 0
     pending_count: int = 0
+    next_scheduled: Optional[str] = None
 
 
 class AILogEntry(BaseModel):
@@ -127,6 +128,14 @@ async def get_ai_status():
     except:
         pass
     
+    # Get scheduling info
+    next_scheduled = None
+    try:
+        from app.services.scheduler import SCHEDULER_STATE
+        next_scheduled = SCHEDULER_STATE["ai_workers"].get("next_run")
+    except:
+        pass
+    
     return AIWorkersStatusResponse(
         workers=workers,
         is_running=AI_STATE["is_running"],
@@ -134,6 +143,7 @@ async def get_ai_status():
         total_coins=total_coins,
         analyzed_count=AI_STATE["analyzed_count"],
         pending_count=len(AI_STATE.get("pending_coins", [])),
+        next_scheduled=next_scheduled,
     )
 
 

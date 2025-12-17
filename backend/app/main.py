@@ -33,15 +33,21 @@ async def lifespan(app: FastAPI):
     # Setup WebSocket logging for admin console
     admin_ws.setup_websocket_logging()
     
-    # Initialize database connection
-    # TODO: Initialize DB pool
-    
-    # Start real-time streamer
-    # TODO: Start WebSocket streamer
+    # Start background scheduler
+    from app.services.scheduler import start_scheduler, stop_scheduler
+    try:
+        start_scheduler()
+        logger.info("Background scheduler started successfully")
+    except Exception as e:
+        logger.error(f"Failed to start scheduler: {e}")
     
     yield
     
     # Cleanup
+    try:
+        stop_scheduler()
+    except Exception as e:
+        logger.error(f"Failed to stop scheduler: {e}")
     logger.info("Shutting down AI Crypto Hub Pro API...")
 
 

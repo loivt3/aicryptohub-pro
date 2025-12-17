@@ -104,13 +104,19 @@ async def get_fetcher_status():
             error_message=status_data.get("error_message"),
         ))
     
-    # Get last fetch info from database
+    # Get scheduling info
     last_fetch_time = FETCH_STATE.get("last_fetch_time")
+    next_scheduled = None
+    try:
+        from app.services.scheduler import SCHEDULER_STATE
+        next_scheduled = SCHEDULER_STATE["fetcher"].get("next_run")
+    except:
+        pass
     
     return FetcherStatusResponse(
         sources=sources,
         last_full_fetch=last_fetch_time.isoformat() if last_fetch_time else None,
-        next_scheduled=None,  # TODO: Get from scheduler
+        next_scheduled=next_scheduled,
         is_running=FETCH_STATE["is_running"],
     )
 
