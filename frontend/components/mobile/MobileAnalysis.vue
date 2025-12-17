@@ -4,7 +4,7 @@
     <header class="m-header">
       <div class="m-header-content">
         <div class="m-logo">
-          <span class="m-logo-icon">🔥</span>
+          <Icon name="ph:chart-line-up-bold" class="m-logo-icon" style="color: #38efeb; width: 16px; height: 16px;" />
           <span class="m-logo-text">AI Hub</span>
         </div>
         <div class="m-ticker">
@@ -160,7 +160,7 @@
             <Icon name="ph:clock" class="m-icon" style="color: #00d4ff;" />
             <span style="font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.7); letter-spacing: 1.5px;">ASI SCORE</span>
           </div>
-          <div style="font-size: 0.7rem; color: rgba(255,255,255,0.4); margin-bottom: 12px;">AI Sentiment Index - Technical indicators analysis</div>
+          <div style="font-size: 0.7rem; color: rgba(255,255,255,0.4); margin-bottom: 12px;">AI Signal Index - Technical indicators analysis</div>
           
           <!-- Circular Gauge -->
           <div style="display: flex; justify-content: center; margin-bottom: 20px;">
@@ -450,9 +450,9 @@
         <Icon name="ph:chart-line-up" class="m-nav-icon" />
         <span class="m-nav-label">Analysis</span>
       </button>
-      <button class="m-nav-item" @click="$emit('setTab', 'news')">
-        <Icon name="ph:newspaper" class="m-nav-icon" />
-        <span class="m-nav-label">News</span>
+      <button class="m-nav-item" @click="$emit('setTab', 'shadow')">
+        <Icon name="ph:eye" class="m-nav-icon" />
+        <span class="m-nav-label">Shadow</span>
       </button>
       <button class="m-nav-item" @click="$emit('setTab', 'aichat')">
         <Icon name="ph:chat-dots" class="m-nav-icon" />

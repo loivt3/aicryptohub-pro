@@ -5,7 +5,7 @@
       <div class="m-header-content">
         <!-- Logo -->
         <div class="m-logo">
-          <span class="m-logo-icon">🔥</span>
+          <Icon name="ph:chart-line-up-bold" class="m-logo-icon" style="color: #38efeb; width: 16px; height: 16px;" />
           <span class="m-logo-text">AI Hub</span>
         </div>
 
@@ -55,13 +55,17 @@
                 <svg viewBox="0 0 120 40" preserveAspectRatio="none">
                   <defs>
                     <linearGradient id="mSparkGreen" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stop-color="rgba(34, 197, 94, 0.4)" />
+                      <stop offset="0%" stop-color="rgba(34, 197, 94, 0.5)" />
                       <stop offset="100%" stop-color="rgba(34, 197, 94, 0)" />
                     </linearGradient>
+                    <linearGradient id="mSparkRed" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="rgba(239, 68, 68, 0.5)" />
+                      <stop offset="100%" stop-color="rgba(239, 68, 68, 0)" />
+                    </linearGradient>
                   </defs>
-                  <path d="M0,35 C8,32 16,28 24,25 C32,22 40,30 48,24 C56,18 64,22 72,16 C80,10 88,15 96,12 C104,9 112,14 120,10 L120,40 L0,40 Z" 
+                  <path d="M0,30 C10,28 20,22 30,20 C40,18 50,25 60,18 C70,12 80,16 90,10 C100,6 110,14 120,8 L120,40 L0,40 Z" 
                         :fill="avgChange >= 0 ? 'url(#mSparkGreen)' : 'url(#mSparkRed)'" />
-                  <path d="M0,35 C8,32 16,28 24,25 C32,22 40,30 48,24 C56,18 64,22 72,16 C80,10 88,15 96,12 C104,9 112,14 120,10" 
+                  <path d="M0,30 C10,28 20,22 30,20 C40,18 50,25 60,18 C70,12 80,16 90,10 C100,6 110,14 120,8" 
                         fill="none" :stroke="avgChange >= 0 ? '#22c55e' : '#ef4444'" stroke-width="2" stroke-linecap="round"/>
                 </svg>
               </div>
@@ -113,7 +117,7 @@
                 </svg>
               </div>
               <div class="m-gauge-value">
-                <span class="m-gauge-number" :class="fearGreedClass">{{ fearGreedValue }}</span>
+                <span class="m-gauge-number" :class="fearGreedClass">{{ Math.round(fearGreedValue) }}</span>
                 <span class="m-gauge-label">{{ fearGreedLabel }}</span>
               </div>
             </div>
@@ -148,42 +152,43 @@
             <Icon name="ph:trend-up" class="w-4 h-4" style="color: #22c55e;" />
             Top Gainers
           </h3>
-          <span class="m-section-link">ASI = AI Sentiment</span>
+          <span class="m-section-link">ASI = AI Signal</span>
         </div>
         
         <div class="m-list m-list--dark">
           <template v-for="(coin, idx) in topGainers" :key="coin.coin_id">
-            <!-- Main Row -->
-            <div class="m-list-item" :class="getFlashClass(coin.symbol)" @click="expandedCoin = expandedCoin === coin.coin_id ? null : coin.coin_id">
-              <span class="m-rank">{{ idx + 1 }}</span>
-              <img :src="coin.image" class="m-avatar" />
-              <div class="m-info">
-                <span class="m-info-title">{{ coin.symbol?.toUpperCase() }}</span>
-                <span class="m-info-subtitle">{{ coin.name }}</span>
-              </div>
-              <div class="m-price-col">
-                <span class="m-info-title">{{ formatCurrency(coin.price) }}</span>
-                <span class="m-info-subtitle m-text-success">+{{ coin.change_24h?.toFixed(2) }}%</span>
-              </div>
-              <!-- Mini Sparkline -->
-              <div class="m-mini-sparkline" style="width: 50px; height: 24px;">
-                <svg viewBox="0 0 50 24" preserveAspectRatio="none" style="width: 100%; height: 100%;">
-                  <path d="M0,20 C5,18 10,14 15,12 C20,10 25,16 30,11 C35,6 40,10 45,8 L50,24 L0,24 Z" fill="rgba(34,197,94,0.3)"/>
-                  <path d="M0,20 C5,18 10,14 15,12 C20,10 25,16 30,11 C35,6 40,10 45,8" fill="none" stroke="#22c55e" stroke-width="1.5"/>
-                </svg>
-              </div>
-              <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" :class="{ 'rotate-90': expandedCoin === coin.coin_id }" />
-            </div>
-            
-            <!-- ASI Meta Row -->
-            <div class="m-list-item-meta">
-              <span class="m-meta-mcap">MCap: {{ formatMarketCap(coin.market_cap) }}</span>
-              <div class="m-meta-asi">
-                <span class="m-meta-asi-label">ASI</span>
-                <div class="m-meta-asi-bar">
-                  <div class="m-meta-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
+            <!-- Main Row + Meta combined -->
+            <div class="m-list-item m-list-item--with-meta" @click="expandedCoin = expandedCoin === coin.coin_id ? null : coin.coin_id">
+              <div class="m-list-item-main">
+                <span class="m-rank">{{ idx + 1 }}</span>
+                <img :src="coin.image" class="m-avatar" />
+                <div class="m-info">
+                  <span class="m-info-title">{{ coin.symbol?.toUpperCase() }}</span>
+                  <span class="m-info-subtitle">{{ coin.name }}</span>
                 </div>
-                <span class="m-meta-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
+                <div class="m-price-col">
+                  <span class="m-info-title" :class="getFlashClass(coin.symbol)">{{ formatCurrency(coin.price) }}</span>
+                  <span class="m-info-subtitle m-text-success">+{{ coin.change_24h?.toFixed(2) }}%</span>
+                </div>
+                <!-- Mini Sparkline -->
+                <div class="m-mini-sparkline" style="width: 50px; height: 24px;">
+                  <svg viewBox="0 0 50 24" preserveAspectRatio="none" style="width: 100%; height: 100%;">
+                    <path d="M0,20 C5,18 10,14 15,12 C20,10 25,16 30,11 C35,6 40,10 45,8 L50,24 L0,24 Z" fill="rgba(34,197,94,0.3)"/>
+                    <path d="M0,20 C5,18 10,14 15,12 C20,10 25,16 30,11 C35,6 40,10 45,8" fill="none" stroke="#22c55e" stroke-width="1.5"/>
+                  </svg>
+                </div>
+                <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" :class="{ 'rotate-90': expandedCoin === coin.coin_id }" />
+              </div>
+              <!-- ASI Meta Row - inside list-item -->
+              <div class="m-list-item-meta">
+                <span class="m-meta-mcap">MCap: {{ formatMarketCap(coin.market_cap) }}</span>
+                <div class="m-meta-asi">
+                  <span class="m-meta-asi-label">ASI</span>
+                  <div class="m-meta-asi-bar">
+                    <div class="m-meta-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
+                  </div>
+                  <span class="m-meta-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
+                </div>
               </div>
             </div>
             
@@ -264,33 +269,35 @@
         
         <div class="m-list m-list--dark">
           <template v-for="(coin, idx) in topLosers" :key="'loser-'+coin.coin_id">
-            <div class="m-list-item" :class="getFlashClass(coin.symbol)" @click="expandedCoin = expandedCoin === 'loser-'+coin.coin_id ? null : 'loser-'+coin.coin_id">
-              <span class="m-rank m-rank--danger">{{ idx + 1 }}</span>
-              <img :src="coin.image" class="m-avatar" />
-              <div class="m-info">
-                <span class="m-info-title">{{ coin.symbol?.toUpperCase() }}</span>
-                <span class="m-info-subtitle">{{ coin.name }}</span>
-              </div>
-              <div class="m-price-col">
-                <span class="m-info-title">{{ formatCurrency(coin.price) }}</span>
-                <span class="m-info-subtitle m-text-danger">{{ coin.change_24h?.toFixed(2) }}%</span>
-              </div>
-              <div class="m-mini-sparkline" style="width: 50px; height: 24px;">
-                <svg viewBox="0 0 50 24" preserveAspectRatio="none" style="width: 100%; height: 100%;">
-                  <path d="M0,8 C5,10 10,14 15,16 C20,18 25,12 30,17 C35,22 40,18 45,20 L50,24 L0,24 Z" fill="rgba(239,68,68,0.3)"/>
-                  <path d="M0,8 C5,10 10,14 15,16 C20,18 25,12 30,17 C35,22 40,18 45,20" fill="none" stroke="#ef4444" stroke-width="1.5"/>
-                </svg>
-              </div>
-              <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" />
-            </div>
-            <div class="m-list-item-meta">
-              <span class="m-meta-mcap">MCap: {{ formatMarketCap(coin.market_cap) }}</span>
-              <div class="m-meta-asi">
-                <span class="m-meta-asi-label">ASI</span>
-                <div class="m-meta-asi-bar">
-                  <div class="m-meta-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
+            <div class="m-list-item m-list-item--with-meta" @click="expandedCoin = expandedCoin === 'loser-'+coin.coin_id ? null : 'loser-'+coin.coin_id">
+              <div class="m-list-item-main">
+                <span class="m-rank m-rank--danger">{{ idx + 1 }}</span>
+                <img :src="coin.image" class="m-avatar" />
+                <div class="m-info">
+                  <span class="m-info-title">{{ coin.symbol?.toUpperCase() }}</span>
+                  <span class="m-info-subtitle">{{ coin.name }}</span>
                 </div>
-                <span class="m-meta-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
+                <div class="m-price-col">
+                  <span class="m-info-title" :class="getFlashClass(coin.symbol)">{{ formatCurrency(coin.price) }}</span>
+                  <span class="m-info-subtitle m-text-danger">{{ coin.change_24h?.toFixed(2) }}%</span>
+                </div>
+                <div class="m-mini-sparkline" style="width: 50px; height: 24px;">
+                  <svg viewBox="0 0 50 24" preserveAspectRatio="none" style="width: 100%; height: 100%;">
+                    <path d="M0,8 C5,10 10,14 15,16 C20,18 25,12 30,17 C35,22 40,18 45,20 L50,24 L0,24 Z" fill="rgba(239,68,68,0.3)"/>
+                    <path d="M0,8 C5,10 10,14 15,16 C20,18 25,12 30,17 C35,22 40,18 45,20" fill="none" stroke="#ef4444" stroke-width="1.5"/>
+                  </svg>
+                </div>
+                <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" />
+              </div>
+              <div class="m-list-item-meta">
+                <span class="m-meta-mcap">MCap: {{ formatMarketCap(coin.market_cap) }}</span>
+                <div class="m-meta-asi">
+                  <span class="m-meta-asi-label">ASI</span>
+                  <div class="m-meta-asi-bar">
+                    <div class="m-meta-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
+                  </div>
+                  <span class="m-meta-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
+                </div>
               </div>
             </div>
             
@@ -369,32 +376,34 @@
         
         <div class="m-list m-list--dark">
           <template v-for="(coin, idx) in mostTraded" :key="'traded-'+coin.coin_id">
-            <div class="m-list-item" :class="getFlashClass(coin.symbol)" @click="expandedCoin = expandedCoin === 'traded-'+coin.coin_id ? null : 'traded-'+coin.coin_id">
-              <span class="m-rank m-rank--info">{{ idx + 1 }}</span>
-              <img :src="coin.image" class="m-avatar" />
-              <div class="m-info">
-                <span class="m-info-title">{{ coin.symbol?.toUpperCase() }}</span>
-                <span class="m-info-subtitle">{{ coin.name }}</span>
-              </div>
-              <div class="m-price-col">
-                <span class="m-info-title">{{ formatCurrency(coin.price) }}</span>
-                <span class="m-info-subtitle" :class="coin.change_24h >= 0 ? 'm-text-success' : 'm-text-danger'">{{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(2) }}%</span>
-              </div>
-              <div class="m-mini-sparkline" style="width: 50px; height: 24px;">
-                <svg viewBox="0 0 50 24" preserveAspectRatio="none" style="width: 100%; height: 100%;">
-                  <path d="M0,12 C5,10 10,16 15,14 C20,12 25,18 30,14 C35,10 40,14 45,12" fill="none" :stroke="coin.change_24h >= 0 ? '#22c55e' : '#ef4444'" stroke-width="1.5"/>
-                </svg>
-              </div>
-              <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" />
-            </div>
-            <div class="m-list-item-meta">
-              <span class="m-meta-mcap">Vol: {{ formatMarketCap(coin.volume_24h) }}</span>
-              <div class="m-meta-asi">
-                <span class="m-meta-asi-label">ASI</span>
-                <div class="m-meta-asi-bar">
-                  <div class="m-meta-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
+            <div class="m-list-item m-list-item--with-meta" @click="expandedCoin = expandedCoin === 'traded-'+coin.coin_id ? null : 'traded-'+coin.coin_id">
+              <div class="m-list-item-main">
+                <span class="m-rank m-rank--info">{{ idx + 1 }}</span>
+                <img :src="coin.image" class="m-avatar" />
+                <div class="m-info">
+                  <span class="m-info-title">{{ coin.symbol?.toUpperCase() }}</span>
+                  <span class="m-info-subtitle">{{ coin.name }}</span>
                 </div>
-                <span class="m-meta-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
+                <div class="m-price-col">
+                  <span class="m-info-title" :class="getFlashClass(coin.symbol)">{{ formatCurrency(coin.price) }}</span>
+                  <span class="m-info-subtitle" :class="coin.change_24h >= 0 ? 'm-text-success' : 'm-text-danger'">{{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(2) }}%</span>
+                </div>
+                <div class="m-mini-sparkline" style="width: 50px; height: 24px;">
+                  <svg viewBox="0 0 50 24" preserveAspectRatio="none" style="width: 100%; height: 100%;">
+                    <path d="M0,12 C5,10 10,16 15,14 C20,12 25,18 30,14 C35,10 40,14 45,12" fill="none" :stroke="coin.change_24h >= 0 ? '#22c55e' : '#ef4444'" stroke-width="1.5"/>
+                  </svg>
+                </div>
+                <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" />
+              </div>
+              <div class="m-list-item-meta">
+                <span class="m-meta-mcap">Vol: {{ formatMarketCap(coin.volume_24h) }}</span>
+                <div class="m-meta-asi">
+                  <span class="m-meta-asi-label">ASI</span>
+                  <div class="m-meta-asi-bar">
+                    <div class="m-meta-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
+                  </div>
+                  <span class="m-meta-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
+                </div>
               </div>
             </div>
             
@@ -511,9 +520,9 @@
         <Icon name="ph:chart-line-up" class="m-nav-icon" />
         <span class="m-nav-label">Analysis</span>
       </button>
-      <button class="m-nav-item" :class="{ active: activeTab === 'news' }" @click="$emit('setTab', 'news')">
-        <Icon name="ph:newspaper" class="m-nav-icon" />
-        <span class="m-nav-label">News</span>
+      <button class="m-nav-item" :class="{ active: activeTab === 'shadow' }" @click="$emit('setTab', 'shadow')">
+        <Icon name="ph:eye" class="m-nav-icon" />
+        <span class="m-nav-label">Shadow</span>
       </button>
       <button class="m-nav-item" :class="{ active: activeTab === 'aichat' }" @click="$emit('setTab', 'aichat')">
         <Icon name="ph:chat-dots" class="m-nav-icon" />
@@ -657,6 +666,20 @@ const fearGreedClass = computed(() => {
 const fetchData = async () => {
   loading.value = true
   try {
+    // Fetch global market stats first
+    try {
+      const globalRes = await api.getGlobalStats()
+      if (globalRes.success && globalRes.data) {
+        totalMarketCap.value = globalRes.data.total_market_cap
+        total24hVolume.value = globalRes.data.total_volume_24h
+        btcDominance.value = globalRes.data.btc_dominance
+        avgChange.value = globalRes.data.market_cap_change_24h
+        fearGreedValue.value = globalRes.data.fear_greed_index
+      }
+    } catch (e) {
+      console.warn('Failed to fetch global stats:', e)
+    }
+    
     // Fetch market data
     const marketRes = await api.getMarketData(100)
     if (marketRes.success && marketRes.data) {
@@ -671,29 +694,12 @@ const fetchData = async () => {
       
       allCoins.value = newCoins
       
-      // Calculate market stats
+      // Get BTC price for header
       const btc = allCoins.value.find(c => c.coin_id === 'bitcoin')
       if (btc) {
         btcPrice.value = btc.price
         btcChange.value = btc.change_24h
       }
-      
-      totalMarketCap.value = allCoins.value.reduce((sum, c) => sum + (c.market_cap || 0), 0)
-      total24hVolume.value = allCoins.value.reduce((sum, c) => sum + (c.volume_24h || 0), 0)
-      
-      // Calculate average change
-      const changes = allCoins.value.map(c => c.change_24h).filter(c => c !== undefined)
-      avgChange.value = changes.length > 0 ? changes.reduce((a, b) => a + b, 0) / changes.length : 0
-      
-      // Calculate BTC dominance
-      if (btc && totalMarketCap.value > 0) {
-        btcDominance.value = (btc.market_cap / totalMarketCap.value) * 100
-      }
-      
-      // Calculate Fear & Greed from average sentiment
-      const avgAsi = Object.values(sentimentMap.value).reduce((sum, s) => sum + s.asi_score, 0) / 
-                     Math.max(1, Object.keys(sentimentMap.value).length)
-      fearGreedValue.value = avgAsi || 50
     }
     
     // Fetch sentiment data
@@ -715,10 +721,70 @@ const fetchData = async () => {
 onMounted(() => {
   fetchData()
   
-  // Refresh every 30 seconds
-  const interval = setInterval(fetchData, 30000)
+  // Setup real-time WebSocket connection
+  setupSocketConnection()
+  
+  // Fallback: Refresh every 60 seconds if WebSocket not available
+  const interval = setInterval(() => {
+    if (!socketConnected.value) {
+      fetchData()
+    }
+  }, 60000)
   onUnmounted(() => clearInterval(interval))
 })
+
+// Socket.IO integration for real-time updates
+const socketConnected = ref(false)
+const socketMessageCount = ref(0)
+
+const setupSocketConnection = () => {
+  try {
+    const { connect, onPriceUpdate, connected } = useSocket()
+    
+    // Connect to WebSocket
+    connect()
+    
+    // Watch connection status
+    watch(connected, (isConnected) => {
+      socketConnected.value = isConnected
+      console.log('[Dashboard] Socket connected:', isConnected)
+    }, { immediate: true })
+    
+    // Handle price updates
+    onPriceUpdate((updates) => {
+      socketMessageCount.value++
+      
+      updates.forEach(update => {
+        // Find coin by symbol and update
+        const idx = allCoins.value.findIndex(
+          c => c.symbol.toUpperCase() === update.s.toUpperCase()
+        )
+        
+        if (idx !== -1) {
+          // Trigger flash animation
+          updatePrice(allCoins.value[idx].symbol, update.p)
+          
+          // Update coin data
+          allCoins.value[idx] = {
+            ...allCoins.value[idx],
+            price: update.p,
+            change_24h: update.c,
+          }
+        }
+      })
+      
+      // Update BTC price in header
+      const btcUpdate = updates.find(u => u.s === 'BTC')
+      if (btcUpdate) {
+        btcPrice.value = btcUpdate.p
+        btcChange.value = btcUpdate.c
+      }
+    })
+    
+  } catch (error) {
+    console.error('[Dashboard] Socket setup failed:', error)
+  }
+}
 
 const formatCurrency = (n: number, decimals = 2) => {
   if (!n) return '$--'

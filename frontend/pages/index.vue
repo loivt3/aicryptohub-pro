@@ -14,7 +14,7 @@
       <MobilePortfolio v-else-if="activeTab === 'portfolio'" />
       <MobileAlerts v-else-if="activeTab === 'alerts'" />
       <MobileAIChat v-else-if="activeTab === 'aichat'" />
-      <MobileNews v-else-if="activeTab === 'news'" />
+      <MobileShadow v-else-if="activeTab === 'shadow'" />
       
       <!-- Mobile Search Overlay -->
       <MobileSearch :isOpen="showSearch" @close="showSearch = false" @select="onCoinSelect" />
@@ -160,7 +160,7 @@ const onCoinSelect = (coin: any) => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px;
+  padding: 12px 12px 6px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   cursor: pointer;
   transition: background 0.2s;
