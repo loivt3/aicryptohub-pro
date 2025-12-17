@@ -154,7 +154,7 @@
         <div class="m-list m-list--dark">
           <template v-for="(coin, idx) in topGainers" :key="coin.coin_id">
             <!-- Main Row -->
-            <div class="m-list-item" @click="expandedCoin = expandedCoin === coin.coin_id ? null : coin.coin_id">
+            <div class="m-list-item" :class="getFlashClass(coin.symbol)" @click="expandedCoin = expandedCoin === coin.coin_id ? null : coin.coin_id">
               <span class="m-rank">{{ idx + 1 }}</span>
               <img :src="coin.image" class="m-avatar" />
               <div class="m-info">
@@ -264,7 +264,7 @@
         
         <div class="m-list m-list--dark">
           <template v-for="(coin, idx) in topLosers" :key="'loser-'+coin.coin_id">
-            <div class="m-list-item" @click="expandedCoin = expandedCoin === 'loser-'+coin.coin_id ? null : 'loser-'+coin.coin_id">
+            <div class="m-list-item" :class="getFlashClass(coin.symbol)" @click="expandedCoin = expandedCoin === 'loser-'+coin.coin_id ? null : 'loser-'+coin.coin_id">
               <span class="m-rank m-rank--danger">{{ idx + 1 }}</span>
               <img :src="coin.image" class="m-avatar" />
               <div class="m-info">
@@ -369,7 +369,7 @@
         
         <div class="m-list m-list--dark">
           <template v-for="(coin, idx) in mostTraded" :key="'traded-'+coin.coin_id">
-            <div class="m-list-item" @click="expandedCoin = expandedCoin === 'traded-'+coin.coin_id ? null : 'traded-'+coin.coin_id">
+            <div class="m-list-item" :class="getFlashClass(coin.symbol)" @click="expandedCoin = expandedCoin === 'traded-'+coin.coin_id ? null : 'traded-'+coin.coin_id">
               <span class="m-rank m-rank--info">{{ idx + 1 }}</span>
               <img :src="coin.image" class="m-avatar" />
               <div class="m-info">
@@ -569,6 +569,7 @@ defineEmits<{
 }>()
 
 const api = useApi()
+const { updatePrice, getFlashClass } = usePriceFlashRow()
 
 // State
 const loading = ref(true)
@@ -659,7 +660,16 @@ const fetchData = async () => {
     // Fetch market data
     const marketRes = await api.getMarketData(100)
     if (marketRes.success && marketRes.data) {
-      allCoins.value = marketRes.data as Coin[]
+      const newCoins = marketRes.data as Coin[]
+      
+      // Trigger flash animation for price changes
+      newCoins.forEach(coin => {
+        if (coin.symbol && coin.price) {
+          updatePrice(coin.symbol, coin.price)
+        }
+      })
+      
+      allCoins.value = newCoins
       
       // Calculate market stats
       const btc = allCoins.value.find(c => c.coin_id === 'bitcoin')
