@@ -458,3 +458,117 @@ class AnalyzerService:
         reasoning = f"ASI Score: {asi_score}/100 ({signal}). " + ". ".join(reasons) + "."
         
         return reasoning
+    
+    def calculate_intent_divergence(
+        self,
+        whale_action: str,
+        crowd_sentiment: int,
+        crowd_action: str,
+        whale_volume_usd: float = 0,
+    ) -> Dict[str, Any]:
+        """
+        Calculate divergence between whale intent and crowd behavior.
+        
+        High divergence = Whale acting AGAINST crowd (strong signal)
+        Low divergence = Whale acting WITH crowd (confirmation)
+        
+        Args:
+            whale_action: "accumulate", "distribute", "neutral"
+            crowd_sentiment: 0-100 sentiment score
+            crowd_action: "Sell-off", "Buy-dip", "Hold", "FOMO-buy", etc.
+            whale_volume_usd: Volume of whale transaction
+            
+        Returns:
+            Dict with:
+            - divergence_score: -100 to +100 
+              (negative = whale selling while crowd buying, positive = whale buying while crowd selling)
+            - alignment: "with_crowd", "against_crowd", "neutral"
+            - signal_strength: "weak", "moderate", "strong"
+            - interpretation: Human-readable explanation
+        """
+        # Map crowd actions to sentiment direction
+        CROWD_ACTION_SCORES = {
+            "Sell-off": -80,
+            "Panic-sell": -100,
+            "Buy-dip": 60,
+            "FOMO-buy": 80,
+            "Hold": 0,
+            "Accumulate": 70,
+        }
+        
+        # Map whale actions
+        WHALE_ACTION_SCORES = {
+            "accumulate": 100,
+            "distribute": -100,
+            "neutral": 0,
+        }
+        
+        # Get scores
+        crowd_direction = CROWD_ACTION_SCORES.get(crowd_action, 0)
+        whale_direction = WHALE_ACTION_SCORES.get(whale_action.lower(), 0)
+        
+        # Adjust crowd direction by sentiment score
+        # crowd_sentiment 0-100: 0=fear, 100=greed
+        sentiment_factor = (crowd_sentiment - 50) / 50  # -1 to +1
+        adjusted_crowd = crowd_direction * (0.5 + abs(sentiment_factor) * 0.5)
+        
+        # Calculate divergence
+        # Positive = whale bullish when crowd bearish (contrarian buy)
+        # Negative = whale bearish when crowd bullish (contrarian sell)
+        divergence_score = whale_direction - adjusted_crowd
+        
+        # Normalize to -100 to +100
+        divergence_score = max(-100, min(100, divergence_score))
+        
+        # Determine alignment
+        if abs(divergence_score) < 20:
+            alignment = "neutral"
+        elif (whale_direction > 0 and adjusted_crowd > 0) or (whale_direction < 0 and adjusted_crowd < 0):
+            alignment = "with_crowd"
+        else:
+            alignment = "against_crowd"
+        
+        # Signal strength based on divergence magnitude and volume
+        volume_factor = 1.0
+        if whale_volume_usd > 10_000_000:
+            volume_factor = 1.5
+        elif whale_volume_usd > 1_000_000:
+            volume_factor = 1.2
+        
+        weighted_divergence = abs(divergence_score) * volume_factor
+        
+        if weighted_divergence < 30:
+            signal_strength = "weak"
+        elif weighted_divergence < 60:
+            signal_strength = "moderate"
+        else:
+            signal_strength = "strong"
+        
+        # Generate interpretation
+        if alignment == "against_crowd":
+            if whale_direction > 0:
+                interpretation = f"Whale accumulating while crowd is {crowd_action.lower()}. "
+                interpretation += "This contrarian buy suggests smart money sees value others are missing."
+            else:
+                interpretation = f"Whale distributing while crowd is {crowd_action.lower()}. "
+                interpretation += "This contrarian sell suggests smart money is de-risking ahead of potential correction."
+        elif alignment == "with_crowd":
+            if whale_direction > 0:
+                interpretation = f"Whale accumulating along with crowd ({crowd_action}). "
+                interpretation += "Alignment between smart money and retail suggests sustained momentum."
+            else:
+                interpretation = f"Whale distributing along with crowd ({crowd_action}). "
+                interpretation += "Both smart money and retail exiting may indicate significant downside."
+        else:
+            interpretation = "No clear directional signal from whale activity relative to crowd sentiment."
+        
+        return {
+            "divergence_score": round(divergence_score, 2),
+            "alignment": alignment,
+            "signal_strength": signal_strength,
+            "interpretation": interpretation,
+            "whale_action": whale_action,
+            "crowd_action": crowd_action,
+            "crowd_sentiment": crowd_sentiment,
+        }
+

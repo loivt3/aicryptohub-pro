@@ -665,6 +665,285 @@ class DatabaseService:
             logger.error(f"execute failed: {e}")
             return False
 
+    # ===================================================
+    # Behavioral Sentiment Methods (AI Behavioral Alpha)
+    # ===================================================
+    
+    def save_behavioral_sentiment(
+        self,
+        coin_id: str,
+        symbol: str,
+        sentiment_score: int,
+        emotional_tone: str,
+        expected_crowd_action: str,
+        news_intensity: int,
+        dominant_category: str,
+        impact_duration: str,
+        confidence_score: float = 0.5,
+        reasoning: str = "",
+        related_event_ids: list = None,
+        whale_alignment: str = None,
+        intent_divergence_score: float = None,
+        raw_ai_response: str = "",
+        provider: str = "gemini",
+    ) -> bool:
+        """
+        Save behavioral sentiment analysis result.
+        
+        Args:
+            coin_id: Coin identifier
+            symbol: Coin symbol
+            sentiment_score: 0-100 score
+            emotional_tone: Fear/FUD/FOMO/Euphoria/Neutral
+            expected_crowd_action: Sell-off/Buy-dip/Hold/etc.
+            news_intensity: 1-10 intensity
+            dominant_category: regulatory/technical/whale/social
+            impact_duration: hours/days/weeks
+            confidence_score: 0-1 confidence
+            reasoning: AI reasoning text
+            related_event_ids: List of news event IDs
+            whale_alignment: with_crowd/against_crowd/neutral
+            intent_divergence_score: -100 to +100
+            raw_ai_response: Full AI response
+            provider: AI provider name
+            
+        Returns:
+            True on success
+        """
+        query = text("""
+            INSERT INTO behavioral_sentiment (
+                coin_id, symbol, sentiment_score, emotional_tone,
+                expected_crowd_action, news_intensity, dominant_category,
+                impact_duration, confidence_score, raw_ai_response,
+                related_event_ids, whale_alignment, intent_divergence_score,
+                analysis_source, analyzed_at
+            ) VALUES (
+                :coin_id, :symbol, :sentiment_score, :emotional_tone,
+                :expected_crowd_action, :news_intensity, :dominant_category,
+                :impact_duration, :confidence_score, :raw_ai_response,
+                :related_event_ids, :whale_alignment, :intent_divergence_score,
+                :provider, NOW()
+            )
+            ON CONFLICT (coin_id, analyzed_at) DO UPDATE SET
+                sentiment_score = EXCLUDED.sentiment_score,
+                emotional_tone = EXCLUDED.emotional_tone,
+                expected_crowd_action = EXCLUDED.expected_crowd_action,
+                news_intensity = EXCLUDED.news_intensity,
+                dominant_category = EXCLUDED.dominant_category,
+                impact_duration = EXCLUDED.impact_duration,
+                confidence_score = EXCLUDED.confidence_score,
+                raw_ai_response = EXCLUDED.raw_ai_response,
+                related_event_ids = EXCLUDED.related_event_ids,
+                whale_alignment = EXCLUDED.whale_alignment,
+                intent_divergence_score = EXCLUDED.intent_divergence_score
+        """)
+        
+        try:
+            with self.engine.begin() as conn:
+                conn.execute(query, {
+                    "coin_id": coin_id,
+                    "symbol": symbol.upper(),
+                    "sentiment_score": sentiment_score,
+                    "emotional_tone": emotional_tone,
+                    "expected_crowd_action": expected_crowd_action,
+                    "news_intensity": news_intensity,
+                    "dominant_category": dominant_category,
+                    "impact_duration": impact_duration,
+                    "confidence_score": confidence_score,
+                    "raw_ai_response": raw_ai_response,
+                    "related_event_ids": related_event_ids or [],
+                    "whale_alignment": whale_alignment,
+                    "intent_divergence_score": intent_divergence_score,
+                    "provider": provider,
+                })
+            
+            logger.info(f"Saved behavioral sentiment for {coin_id}: {emotional_tone} ({sentiment_score})")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to save behavioral sentiment for {coin_id}: {e}")
+            return False
+    
+    def get_sentiment_at_time(
+        self,
+        coin_id: str,
+        timestamp: datetime,
+        window_hours: int = 2,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Get sentiment data near a specific timestamp.
+        Used for whale-sentiment correlation.
+        
+        Args:
+            coin_id: Coin identifier
+            timestamp: Target timestamp
+            window_hours: Time window (±hours)
+            
+        Returns:
+            Sentiment dict or None
+        """
+        from datetime import timedelta
+        
+        window_start = timestamp - timedelta(hours=window_hours)
+        window_end = timestamp + timedelta(hours=window_hours)
+        
+        query = text("""
+            SELECT 
+                coin_id,
+                sentiment_score,
+                emotional_tone,
+                expected_crowd_action,
+                news_intensity,
+                dominant_category,
+                whale_alignment,
+                intent_divergence_score,
+                analyzed_at
+            FROM behavioral_sentiment
+            WHERE coin_id = :coin_id
+            AND analyzed_at BETWEEN :window_start AND :window_end
+            ORDER BY ABS(EXTRACT(EPOCH FROM (analyzed_at - :timestamp)))
+            LIMIT 1
+        """)
+        
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(query, {
+                    "coin_id": coin_id,
+                    "window_start": window_start,
+                    "window_end": window_end,
+                    "timestamp": timestamp,
+                })
+                row = result.fetchone()
+                
+                if row:
+                    columns = result.keys()
+                    return {col: convert_db_value(col, val) for col, val in zip(columns, row)}
+                    
+        except Exception as e:
+            logger.error(f"Failed to get sentiment at time for {coin_id}: {e}")
+        
+        return None
+    
+    def save_news_event(
+        self,
+        event_id: str,
+        coin_id: str,
+        symbol: str,
+        title: str,
+        summary: str = "",
+        source: str = "",
+        source_url: str = "",
+        category: str = "market",
+        publish_time: datetime = None,
+        event_time: datetime = None,
+        sentiment_score: int = 50,
+        emotional_tone: str = "Neutral",
+        news_intensity: int = 5,
+        is_front_running: bool = False,
+    ) -> bool:
+        """
+        Save a news event for tracking.
+        
+        Args:
+            event_id: Unique event identifier
+            coin_id: Coin identifier
+            symbol: Coin symbol
+            title: News title
+            summary: News summary
+            source: News source name
+            source_url: URL to news
+            category: regulatory/technical/whale_movement/social_hype
+            publish_time: When news was published
+            event_time: When event actually happened
+            sentiment_score: 0-100 score
+            emotional_tone: Detected emotion
+            news_intensity: 1-10 intensity
+            is_front_running: Whether event happened before publish
+            
+        Returns:
+            True on success
+        """
+        query = text("""
+            INSERT INTO news_events (
+                event_id, coin_id, symbol, title, summary, source, source_url,
+                category, publish_time, event_time, sentiment_score,
+                emotional_tone, news_intensity, is_front_running
+            ) VALUES (
+                :event_id, :coin_id, :symbol, :title, :summary, :source, :source_url,
+                :category, :publish_time, :event_time, :sentiment_score,
+                :emotional_tone, :news_intensity, :is_front_running
+            )
+            ON CONFLICT (event_id) DO UPDATE SET
+                sentiment_score = EXCLUDED.sentiment_score,
+                emotional_tone = EXCLUDED.emotional_tone,
+                news_intensity = EXCLUDED.news_intensity,
+                updated_at = NOW()
+        """)
+        
+        try:
+            with self.engine.begin() as conn:
+                conn.execute(query, {
+                    "event_id": event_id,
+                    "coin_id": coin_id,
+                    "symbol": symbol.upper(),
+                    "title": title,
+                    "summary": summary,
+                    "source": source,
+                    "source_url": source_url,
+                    "category": category,
+                    "publish_time": publish_time or datetime.now(),
+                    "event_time": event_time,
+                    "sentiment_score": sentiment_score,
+                    "emotional_tone": emotional_tone,
+                    "news_intensity": news_intensity,
+                    "is_front_running": is_front_running,
+                })
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to save news event {event_id}: {e}")
+            return False
+    
+    def get_latest_behavioral_sentiment(
+        self,
+        coin_id: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Get latest behavioral sentiment for a coin"""
+        query = text("""
+            SELECT 
+                coin_id,
+                symbol,
+                sentiment_score,
+                emotional_tone,
+                expected_crowd_action,
+                news_intensity,
+                dominant_category,
+                impact_duration,
+                whale_alignment,
+                intent_divergence_score,
+                confidence_score,
+                analyzed_at
+            FROM behavioral_sentiment
+            WHERE coin_id = :coin_id
+            ORDER BY analyzed_at DESC
+            LIMIT 1
+        """)
+        
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(query, {"coin_id": coin_id})
+                row = result.fetchone()
+                
+                if row:
+                    columns = result.keys()
+                    return {col: convert_db_value(col, val) for col, val in zip(columns, row)}
+                    
+        except Exception as e:
+            logger.error(f"Failed to get behavioral sentiment for {coin_id}: {e}")
+        
+        return None
+
 
 # Dependency injection
 _db_service: Optional[DatabaseService] = None
@@ -681,4 +960,5 @@ def get_db_service() -> DatabaseService:
 
 # Alias for compatibility
 get_database_service = get_db_service
+
 
