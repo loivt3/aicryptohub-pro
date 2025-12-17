@@ -671,6 +671,138 @@ class DataFetcherService:
         
         return stats
     
+    async def fetch_missing_contracts(self, limit: int = 100) -> Dict[str, Any]:
+        """
+        Fetch and save contract addresses for coins missing them.
+        Also populates tokens_on_chain table for on-chain analysis.
+        """
+        from sqlalchemy import text
+        
+        # Get coins without contract addresses
+        query = text("""
+            SELECT coin_id FROM aihub_coins 
+            WHERE (contract_address IS NULL OR contract_address = '')
+            AND coin_id IS NOT NULL AND coin_id != ''
+            ORDER BY market_cap DESC NULLS LAST
+            LIMIT :limit
+        """)
+        
+        with self.db.engine.connect() as conn:
+            rows = conn.execute(query, {"limit": limit}).fetchall()
+        
+        coin_ids = [row[0] for row in rows]
+        
+        if not coin_ids:
+            logger.info("No coins missing contract addresses")
+            return {"updated": 0, "total": 0}
+        
+        logger.info(f"Fetching contracts for {len(coin_ids)} coins missing addresses")
+        
+        # Chain mapping
+        CHAIN_MAPPING = {
+            "ethereum": 1,
+            "binance-smart-chain": 56,
+            "polygon-pos": 137,
+            "arbitrum-one": 42161,
+            "optimistic-ethereum": 10,
+            "avalanche": 43114,
+            "base": 8453,
+            "fantom": 250,
+        }
+        
+        updated = 0
+        tokens_saved = 0
+        
+        for coin_id in coin_ids:
+            try:
+                details = await self.multi_fetcher.coingecko.fetch_coin_details(coin_id)
+                
+                if not details or not details.get("platforms"):
+                    continue
+                
+                symbol = details.get("symbol", "").upper()
+                name = details.get("name", "")
+                platforms = details["platforms"]
+                
+                # Find contracts for supported chains
+                best_contract = None
+                best_chain_slug = None
+                best_chain_id = None
+                
+                for platform_slug, address in platforms.items():
+                    if not address:
+                        continue
+                    
+                    chain_id = CHAIN_MAPPING.get(platform_slug)
+                    if not chain_id:
+                        continue
+                    
+                    # Save to tokens_on_chain for on-chain analysis
+                    try:
+                        token_query = text("""
+                            INSERT INTO tokens_on_chain (coin_id, chain_id, contract_address, token_symbol, token_name, decimals)
+                            VALUES (:coin_id, :chain_id, :contract_address, :symbol, :name, :decimals)
+                            ON CONFLICT (chain_id, contract_address) DO UPDATE SET
+                                coin_id = EXCLUDED.coin_id,
+                                token_symbol = EXCLUDED.token_symbol,
+                                token_name = EXCLUDED.token_name,
+                                updated_at = NOW()
+                        """)
+                        
+                        with self.db.engine.begin() as conn:
+                            conn.execute(token_query, {
+                                "coin_id": coin_id,
+                                "chain_id": chain_id,
+                                "contract_address": address.lower(),
+                                "symbol": symbol,
+                                "name": name,
+                                "decimals": 18,
+                            })
+                        tokens_saved += 1
+                    except Exception as e:
+                        logger.debug(f"tokens_on_chain insert error: {e}")
+                    
+                    # Track best contract (prefer Ethereum)
+                    if best_contract is None or platform_slug == "ethereum":
+                        best_contract = address
+                        best_chain_slug = platform_slug
+                        best_chain_id = chain_id
+                        
+                        if platform_slug == "ethereum":
+                            break
+                
+                # Update aihub_coins with primary contract
+                if best_contract:
+                    update_query = text("""
+                        UPDATE aihub_coins 
+                        SET contract_address = :contract,
+                            chain_slug = :chain_slug,
+                            chain_id = :chain_id,
+                            updated_at = NOW()
+                        WHERE coin_id = :coin_id
+                    """)
+                    
+                    with self.db.engine.begin() as conn:
+                        conn.execute(update_query, {
+                            "contract": best_contract,
+                            "chain_slug": best_chain_slug,
+                            "chain_id": best_chain_id,
+                            "coin_id": coin_id,
+                        })
+                    updated += 1
+                    logger.debug(f"Updated {coin_id}: {best_chain_slug} -> {best_contract[:20]}...")
+                    
+            except Exception as e:
+                logger.error(f"Failed to fetch contract for {coin_id}: {e}")
+        
+        logger.info(f"Contract fetch complete: {updated} coins updated, {tokens_saved} tokens saved")
+        
+        return {
+            "updated": updated,
+            "tokens_saved": tokens_saved,
+            "total_processed": len(coin_ids),
+        }
+    
     # Backwards compatible alias
     async def fetch_ohlcv_for_top_coins(self, limit: int = 5000) -> Dict[str, Any]:
         return await self.fetch_ohlcv_for_all_coins(limit)
