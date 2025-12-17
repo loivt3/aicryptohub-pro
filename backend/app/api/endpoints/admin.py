@@ -11,6 +11,7 @@ from typing import Dict, Any, List, Optional
 
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from sqlalchemy import text
 
 from app.services.database import get_database_service
 
@@ -73,11 +74,21 @@ class AISettings(BaseModel):
 async def get_system_health():
     """Get system health metrics"""
     try:
+        # Get DB connections count
+        db_conns = 0
+        try:
+            db = get_database_service()
+            with db.engine.connect() as conn:
+                result = conn.execute(text("SELECT count(*) FROM pg_stat_activity WHERE state = 'active'"))
+                db_conns = result.scalar() or 0
+        except:
+            pass
+        
         return SystemHealth(
             cpu_percent=psutil.cpu_percent(interval=1),
             memory_percent=psutil.virtual_memory().percent,
-            disk_percent=psutil.disk_usage('/').percent,
-            db_connections=0,  # TODO: Get from connection pool
+            disk_percent=psutil.disk_usage('/').percent if os.name != 'nt' else psutil.disk_usage('C:\\').percent,
+            db_connections=db_conns,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -85,82 +96,139 @@ async def get_system_health():
 
 @router.get("/stats")
 async def get_admin_stats():
-    """Get admin dashboard stats"""
+    """Get admin dashboard stats with real data"""
     try:
         db = get_database_service()
         
-        # Get coin count
-        coin_count = 0
+        stats = {
+            "coins_tracked": 0,
+            "active_users": 0,
+            "api_calls_today": 0,
+            "news_pending": 0,
+            "error_rate": 0,
+        }
+        
         try:
             with db.engine.connect() as conn:
-                from sqlalchemy import text
+                # Coins count
                 result = conn.execute(text("SELECT COUNT(*) FROM aihub_coins"))
-                coin_count = result.scalar() or 0
+                stats["coins_tracked"] = result.scalar() or 0
+                
+                # Active users (logged in today)
+                try:
+                    result = conn.execute(text("""
+                        SELECT COUNT(*) FROM admin_users 
+                        WHERE last_login > NOW() - INTERVAL '1 day'
+                    """))
+                    stats["active_users"] = result.scalar() or 0
+                except:
+                    pass
+                
+                # API calls today
+                try:
+                    result = conn.execute(text("""
+                        SELECT COUNT(*) FROM admin_api_logs 
+                        WHERE timestamp > NOW() - INTERVAL '1 day'
+                    """))
+                    stats["api_calls_today"] = result.scalar() or 0
+                except:
+                    pass
+                
+                # Pending news
+                try:
+                    result = conn.execute(text("SELECT COUNT(*) FROM admin_news WHERE status = 'pending'"))
+                    stats["news_pending"] = result.scalar() or 0
+                except:
+                    pass
+                
+                # Error rate (4xx/5xx in last hour)
+                try:
+                    result = conn.execute(text("""
+                        SELECT 
+                            COUNT(*) FILTER (WHERE status_code >= 400) * 100.0 / NULLIF(COUNT(*), 0)
+                        FROM admin_api_logs 
+                        WHERE timestamp > NOW() - INTERVAL '1 hour'
+                    """))
+                    rate = result.scalar()
+                    stats["error_rate"] = round(rate, 2) if rate else 0
+                except:
+                    pass
         except:
             pass
         
-        return {
-            "active_users": 1247,  # TODO: Get from auth/sessions
-            "api_calls_per_min": 2340,  # TODO: Get from metrics
-            "coins_tracked": coin_count,
-            "error_rate": 0.12,  # TODO: Get from logs
-            "timestamp": datetime.now().isoformat(),
-        }
+        stats["timestamp"] = datetime.now().isoformat()
+        return stats
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 # ==================== Process Management ====================
 
-# Service definitions
-SERVICES = {
-    "binance": {"name": "Binance Streamer", "type": "scraper"},
-    "coingecko": {"name": "CoinGecko Fetcher", "type": "scraper"},
-    "cmc": {"name": "CoinMarketCap", "type": "scraper"},
-    "gemini": {"name": "Gemini AI", "type": "ai"},
-    "deepseek": {"name": "DeepSeek AI", "type": "ai"},
-    "sentiment": {"name": "Sentiment Analyzer", "type": "ai"},
-    "ethereum": {"name": "Ethereum Collector", "type": "onchain"},
-    "bsc": {"name": "BSC Collector", "type": "onchain"},
-    "solana": {"name": "Solana Collector", "type": "onchain"},
-}
-
-
-def get_service_status(service_id: str) -> ServiceStatus:
-    """Get status of a service"""
-    service = SERVICES.get(service_id)
-    if not service:
-        raise HTTPException(status_code=404, detail=f"Service {service_id} not found")
-    
-    # TODO: Check actual process status via systemctl or docker
-    # For now, return mock data
-    return ServiceStatus(
-        id=service_id,
-        name=service["name"],
-        status="running",
-        uptime="5d 12h 34m",
-        last_log="Data synced successfully",
-        pid=None,
-    )
-
-
 @router.get("/process/status")
 async def get_all_services_status():
-    """Get status of all services"""
-    services = []
-    for service_id in SERVICES:
-        try:
-            status = get_service_status(service_id)
-            services.append(status.model_dump())
-        except:
-            pass
-    return {"services": services}
+    """Get status of all services from database"""
+    try:
+        db = get_database_service()
+        with db.engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT service_id, service_name, service_type, status, pid, 
+                       uptime_seconds, last_log, last_error, started_at, updated_at
+                FROM admin_service_status
+                ORDER BY service_type, service_name
+            """))
+            
+            services = []
+            for row in result:
+                uptime_str = ""
+                if row[5]:
+                    days = row[5] // 86400
+                    hours = (row[5] % 86400) // 3600
+                    mins = (row[5] % 3600) // 60
+                    uptime_str = f"{days}d {hours}h {mins}m" if days else f"{hours}h {mins}m"
+                
+                services.append({
+                    "id": row[0],
+                    "name": row[1],
+                    "type": row[2],
+                    "status": row[3],
+                    "pid": row[4],
+                    "uptime": uptime_str,
+                    "last_log": row[6],
+                    "last_error": row[7],
+                    "started_at": row[8].isoformat() if row[8] else None,
+                })
+            
+            return {"services": services}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/process/{service_id}/status", response_model=ServiceStatus)
+@router.get("/process/{service_id}/status")
 async def get_service_status_endpoint(service_id: str):
     """Get status of a specific service"""
-    return get_service_status(service_id)
+    try:
+        db = get_database_service()
+        with db.engine.connect() as conn:
+            result = conn.execute(
+                text("SELECT service_id, service_name, status, pid, uptime_seconds, last_log FROM admin_service_status WHERE service_id = :id"),
+                {"id": service_id}
+            )
+            row = result.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail=f"Service {service_id} not found")
+            
+            return ServiceStatus(
+                id=row[0],
+                name=row[1],
+                status=row[2],
+                pid=row[3],
+                uptime=f"{row[4] // 3600}h {(row[4] % 3600) // 60}m" if row[4] else None,
+                last_log=row[5],
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/process/{service_id}/{action}")
@@ -169,21 +237,68 @@ async def control_service(service_id: str, action: str):
     if action not in ["start", "stop", "restart"]:
         raise HTTPException(status_code=400, detail="Invalid action. Use: start, stop, restart")
     
-    service = SERVICES.get(service_id)
-    if not service:
-        raise HTTPException(status_code=404, detail=f"Service {service_id} not found")
-    
-    # TODO: Implement actual process control via systemctl or docker
-    # Example for systemctl:
-    # subprocess.run(["systemctl", action, f"aicryptohub-{service_id}"], check=True)
-    
-    return {
-        "success": True,
-        "service": service_id,
-        "action": action,
-        "message": f"Service {service['name']} {action}ed successfully",
-        "timestamp": datetime.now().isoformat(),
-    }
+    try:
+        db = get_database_service()
+        with db.engine.connect() as conn:
+            # Verify service exists
+            result = conn.execute(
+                text("SELECT service_name FROM admin_service_status WHERE service_id = :id"),
+                {"id": service_id}
+            )
+            row = result.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail=f"Service {service_id} not found")
+            
+            service_name = row[0]
+            
+            # Execute actual command (Linux only)
+            if os.name != 'nt':
+                try:
+                    systemd_name = f"aicryptohub-{service_id}"
+                    result = subprocess.run(
+                        ["systemctl", action, systemd_name],
+                        capture_output=True,
+                        text=True,
+                        timeout=30
+                    )
+                    if result.returncode != 0:
+                        # Update DB with error
+                        conn.execute(
+                            text("UPDATE admin_service_status SET last_error = :err, updated_at = NOW() WHERE service_id = :id"),
+                            {"id": service_id, "err": result.stderr}
+                        )
+                        conn.commit()
+                        raise HTTPException(status_code=500, detail=f"Command failed: {result.stderr}")
+                except subprocess.TimeoutExpired:
+                    raise HTTPException(status_code=500, detail="Command timed out")
+            
+            # Update status in DB
+            new_status = "running" if action in ["start", "restart"] else "stopped"
+            started_at = "NOW()" if action in ["start", "restart"] else "NULL"
+            
+            if action in ["start", "restart"]:
+                conn.execute(
+                    text(f"UPDATE admin_service_status SET status = :status, started_at = NOW(), updated_at = NOW() WHERE service_id = :id"),
+                    {"id": service_id, "status": new_status}
+                )
+            else:
+                conn.execute(
+                    text("UPDATE admin_service_status SET status = :status, stopped_at = NOW(), uptime_seconds = 0, updated_at = NOW() WHERE service_id = :id"),
+                    {"id": service_id, "status": new_status}
+                )
+            conn.commit()
+            
+            return {
+                "success": True,
+                "service": service_id,
+                "action": action,
+                "message": f"Service {service_name} {action}ed successfully",
+                "timestamp": datetime.now().isoformat(),
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/process/{service_id}/logs")

@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.api import api_router
 from app.api.endpoints import admin_ws
 from app.core.config import settings
+from app.middleware.api_logging import APILoggingMiddleware
 
 # Configure logging
 logging.basicConfig(
@@ -52,6 +53,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# API Logging middleware (logs to database)
+app.add_middleware(APILoggingMiddleware)
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -77,4 +81,5 @@ async def health_check():
         "version": settings.APP_VERSION,
         "uptime_seconds": (datetime.now() - startup_time).total_seconds(),
     }
+
 
