@@ -48,13 +48,13 @@ class CoinGeckoFetcher:
             logger.error(f"CoinGecko error: {e}")
         return []
     
-    async def fetch_all_markets(self, max_coins: int = 5000) -> List[Dict]:
-        """Fetch all pages with rate limiting - 3 pages at a time with delay"""
+    async def fetch_all_markets(self, max_coins: int = 500) -> List[Dict]:
+        """Fetch pages with rate limiting - faster for initial load"""
         pages_needed = (max_coins // 250) + 1
         all_coins = []
         
-        # Fetch in batches of 3 pages to avoid rate limit (429)
-        batch_size = 3
+        # Fetch in batches of 2 pages with short delay
+        batch_size = 2
         for i in range(1, pages_needed + 1, batch_size):
             batch_pages = list(range(i, min(i + batch_size, pages_needed + 1)))
             tasks = [self.fetch_markets(page=p) for p in batch_pages]
@@ -64,9 +64,9 @@ class CoinGeckoFetcher:
                 if isinstance(result, list):
                     all_coins.extend(result)
             
-            # Wait between batches to respect rate limit
+            # Short delay between batches
             if i + batch_size <= pages_needed:
-                await asyncio.sleep(2)
+                await asyncio.sleep(1)
         
         return all_coins[:max_coins]
     
@@ -390,9 +390,9 @@ class MultiSourceFetcher:
         
         # Run ALL fetchers in parallel
         tasks = {
-            # Primary data sources
-            "coingecko": self.coingecko.fetch_all_markets(5000),
-            "coincap": self.coincap.fetch_assets(2000),
+            # Primary data sources - reduced to 500 coins for fast loading
+            "coingecko": self.coingecko.fetch_all_markets(500),
+            "coincap": self.coincap.fetch_assets(500),
             # CEX real-time prices
             "binance": self.binance.fetch_24h_tickers(),
             "okx": self.okx.fetch_tickers(),
