@@ -7,7 +7,7 @@ from fastapi import APIRouter
 
 from app.api.endpoints import market, portfolio, sentiment, auth, onchain, admin
 from app.api.endpoints import admin_data, admin_users, admin_fetcher, admin_ai_workers
-from app.api.endpoints import triggers, realtime
+from app.api.endpoints import triggers, realtime, intent_divergence
 
 api_router = APIRouter()
 
@@ -28,6 +28,12 @@ api_router.include_router(
     onchain.router,
     prefix="/onchain",
     tags=["On-Chain Data"]
+)
+
+# Intent Divergence (Shadow Analysis)
+api_router.include_router(
+    intent_divergence.router,
+    tags=["Intent Divergence"]
 )
 
 # Real-time streaming

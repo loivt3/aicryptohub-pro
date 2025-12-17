@@ -186,6 +186,92 @@ Respond in JSON format only:
             "reasoning": "Based on whale activity and exchange flow analysis",
             "risk_level": "MEDIUM" if signal == "NEUTRAL" else "HIGH",
         }
+    
+    async def analyze_behavioral_intent(
+        self,
+        data_package: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Generate 2-sentence "Shadow Insight" explaining whale behavior using DeepSeek.
+        
+        Args:
+            data_package: Dict containing sentiment, whale flow, divergence data
+            
+        Returns:
+            Dict with shadow_insight, confidence, action_hint
+        """
+        if not self.enabled:
+            return None
+        
+        coin_id = data_package.get("coin_id", "Unknown")
+        sentiment = data_package.get("sentiment_score", 50)
+        whale_flow = data_package.get("whale_net_flow_usd", 0)
+        divergence_type = data_package.get("divergence_type", "neutral")
+        intent_score = data_package.get("intent_score", 50)
+        whale_behavior = data_package.get("dominant_whale_behavior", "unknown")
+        
+        # Build context
+        if divergence_type == "shadow_accumulation":
+            scenario = f"Crowd sentiment: {sentiment}/100 (Fear). Whales withdrawing ${abs(whale_flow):,.0f} (accumulating)."
+        elif divergence_type == "bull_trap":
+            scenario = f"Crowd sentiment: {sentiment}/100 (Greed). Whales depositing ${whale_flow:,.0f} (distributing)."
+        else:
+            scenario = f"Sentiment: {sentiment}/100. Whale flow: ${whale_flow:,.0f}. No clear divergence."
+        
+        prompt = f"""Analyze this crypto whale behavior for {coin_id}:
+{scenario}
+Whale behavior type: {whale_behavior}
+Intent strength: {intent_score}/100
+
+Generate a 2-sentence "Shadow Insight":
+1. What whales are doing and why it matters
+2. Potential action observation
+
+JSON format: {{"shadow_insight": "...", "confidence": 0.0-1.0, "action_hint": "..."}}"""
+
+        try:
+            client = await self._get_client()
+            
+            response = await client.post(
+                f"{DEEPSEEK_API_BASE}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "deepseek-chat",
+                    "messages": [
+                        {"role": "system", "content": "You are a crypto whale analyst. Respond with JSON only."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.4,
+                    "max_tokens": 300,
+                }
+            )
+            response.raise_for_status()
+            
+            data = response.json()
+            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            
+            # Parse JSON
+            if "```json" in content:
+                content = content.split("```json")[1].split("```")[0]
+            elif "```" in content:
+                content = content.split("```")[1].split("```")[0]
+            
+            result = json.loads(content.strip())
+            
+            return {
+                "shadow_insight": result.get("shadow_insight", ""),
+                "confidence": float(result.get("confidence", 0.5)),
+                "action_hint": result.get("action_hint", ""),
+                "divergence_type": divergence_type,
+                "provider": "deepseek",
+            }
+            
+        except Exception as e:
+            logger.error(f"DeepSeek behavioral intent failed: {e}")
+            return None
         
     async def close(self):
         """Close HTTP client"""
@@ -206,3 +292,4 @@ def get_deepseek_service() -> DeepSeekService:
         settings = get_settings()
         _deepseek_service = DeepSeekService(settings.deepseek_api_key)
     return _deepseek_service
+

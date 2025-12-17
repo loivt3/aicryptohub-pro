@@ -5,7 +5,7 @@
       <div class="m-header-content">
         <!-- Logo -->
         <div class="m-logo">
-          <span class="m-logo-icon">🔥</span>
+          <Icon name="ph:chart-line-up-bold" class="m-logo-icon" style="color: #38efeb; width: 16px; height: 16px;" />
           <span class="m-logo-text">AI Hub</span>
         </div>
         
@@ -61,6 +61,8 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
+
 const props = defineProps<{
   activeTab: string
 }>()
@@ -71,7 +73,7 @@ const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: 'ph:squares-four' },
   { id: 'market', label: 'Market', icon: 'ph:chart-line-up' },
   { id: 'analysis', label: 'Analysis', icon: 'ph:chart-bar' },
-  { id: 'news', label: 'News', icon: 'ph:newspaper' },
+  { id: 'shadow', label: 'Shadow', icon: 'ph:eye' },
   { id: 'aichat', label: 'AI Chat', icon: 'ph:chat-circle-dots' },
 ]
 

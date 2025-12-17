@@ -571,4 +571,264 @@ class AnalyzerService:
             "crowd_action": crowd_action,
             "crowd_sentiment": crowd_sentiment,
         }
+    
+    async def calculate_intent_divergence_v2(
+        self,
+        coin_id: str,
+        include_ai_insight: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Enhanced Intent Divergence with whale profiling and AI insights.
+        
+        Scenarios:
+        - Shadow Accumulation: Sentiment < 40, Whale Outflow from exchanges (bullish)
+        - Bull Trap: Sentiment > 70, Whale Inflow to exchanges (bearish)
+        - Confirmation: Whale and crowd aligned
+        - Neutral: No clear signal
+        
+        Args:
+            coin_id: Coin ID to analyze
+            include_ai_insight: Whether to generate AI shadow insight
+            
+        Returns:
+            Complete intent divergence package for frontend
+        """
+        from sqlalchemy import text
+        
+        result = {
+            "coin_id": coin_id,
+            "intent_score": 50,
+            "divergence_type": "neutral",
+            "divergence_label": "No Clear Signal",
+            "sentiment_score": 50,
+            "whale_score": 50,
+            "whale_net_flow_usd": 0,
+            "active_whale_profiles": [],
+            "dominant_whale_behavior": "unknown",
+            "avg_reaction_latency": 0,
+            "shadow_insight": "",
+            "signal_strength": "weak",
+            "is_golden_shadow": False,
+        }
+        
+        try:
+            # 1. Get latest sentiment from behavioral_sentiment or aihub_sentiment
+            sentiment_query = text("""
+                SELECT 
+                    sentiment_score,
+                    emotional_tone,
+                    expected_crowd_action
+                FROM behavioral_sentiment
+                WHERE coin_id = :coin_id
+                ORDER BY analyzed_at DESC
+                LIMIT 1
+            """)
+            
+            with self.db.engine.connect() as conn:
+                row = conn.execute(sentiment_query, {"coin_id": coin_id}).fetchone()
+                
+                if row:
+                    result["sentiment_score"] = row[0] or 50
+                    result["emotional_tone"] = row[1] or "Neutral"
+                    result["crowd_action"] = row[2] or "Hold"
+                else:
+                    # Fallback to aihub_sentiment
+                    fallback_query = text("""
+                        SELECT sentiment_score * 100
+                        FROM aihub_sentiment s
+                        JOIN aihub_coins c ON UPPER(c.symbol) = UPPER(s.symbol)
+                        WHERE c.coin_id = :coin_id
+                        LIMIT 1
+                    """)
+                    fb_row = conn.execute(fallback_query, {"coin_id": coin_id}).fetchone()
+                    if fb_row:
+                        result["sentiment_score"] = int(fb_row[0] or 50)
+            
+            # 2. Get whale net flow from onchain_signals
+            whale_query = text("""
+                SELECT 
+                    whale_net_flow_usd,
+                    whale_signal,
+                    bullish_probability
+                FROM onchain_signals
+                WHERE coin_id = :coin_id
+                ORDER BY updated_at DESC
+                LIMIT 1
+            """)
+            
+            with self.db.engine.connect() as conn:
+                row = conn.execute(whale_query, {"coin_id": coin_id}).fetchone()
+                
+                if row:
+                    result["whale_net_flow_usd"] = float(row[0] or 0)
+                    result["whale_signal"] = row[1] or "NEUTRAL"
+                    result["whale_score"] = int(row[2] or 50)
+            
+            # 3. Determine divergence type
+            sentiment = result["sentiment_score"]
+            whale_flow = result["whale_net_flow_usd"]
+            
+            # Shadow Accumulation: Fear + Whale Outflow (buying from exchanges)
+            if sentiment < 40 and whale_flow < -50000:  # Negative = outflow = accumulation
+                result["divergence_type"] = "shadow_accumulation"
+                result["divergence_label"] = "Shadow Accumulation"
+                result["intent_score"] = min(100, 60 + abs(40 - sentiment) + abs(whale_flow) / 100000)
+                result["signal_strength"] = "strong" if result["intent_score"] > 75 else "moderate"
+                result["is_golden_shadow"] = result["intent_score"] > 80
+            
+            # Bull Trap: Greed + Whale Inflow (selling to exchanges)
+            elif sentiment > 70 and whale_flow > 50000:  # Positive = inflow = distribution
+                result["divergence_type"] = "bull_trap"
+                result["divergence_label"] = "Bull Trap Warning"
+                result["intent_score"] = min(100, 60 + (sentiment - 70) + whale_flow / 100000)
+                result["signal_strength"] = "strong" if result["intent_score"] > 75 else "moderate"
+                result["is_golden_shadow"] = result["intent_score"] > 80
+            
+            # Confirmation: Both aligned
+            elif (sentiment > 60 and whale_flow < -30000) or (sentiment < 40 and whale_flow > 30000):
+                result["divergence_type"] = "confirmation"
+                result["divergence_label"] = "Trend Confirmation"
+                result["intent_score"] = 50 + abs(sentiment - 50) / 2
+                result["signal_strength"] = "moderate"
+            
+            else:
+                result["divergence_type"] = "neutral"
+                result["divergence_label"] = "No Clear Signal"
+                result["intent_score"] = 50
+                result["signal_strength"] = "weak"
+            
+            # 4. Get active whale profiles
+            profile_query = text("""
+                SELECT 
+                    behavior_label,
+                    behavior_confidence,
+                    success_rate,
+                    COUNT(*) as count
+                FROM whale_behavioral_profiles
+                WHERE last_active > NOW() - INTERVAL '24 hours'
+                GROUP BY behavior_label, behavior_confidence, success_rate
+                ORDER BY count DESC
+                LIMIT 5
+            """)
+            
+            try:
+                with self.db.engine.connect() as conn:
+                    rows = conn.execute(profile_query).fetchall()
+                    if rows:
+                        result["active_whale_profiles"] = [
+                            {"behavior": r[0], "confidence": r[1], "success_rate": r[2], "count": r[3]}
+                            for r in rows
+                        ]
+                        result["dominant_whale_behavior"] = rows[0][0] if rows else "unknown"
+            except Exception:
+                pass
+            
+            # 5. Generate AI Shadow Insight
+            if include_ai_insight and result["divergence_type"] != "neutral":
+                try:
+                    from app.services.gemini import get_gemini_service
+                    gemini = get_gemini_service()
+                    
+                    insight = await gemini.analyze_behavioral_intent({
+                        "coin_id": coin_id,
+                        "sentiment_score": result["sentiment_score"],
+                        "whale_net_flow_usd": result["whale_net_flow_usd"],
+                        "divergence_type": result["divergence_type"],
+                        "intent_score": result["intent_score"],
+                        "dominant_whale_behavior": result["dominant_whale_behavior"],
+                    })
+                    
+                    if insight:
+                        result["shadow_insight"] = insight.get("shadow_insight", "")
+                        
+                except Exception as e:
+                    logger.warning(f"Failed to generate shadow insight: {e}")
+            
+            # 6. Save to intent_divergence_logs
+            await self._save_intent_divergence_log(coin_id, result)
+            
+        except Exception as e:
+            logger.error(f"Failed to calculate intent divergence v2: {e}")
+        
+        return result
+    
+    async def _save_intent_divergence_log(
+        self,
+        coin_id: str,
+        divergence_data: Dict[str, Any],
+    ) -> bool:
+        """Save intent divergence to logs table"""
+        from sqlalchemy import text
+        
+        query = text("""
+            INSERT INTO intent_divergence_logs (
+                coin_id, sentiment_score, whale_score, divergence_type,
+                intent_score, whale_net_flow_usd, dominant_whale_behavior,
+                shadow_insight
+            ) VALUES (
+                :coin_id, :sentiment_score, :whale_score, :divergence_type,
+                :intent_score, :whale_net_flow_usd, :dominant_whale_behavior,
+                :shadow_insight
+            )
+        """)
+        
+        try:
+            with self.db.engine.begin() as conn:
+                conn.execute(query, {
+                    "coin_id": coin_id,
+                    "sentiment_score": divergence_data.get("sentiment_score", 50),
+                    "whale_score": divergence_data.get("whale_score", 50),
+                    "divergence_type": divergence_data.get("divergence_type", "neutral"),
+                    "intent_score": divergence_data.get("intent_score", 50),
+                    "whale_net_flow_usd": divergence_data.get("whale_net_flow_usd", 0),
+                    "dominant_whale_behavior": divergence_data.get("dominant_whale_behavior", "unknown"),
+                    "shadow_insight": divergence_data.get("shadow_insight", ""),
+                })
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to save intent divergence log: {e}")
+            return False
+    
+    def get_radar_data(
+        self,
+        sentiment_score: int,
+        whale_score: int,
+        exchange_pressure: float,
+        network_growth: float,
+        intent_score: int,
+    ) -> Dict[str, Any]:
+        """
+        Prepare data for ShadowRadar component (5 axes).
+        
+        Args:
+            sentiment_score: Crowd sentiment 0-100
+            whale_score: Whale momentum 0-100
+            exchange_pressure: Net exchange flow normalized 0-100
+            network_growth: DAU change % normalized 0-100
+            intent_score: Intent divergence strength 0-100
+            
+        Returns:
+            Radar chart data for ApexCharts
+        """
+        return {
+            "labels": [
+                "Crowd Sentiment",
+                "Whale Momentum",
+                "Exchange Pressure",
+                "Network Growth",
+                "Intent Strength",
+            ],
+            "values": [
+                max(0, min(100, sentiment_score)),
+                max(0, min(100, whale_score)),
+                max(0, min(100, exchange_pressure)),
+                max(0, min(100, network_growth)),
+                max(0, min(100, intent_score)),
+            ],
+            "colors": {
+                "fill": "rgba(0, 212, 255, 0.3)",
+                "stroke": "#00d4ff",
+            }
+        }
+
 

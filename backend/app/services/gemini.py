@@ -589,6 +589,129 @@ RESPOND WITH JSON ONLY. No markdown, no explanation outside JSON."""
             "sentiment_score": 50,
             "news_intensity": 5,
         }
+    
+    async def analyze_behavioral_intent(
+        self,
+        data_package: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Generate 2-sentence "Shadow Insight" explaining whale behavior.
+        
+        Args:
+            data_package: Dict containing:
+                - coin_id: Coin identifier
+                - sentiment_score: Crowd sentiment 0-100
+                - whale_net_flow_usd: Net flow (negative = accumulation)
+                - divergence_type: shadow_accumulation/bull_trap/etc.
+                - intent_score: Divergence strength 0-100
+                - dominant_whale_behavior: value_hunter/accumulator/etc.
+                
+        Returns:
+            Dict with:
+                - shadow_insight: 2-sentence explanation
+                - confidence: 0-1
+                - action_hint: Suggested action
+        """
+        if not self.enabled:
+            return None
+        
+        await self._rate_limit()
+        
+        coin_id = data_package.get("coin_id", "Unknown")
+        sentiment = data_package.get("sentiment_score", 50)
+        whale_flow = data_package.get("whale_net_flow_usd", 0)
+        divergence_type = data_package.get("divergence_type", "neutral")
+        intent_score = data_package.get("intent_score", 50)
+        whale_behavior = data_package.get("dominant_whale_behavior", "unknown")
+        
+        # Determine scenario description
+        if divergence_type == "shadow_accumulation":
+            scenario = f"SHADOW ACCUMULATION detected: Crowd sentiment is fearful ({sentiment}/100) but whales are withdrawing ${abs(whale_flow):,.0f} from exchanges (accumulating)."
+        elif divergence_type == "bull_trap":
+            scenario = f"BULL TRAP WARNING: Crowd sentiment is greedy ({sentiment}/100) but whales are depositing ${whale_flow:,.0f} to exchanges (preparing to sell)."
+        elif divergence_type == "confirmation":
+            scenario = f"TREND CONFIRMATION: Whales and crowd are aligned. Sentiment: {sentiment}/100, Whale flow: ${whale_flow:,.0f}."
+        else:
+            scenario = f"NEUTRAL: No significant divergence. Sentiment: {sentiment}/100, Whale flow: ${whale_flow:,.0f}."
+        
+        prompt = f"""You are an elite crypto analyst specializing in whale behavior and market psychology. Generate a CONCISE 2-sentence "Shadow Insight" for traders.
+
+=== CONTEXT ===
+Coin: {coin_id}
+{scenario}
+Dominant Whale Behavior: {whale_behavior}
+Intent Strength: {intent_score}/100
+
+=== TASK ===
+Write EXACTLY 2 sentences:
+1. First sentence: Explain WHAT the whales are doing and WHY it matters
+2. Second sentence: Suggest a potential action (not financial advice, just observation)
+
+=== OUTPUT FORMAT (JSON) ===
+{{
+    "shadow_insight": "Two sentence insight here.",
+    "confidence": 0.0-1.0,
+    "action_hint": "Brief action suggestion"
+}}
+
+RESPOND WITH JSON ONLY. Be specific, not generic. Use the actual numbers provided."""
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"{self.API_URL}?key={self.api_key}",
+                    json={
+                        "contents": [{"parts": [{"text": prompt}]}],
+                        "generationConfig": {
+                            "temperature": 0.4,
+                            "maxOutputTokens": 300,
+                        }
+                    }
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    
+                    # Parse JSON
+                    try:
+                        json_str = text
+                        if "```json" in text:
+                            json_str = text.split("```json")[1].split("```")[0]
+                        elif "```" in text:
+                            json_str = text.split("```")[1].split("```")[0]
+                        
+                        result = json.loads(json_str.strip())
+                        
+                        return {
+                            "shadow_insight": result.get("shadow_insight", ""),
+                            "confidence": float(result.get("confidence", 0.5)),
+                            "action_hint": result.get("action_hint", ""),
+                            "divergence_type": divergence_type,
+                        }
+                        
+                    except (json.JSONDecodeError, IndexError) as e:
+                        logger.warning(f"Failed to parse shadow insight JSON: {e}")
+                        # Return a fallback insight
+                        if divergence_type == "shadow_accumulation":
+                            return {
+                                "shadow_insight": f"Whales are quietly accumulating while retail investors panic. This divergence ({intent_score}/100) suggests smart money sees opportunity in current fear.",
+                                "confidence": 0.6,
+                                "action_hint": "Watch for reversal signals",
+                            }
+                        elif divergence_type == "bull_trap":
+                            return {
+                                "shadow_insight": f"Whales are moving funds to exchanges while crowd sentiment peaks. This distribution pattern ({intent_score}/100) often precedes corrections.",
+                                "confidence": 0.6,
+                                "action_hint": "Consider reducing exposure",
+                            }
+                else:
+                    logger.warning(f"Gemini behavioral intent error: {response.status_code}")
+                    
+        except Exception as e:
+            logger.error(f"Gemini analyze_behavioral_intent failed: {e}")
+        
+        return None
 
 
 # Singleton
@@ -603,4 +726,5 @@ def get_gemini_service() -> GeminiService:
         settings = get_settings()
         _gemini_service = GeminiService(settings.gemini_api_key)
     return _gemini_service
+
 

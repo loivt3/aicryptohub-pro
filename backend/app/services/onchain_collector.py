@@ -1202,9 +1202,345 @@ class OnChainCollector:
             logger.error(f"Failed to collect/analyze {coin_id}: {e}")
             
         return result
+    
+    # =========================================================================
+    # WHALE BEHAVIORAL PROFILING (Intent Divergence Engine)
+    # =========================================================================
+    
+    async def get_whale_historical_behavior(
+        self,
+        address: str,
+        chain_id: int = 1,
+        limit: int = 20,
+    ) -> Dict[str, Any]:
+        """
+        Analyze last N transactions to assign behavior_label.
+        
+        Behavior Labels:
+        - value_hunter: Buys when RSI < 30 (oversold conditions)
+        - news_front_runner: Moves 1-2h before major news/sentiment spikes
+        - panic_seller: Sells during 5%+ price drops
+        - accumulator: Steady buying pattern regardless of conditions
+        - mixed: No clear pattern
+        
+        Args:
+            address: Whale wallet address
+            chain_id: Chain ID
+            limit: Number of transactions to analyze
+            
+        Returns:
+            Behavioral profile dict
+        """
+        from sqlalchemy import text
+        
+        # Fetch transaction history with market context
+        query = text("""
+            SELECT 
+                tx_type,
+                amount_usd,
+                rsi_at_tx,
+                sentiment_at_tx,
+                price_change_24h_at_tx,
+                is_profitable,
+                profit_pct,
+                tx_timestamp
+            FROM whale_transaction_history
+            WHERE address = :address
+            ORDER BY tx_timestamp DESC
+            LIMIT :limit
+        """)
+        
+        try:
+            with self.db.engine.connect() as conn:
+                result = conn.execute(query, {"address": address.lower(), "limit": limit})
+                transactions = [dict(row._mapping) for row in result.fetchall()]
+        except Exception as e:
+            logger.warning(f"No transaction history for {address}: {e}")
+            transactions = []
+        
+        if len(transactions) < 5:
+            return {
+                "address": address,
+                "behavior_label": "unknown",
+                "behavior_confidence": 0,
+                "total_transactions": len(transactions),
+                "analysis": "Insufficient transaction history",
+            }
+        
+        # Analyze patterns
+        return self._classify_whale_behavior(address, transactions)
+    
+    def _classify_whale_behavior(
+        self,
+        address: str,
+        transactions: List[Dict],
+    ) -> Dict[str, Any]:
+        """Classify whale behavior based on transaction patterns"""
+        
+        total = len(transactions)
+        buys = [t for t in transactions if t.get("tx_type") == "buy"]
+        sells = [t for t in transactions if t.get("tx_type") == "sell"]
+        
+        # Count pattern indicators
+        buys_at_oversold = sum(1 for t in buys if (t.get("rsi_at_tx") or 50) < 30)
+        buys_at_fear = sum(1 for t in buys if (t.get("sentiment_at_tx") or 50) < 30)
+        sells_during_drops = sum(1 for t in sells if (t.get("price_change_24h_at_tx") or 0) < -5)
+        sells_at_greed = sum(1 for t in sells if (t.get("sentiment_at_tx") or 50) > 70)
+        
+        profitable = sum(1 for t in transactions if t.get("is_profitable"))
+        avg_profit = sum(t.get("profit_pct") or 0 for t in transactions) / max(total, 1)
+        
+        # Determine dominant behavior
+        scores = {
+            "value_hunter": (buys_at_oversold + buys_at_fear) / max(len(buys), 1) if buys else 0,
+            "panic_seller": sells_during_drops / max(len(sells), 1) if sells else 0,
+            "accumulator": len(buys) / max(total, 1),
+            "distributor": len(sells) / max(total, 1),
+        }
+        
+        # Check for news front-runner (would need news correlation - simplified here)
+        # This would ideally check if trades happened 1-2h before sentiment spikes
+        
+        # Get dominant behavior
+        best_label = max(scores, key=scores.get)
+        best_score = scores[best_label]
+        
+        # If no strong pattern, mark as mixed
+        if best_score < 0.4:
+            best_label = "mixed"
+            best_score = 0.3
+        
+        return {
+            "address": address,
+            "behavior_label": best_label,
+            "behavior_confidence": round(best_score, 2),
+            "total_transactions": total,
+            "profitable_trades": profitable,
+            "success_rate": round(profitable / max(total, 1), 2),
+            "avg_profit_pct": round(avg_profit, 2),
+            "pattern_scores": scores,
+            "buys_at_oversold": buys_at_oversold,
+            "sells_during_drops": sells_during_drops,
+        }
+    
+    async def calculate_reaction_latency(
+        self,
+        address: str,
+        coin_id: str,
+    ) -> int:
+        """
+        Calculate average minutes between sentiment spike and whale transaction.
+        
+        Returns:
+            Average reaction latency in minutes (0 if no data)
+        """
+        from sqlalchemy import text
+        
+        # Find transactions close to sentiment spikes
+        query = text("""
+            WITH sentiment_spikes AS (
+                SELECT analyzed_at, sentiment_score
+                FROM behavioral_sentiment
+                WHERE coin_id = :coin_id
+                AND (sentiment_score < 25 OR sentiment_score > 75)
+                ORDER BY analyzed_at DESC
+                LIMIT 20
+            )
+            SELECT 
+                wth.tx_timestamp,
+                ss.analyzed_at as spike_time,
+                EXTRACT(EPOCH FROM (wth.tx_timestamp - ss.analyzed_at)) / 60 as latency_minutes
+            FROM whale_transaction_history wth
+            CROSS JOIN sentiment_spikes ss
+            WHERE wth.address = :address
+            AND wth.coin_id = :coin_id
+            AND ABS(EXTRACT(EPOCH FROM (wth.tx_timestamp - ss.analyzed_at))) < 7200  -- Within 2 hours
+            ORDER BY ABS(EXTRACT(EPOCH FROM (wth.tx_timestamp - ss.analyzed_at)))
+            LIMIT 20
+        """)
+        
+        try:
+            with self.db.engine.connect() as conn:
+                result = conn.execute(query, {
+                    "address": address.lower(),
+                    "coin_id": coin_id,
+                })
+                rows = result.fetchall()
+                
+                if not rows:
+                    return 0
+                
+                latencies = [abs(row[2]) for row in rows if row[2] is not None]
+                return int(sum(latencies) / len(latencies)) if latencies else 0
+                
+        except Exception as e:
+            logger.warning(f"Failed to calculate reaction latency: {e}")
+            return 0
+    
+    async def update_whale_profile(
+        self,
+        address: str,
+        behavior_data: Dict[str, Any],
+        chain_id: int = 1,
+    ) -> bool:
+        """
+        Save or update whale behavioral profile.
+        
+        Args:
+            address: Whale address
+            behavior_data: Output from get_whale_historical_behavior()
+            chain_id: Chain ID
+            
+        Returns:
+            True on success
+        """
+        from sqlalchemy import text
+        from datetime import datetime
+        
+        query = text("""
+            INSERT INTO whale_behavioral_profiles (
+                address, chain_id, behavior_label, behavior_confidence,
+                success_rate, total_transactions, profitable_trades,
+                last_active, updated_at
+            ) VALUES (
+                :address, :chain_id, :behavior_label, :behavior_confidence,
+                :success_rate, :total_transactions, :profitable_trades,
+                NOW(), NOW()
+            )
+            ON CONFLICT (address) DO UPDATE SET
+                behavior_label = EXCLUDED.behavior_label,
+                behavior_confidence = EXCLUDED.behavior_confidence,
+                success_rate = EXCLUDED.success_rate,
+                total_transactions = EXCLUDED.total_transactions,
+                profitable_trades = EXCLUDED.profitable_trades,
+                last_active = NOW(),
+                updated_at = NOW()
+        """)
+        
+        try:
+            with self.db.engine.begin() as conn:
+                conn.execute(query, {
+                    "address": address.lower(),
+                    "chain_id": chain_id,
+                    "behavior_label": behavior_data.get("behavior_label", "unknown"),
+                    "behavior_confidence": behavior_data.get("behavior_confidence", 0),
+                    "success_rate": behavior_data.get("success_rate", 0),
+                    "total_transactions": behavior_data.get("total_transactions", 0),
+                    "profitable_trades": behavior_data.get("profitable_trades", 0),
+                })
+            
+            logger.info(f"Updated whale profile: {address[:10]}... -> {behavior_data.get('behavior_label')}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to update whale profile: {e}")
+            return False
+    
+    async def save_transaction_with_context(
+        self,
+        address: str,
+        coin_id: str,
+        tx_hash: str,
+        tx_type: str,
+        amount_usd: float,
+        market_context: Dict[str, Any],
+        chain_id: int = 1,
+    ) -> bool:
+        """
+        Save whale transaction with market context for behavior analysis.
+        
+        Args:
+            address: Whale address
+            coin_id: Coin ID
+            tx_hash: Transaction hash
+            tx_type: buy/sell/transfer
+            amount_usd: Transaction value in USD
+            market_context: Dict with price, rsi, sentiment at transaction time
+            chain_id: Chain ID
+            
+        Returns:
+            True on success
+        """
+        from sqlalchemy import text
+        from datetime import datetime
+        
+        query = text("""
+            INSERT INTO whale_transaction_history (
+                address, coin_id, chain_id, tx_hash, tx_type, amount_usd,
+                price_at_tx, price_change_24h_at_tx, rsi_at_tx, sentiment_at_tx,
+                tx_timestamp
+            ) VALUES (
+                :address, :coin_id, :chain_id, :tx_hash, :tx_type, :amount_usd,
+                :price_at_tx, :price_change_24h_at_tx, :rsi_at_tx, :sentiment_at_tx,
+                NOW()
+            )
+            ON CONFLICT DO NOTHING
+        """)
+        
+        try:
+            with self.db.engine.begin() as conn:
+                conn.execute(query, {
+                    "address": address.lower(),
+                    "coin_id": coin_id,
+                    "chain_id": chain_id,
+                    "tx_hash": tx_hash,
+                    "tx_type": tx_type,
+                    "amount_usd": amount_usd,
+                    "price_at_tx": market_context.get("price", 0),
+                    "price_change_24h_at_tx": market_context.get("price_change_24h", 0),
+                    "rsi_at_tx": market_context.get("rsi", 50),
+                    "sentiment_at_tx": market_context.get("sentiment_score", 50),
+                })
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to save transaction context: {e}")
+            return False
+    
+    async def get_active_whale_profiles(
+        self,
+        coin_id: str = None,
+        hours_back: int = 24,
+        limit: int = 10,
+    ) -> List[Dict[str, Any]]:
+        """
+        Get profiles of whales active in the last N hours.
+        
+        Args:
+            coin_id: Optional coin filter
+            hours_back: Hours to look back
+            limit: Max profiles to return
+            
+        Returns:
+            List of whale profile dicts
+        """
+        from sqlalchemy import text
+        
+        query = text("""
+            SELECT 
+                wp.address,
+                wp.behavior_label,
+                wp.behavior_confidence,
+                wp.success_rate,
+                wp.total_transactions,
+                wp.last_active
+            FROM whale_behavioral_profiles wp
+            WHERE wp.last_active > NOW() - INTERVAL ':hours hours'
+            ORDER BY wp.success_rate DESC, wp.total_transactions DESC
+            LIMIT :limit
+        """.replace(":hours", str(hours_back)))
+        
+        try:
+            with self.db.engine.connect() as conn:
+                result = conn.execute(query, {"limit": limit})
+                return [dict(row._mapping) for row in result.fetchall()]
+        except Exception as e:
+            logger.error(f"Failed to get active whale profiles: {e}")
+            return []
         
     async def close(self):
         """Close HTTP client"""
         if self._client:
             await self._client.aclose()
             self._client = None
+
