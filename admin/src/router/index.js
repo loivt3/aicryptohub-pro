@@ -121,22 +121,27 @@ const router = createRouter({
     routes,
 })
 
-// Navigation guard for auth (disabled for initial testing)
+// Navigation guard for auth - ENABLED
 router.beforeEach((to, from, next) => {
-    // Temporarily allow all access for debugging
-    // TODO: Re-enable auth after fixing boot loop
     const token = localStorage.getItem('admin_token')
 
     // Always allow login page
     if (to.name === 'login') {
+        // If already logged in, redirect to dashboard
+        if (token && token !== 'debug_token') {
+            next({ name: 'dashboard' })
+            return
+        }
         next()
         return
     }
 
-    // For now, auto-set token if not present to allow access
-    if (!token) {
-        localStorage.setItem('admin_token', 'debug_token')
+    // Require valid token for all other pages
+    if (!token || token === 'debug_token') {
+        next({ name: 'login' })
+        return
     }
+
     next()
 })
 
