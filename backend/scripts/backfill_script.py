@@ -185,7 +185,13 @@ async def main():
         return
         
     db = DatabaseService(database_url)
-    await db.connect()
+    
+    # Test connection
+    if not db.test_connection():
+        logger.error("Failed to connect to database")
+        return
+        
+    logger.info("Database connected successfully")
     
     try:
         # Get API key
@@ -271,8 +277,9 @@ async def main():
         # Cleanup
         await collector.close()
         
-    finally:
-        await db.disconnect()
+    except Exception as e:
+        logger.error(f"Script failed: {e}")
+        raise
         
 
 if __name__ == "__main__":
