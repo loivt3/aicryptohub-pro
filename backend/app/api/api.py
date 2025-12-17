@@ -6,7 +6,7 @@ Combines all endpoint routers into a single API router
 from fastapi import APIRouter
 
 from app.api.endpoints import market, portfolio, sentiment, auth, onchain, admin
-from app.api.endpoints import admin_data, admin_users
+from app.api.endpoints import admin_data, admin_users, admin_fetcher
 from app.api.endpoints import triggers, realtime
 
 api_router = APIRouter()
@@ -77,4 +77,9 @@ api_router.include_router(
     tags=["Admin Users"]
 )
 
-
+# Admin Fetcher Process Manager
+api_router.include_router(
+    admin_fetcher.router,
+    prefix="/admin",
+    tags=["Admin Fetcher"]
+)

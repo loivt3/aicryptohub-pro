@@ -21,6 +21,14 @@ const routes = [
                 meta: { title: 'Process Manager', icon: 'settings' }
             },
 
+            // Fetcher Process Manager
+            {
+                path: 'fetcher',
+                name: 'fetcher-manager',
+                component: () => import('@/views/FetcherManagerView.vue'),
+                meta: { title: 'Fetcher Manager', icon: 'refresh' }
+            },
+
             // Data Management (CMS)
             {
                 path: 'data',

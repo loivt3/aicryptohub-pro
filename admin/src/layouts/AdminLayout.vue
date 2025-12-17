@@ -130,6 +130,11 @@ const menuOptions = [
     icon: renderIcon(SettingsOutline),
   },
   {
+    label: 'Fetcher Manager',
+    key: 'fetcher-manager',
+    icon: renderIcon(RefreshOutline),
+  },
+  {
     label: 'Data Management',
     key: 'data-management',
     icon: renderIcon(ServerOutline),
