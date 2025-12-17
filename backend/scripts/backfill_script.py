@@ -177,7 +177,14 @@ async def main():
     
     # Initialize services
     logger.info("Connecting to database...")
-    db = DatabaseService()
+    
+    # Get database URL from settings
+    database_url = settings.DATABASE_URL
+    if not database_url:
+        logger.error("No DATABASE_URL found in environment")
+        return
+        
+    db = DatabaseService(database_url)
     await db.connect()
     
     try:
