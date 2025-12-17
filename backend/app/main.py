@@ -41,6 +41,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to start scheduler: {e}")
     
+    # Start real-time Binance WebSocket streamer
+    from app.services.streamer import start_streamer, stop_streamer
+    try:
+        await start_streamer()
+        logger.info("Real-time WebSocket streamer started successfully")
+    except Exception as e:
+        logger.error(f"Failed to start streamer: {e}")
+    
     yield
     
     # Cleanup
@@ -48,6 +56,12 @@ async def lifespan(app: FastAPI):
         stop_scheduler()
     except Exception as e:
         logger.error(f"Failed to stop scheduler: {e}")
+    
+    try:
+        await stop_streamer()
+    except Exception as e:
+        logger.error(f"Failed to stop streamer: {e}")
+    
     logger.info("Shutting down AI Crypto Hub Pro API...")
 
 
