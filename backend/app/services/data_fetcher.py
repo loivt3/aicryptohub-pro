@@ -49,15 +49,24 @@ class CoinGeckoFetcher:
         return []
     
     async def fetch_all_markets(self, max_coins: int = 5000) -> List[Dict]:
-        """Fetch all pages concurrently"""
+        """Fetch all pages with rate limiting - 3 pages at a time with delay"""
         pages_needed = (max_coins // 250) + 1
-        tasks = [self.fetch_markets(page=i) for i in range(1, pages_needed + 1)]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        
         all_coins = []
-        for result in results:
-            if isinstance(result, list):
-                all_coins.extend(result)
+        
+        # Fetch in batches of 3 pages to avoid rate limit (429)
+        batch_size = 3
+        for i in range(1, pages_needed + 1, batch_size):
+            batch_pages = list(range(i, min(i + batch_size, pages_needed + 1)))
+            tasks = [self.fetch_markets(page=p) for p in batch_pages]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            for result in results:
+                if isinstance(result, list):
+                    all_coins.extend(result)
+            
+            # Wait between batches to respect rate limit
+            if i + batch_size <= pages_needed:
+                await asyncio.sleep(2)
         
         return all_coins[:max_coins]
     

@@ -229,14 +229,14 @@ async def get_fetcher_history(days: int = 7):
             result = conn.execute(
                 text("""
                     SELECT 
-                        DATE(created_at) as date,
+                        DATE(timestamp) as date,
                         COUNT(*) as fetch_count,
                         AVG(duration_ms) as avg_duration,
                         SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) as error_count
                     FROM admin_api_logs 
                     WHERE endpoint LIKE '%/trigger/fetch%'
-                      AND created_at >= NOW() - INTERVAL ':days days'
-                    GROUP BY DATE(created_at)
+                      AND timestamp >= NOW() - INTERVAL ':days days'
+                    GROUP BY DATE(timestamp)
                     ORDER BY date DESC
                 """),
                 {"days": days}
