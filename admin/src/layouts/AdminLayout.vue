@@ -100,7 +100,7 @@ import {
   LogOutOutline,
   RefreshOutline,
   NotificationsOutline,
-  BulbOutline,
+  FlashOutline,
 } from '@vicons/ionicons5'
 
 const route = useRoute()
@@ -138,7 +138,7 @@ const menuOptions = [
   {
     label: 'AI Workers',
     key: 'ai-workers',
-    icon: renderIcon(BulbOutline),
+    icon: renderIcon(FlashOutline),
   },
   {
     label: 'Data Management',
