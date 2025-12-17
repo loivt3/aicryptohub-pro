@@ -14,6 +14,12 @@ export default defineConfig({
         port: 3001,
         host: true,
         allowedHosts: ['app.aicryptohub.io', 'localhost'],
+        hmr: {
+            // Disable HMR in production-like environment to avoid websocket errors
+            host: 'app.aicryptohub.io',
+            protocol: 'wss',
+            clientPort: 443,
+        },
         proxy: {
             '/api': {
                 target: 'http://backend:8000',

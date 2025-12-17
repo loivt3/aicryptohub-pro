@@ -113,7 +113,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import axios from 'axios'
+
+const API_BASE = '/api/v1'
 
 // Stats data
 const stats = ref({
@@ -132,20 +135,11 @@ const systemHealth = ref({
 })
 
 // Services
-const services = ref([
-  { name: 'Market Streamer', status: 'running', uptime: '5d 12h' },
-  { name: 'AI Worker', status: 'running', uptime: '5d 12h' },
-  { name: 'On-Chain Collector', status: 'running', uptime: '3d 8h' },
-  { name: 'Price Aggregator', status: 'running', uptime: '5d 12h' },
-  { name: 'Redis Cache', status: 'running', uptime: '5d 12h' },
-])
+const services = ref([])
 
 // Recent activity
 const recentActivity = ref([
-  { id: 1, type: 'success', title: 'Coin data updated', content: 'Market data synced for 5,781 coins', time: '2 minutes ago' },
-  { id: 2, type: 'info', title: 'AI Analysis completed', content: 'Sentiment analysis for top 100 coins', time: '15 minutes ago' },
-  { id: 3, type: 'warning', title: 'Rate limit warning', content: 'CoinGecko API approaching rate limit', time: '1 hour ago' },
-  { id: 4, type: 'success', title: 'On-chain data synced', content: 'Whale transactions updated', time: '2 hours ago' },
+  { id: 1, type: 'success', title: 'Dashboard loaded', content: 'Admin console initialized', time: 'Just now' },
 ])
 
 // Get health color
@@ -155,30 +149,83 @@ function getHealthColor(percentage) {
   return '#ef4444'
 }
 
-// Fetch data
-async function fetchDashboardData() {
+// Fetch dashboard stats
+async function fetchStats() {
   try {
-    // TODO: Replace with real API calls
+    const response = await axios.get(`${API_BASE}/admin/stats`)
+    const data = response.data
     stats.value = {
-      activeUsers: 1247,
-      apiCalls: 2340,
-      coinsTracked: 5781,
-      errorRate: 0.12,
-    }
-    
-    systemHealth.value = {
-      cpu: 42,
-      memory: 68,
-      disk: 55,
-      dbConnections: 23,
+      activeUsers: data.active_users || 0,
+      apiCalls: data.api_calls_today || 0,
+      coinsTracked: data.coins_tracked || 0,
+      errorRate: data.error_rate || 0,
     }
   } catch (error) {
-    console.error('Failed to fetch dashboard data:', error)
+    console.error('Failed to fetch stats:', error)
   }
 }
 
+// Fetch system health
+async function fetchHealth() {
+  try {
+    const response = await axios.get(`${API_BASE}/admin/health`)
+    const data = response.data
+    systemHealth.value = {
+      cpu: Math.round(data.cpu_percent || 0),
+      memory: Math.round(data.memory_percent || 0),
+      disk: Math.round(data.disk_percent || 0),
+      dbConnections: Math.min(Math.round((data.db_connections || 0) * 10), 100),
+    }
+  } catch (error) {
+    console.error('Failed to fetch health:', error)
+  }
+}
+
+// Fetch services status
+async function fetchServices() {
+  try {
+    const response = await axios.get(`${API_BASE}/admin/process/status`)
+    const data = response.data
+    if (data.services) {
+      services.value = data.services.map(s => ({
+        name: s.name,
+        status: s.status || 'stopped',
+        uptime: s.uptime || 'N/A',
+      }))
+    }
+  } catch (error) {
+    console.error('Failed to fetch services:', error)
+    // Fallback to default services
+    services.value = [
+      { name: 'Market Streamer', status: 'stopped', uptime: 'N/A' },
+      { name: 'AI Worker', status: 'stopped', uptime: 'N/A' },
+      { name: 'On-Chain Collector', status: 'stopped', uptime: 'N/A' },
+    ]
+  }
+}
+
+// Fetch all dashboard data
+async function fetchDashboardData() {
+  await Promise.all([
+    fetchStats(),
+    fetchHealth(),
+    fetchServices(),
+  ])
+}
+
+// Auto refresh
+let refreshInterval = null
+
 onMounted(() => {
   fetchDashboardData()
+  // Refresh every 30 seconds
+  refreshInterval = setInterval(fetchDashboardData, 30000)
+})
+
+onUnmounted(() => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+  }
 })
 </script>
 
