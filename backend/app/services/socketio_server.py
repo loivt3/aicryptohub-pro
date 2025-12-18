@@ -107,7 +107,7 @@ class SocketIOManager:
         @self.sio.event
         async def get_price(sid, symbol):
             """Get single price from cache"""
-            from services.streamer import get_market_streamer
+            from app.services.streamer import get_market_streamer
             streamer = get_market_streamer()
             price = streamer.get_price(symbol.upper())
             return {'success': True, 'data': price} if price else {'success': False}
@@ -148,6 +148,20 @@ class SocketIOManager:
             'subscribed_symbols': len(self.subscriptions),
             'total_subscriptions': sum(len(s) for s in self.subscriptions.values())
         }
+    
+    async def broadcast_intent_alert(self, alert_data: Dict[str, Any]):
+        """Broadcast intent divergence alert to all connected clients (Shadow Radar)"""
+        if not self.sio or not self._initialized:
+            return
+        
+        if not self.connected_clients:
+            return
+        
+        try:
+            await self.sio.emit('intent_alert', alert_data)
+            logger.info(f"Intent alert broadcast: {alert_data.get('divergence_type', 'unknown')} for {alert_data.get('coin_id', 'unknown')}")
+        except Exception as e:
+            logger.warning(f"Intent alert broadcast failed: {e}")
 
 
 # Singleton

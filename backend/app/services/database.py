@@ -335,6 +335,108 @@ class DatabaseService:
             logger.error(f"Failed to fetch onchain summary: {e}")
             return []
     
+    def get_coins_with_contracts(self, limit: int = 20) -> List[Dict[str, Any]]:
+        """
+        Get coins with contract addresses for on-chain tracking.
+        Uses coin_contracts table or fallback to known mappings.
+        
+        Args:
+            limit: Max number of coins to return
+            
+        Returns:
+            List of coins with contract_address, chain_id, price
+        """
+        # Try to get from coin_contracts table first
+        query = text("""
+            SELECT 
+                c.coin_id,
+                c.symbol,
+                c.price,
+                c.market_cap,
+                cc.contract_address,
+                cc.chain_id,
+                cc.chain_slug,
+                cc.decimals
+            FROM aihub_coins c
+            INNER JOIN coin_contracts cc ON c.coin_id = cc.coin_id
+            WHERE c.price > 0 
+              AND cc.contract_address IS NOT NULL
+              AND cc.chain_id IN (1, 56, 137, 42161, 10)  -- ETH, BSC, Polygon, Arbitrum, Optimism
+            ORDER BY c.market_cap DESC NULLS LAST
+            LIMIT :limit
+        """)
+        
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(query, {"limit": limit})
+                rows = result.fetchall()
+                
+                if rows:
+                    columns = result.keys()
+                    return [
+                        {col: convert_db_value(col, val) for col, val in zip(columns, row)}
+                        for row in rows
+                    ]
+        except Exception as e:
+            logger.warning(f"coin_contracts table not available: {e}")
+        
+        # Fallback: Return top coins with hardcoded ETH contracts for major tokens
+        # These are verified ERC-20 contract addresses
+        KNOWN_CONTRACTS = {
+            "ethereum": {"contract": None, "chain_id": 1, "decimals": 18},  # Native ETH
+            "tether": {"contract": "0xdac17f958d2ee523a2206206994597c13d831ec7", "chain_id": 1, "decimals": 6},
+            "usd-coin": {"contract": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "chain_id": 1, "decimals": 6},
+            "binancecoin": {"contract": None, "chain_id": 56, "decimals": 18},  # Native BNB
+            "staked-ether": {"contract": "0xae7ab96520de3a18e5e111b5eaab095312d7fe84", "chain_id": 1, "decimals": 18},
+            "wrapped-bitcoin": {"contract": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599", "chain_id": 1, "decimals": 8},
+            "chainlink": {"contract": "0x514910771af9ca656af840dff83e8264ecf986ca", "chain_id": 1, "decimals": 18},
+            "uniswap": {"contract": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", "chain_id": 1, "decimals": 18},
+            "matic-network": {"contract": "0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0", "chain_id": 1, "decimals": 18},
+            "dai": {"contract": "0x6b175474e89094c44da98b954eedeac495271d0f", "chain_id": 1, "decimals": 18},
+            "shiba-inu": {"contract": "0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce", "chain_id": 1, "decimals": 18},
+            "pepe": {"contract": "0x6982508145454ce325ddbe47a25d4ec3d2311933", "chain_id": 1, "decimals": 18},
+        }
+        
+        fallback_query = text("""
+            SELECT coin_id, symbol, price, market_cap
+            FROM aihub_coins
+            WHERE price > 0 AND coin_id = ANY(:coin_ids)
+            ORDER BY market_cap DESC NULLS LAST
+            LIMIT :limit
+        """)
+        
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(fallback_query, {
+                    "coin_ids": list(KNOWN_CONTRACTS.keys()),
+                    "limit": limit,
+                })
+                rows = result.fetchall()
+                
+                coins = []
+                for row in rows:
+                    coin_id = row[0]
+                    contract_info = KNOWN_CONTRACTS.get(coin_id, {})
+                    
+                    if contract_info.get("contract"):  # Skip native tokens
+                        coins.append({
+                            "coin_id": coin_id,
+                            "symbol": row[1],
+                            "price": float(row[2]) if row[2] else 0,
+                            "market_cap": float(row[3]) if row[3] else 0,
+                            "contract_address": contract_info["contract"],
+                            "chain_id": contract_info["chain_id"],
+                            "chain_slug": "ethereum",
+                            "decimals": contract_info["decimals"],
+                        })
+                
+                logger.info(f"Returning {len(coins)} coins with known contracts for on-chain tracking")
+                return coins
+                
+        except Exception as e:
+            logger.error(f"Failed to get coins with contracts: {e}")
+            return []
+    
     def _get_symbol_for_coin(self, coin_id: str) -> Optional[str]:
         """
         Get trading symbol for a coin_id dynamically from coins table

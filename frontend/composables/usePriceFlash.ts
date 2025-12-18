@@ -28,17 +28,17 @@ export function usePriceFlash(symbol: string) {
                 clearTimeout(state.timeout)
             }
 
-            // Determine flash direction
+            // Determine flash direction - use price-flash classes for price-only effect
             if (newPrice > state.price) {
-                flashClass.value = 'aihub-flash-up'
+                flashClass.value = 'price-flash-up'
             } else if (newPrice < state.price) {
-                flashClass.value = 'aihub-flash-down'
+                flashClass.value = 'price-flash-down'
             }
 
             // Clear flash after animation
             const timeout = setTimeout(() => {
                 flashClass.value = ''
-            }, 1200)
+            }, 800)
 
             priceStates.set(key, { price: newPrice, flashClass: flashClass.value, timeout })
         } else if (!state) {
@@ -80,14 +80,14 @@ export function usePriceFlashRow() {
                 clearTimeout(timeouts.get(key)!)
             }
 
-            // Determine flash direction
-            const flashClass = newPrice > state.price ? 'aihub-flash-up' : 'aihub-flash-down'
+            // Determine flash direction - use price-flash classes for price-only effect
+            const flashClass = newPrice > state.price ? 'price-flash-up' : 'price-flash-down'
             flashStates.value.set(key, flashClass)
 
             // Clear flash after animation
             const timeout = setTimeout(() => {
                 flashStates.value.set(key, '')
-            }, 1200)
+            }, 800)
 
             timeouts.set(key, timeout)
             priceStates.set(key, { price: newPrice, flashClass, timeout: null })

@@ -49,6 +49,21 @@ export const useApi = () => {
                 query: { interval, limit }
             }),
 
+        // Global market stats
+        getGlobalStats: () =>
+            apiFetch<{
+                success: boolean;
+                data: {
+                    total_market_cap: number;
+                    total_volume_24h: number;
+                    btc_dominance: number;
+                    eth_dominance: number;
+                    market_cap_change_24h: number;
+                    fear_greed_index: number;
+                    fear_greed_classification: string;
+                }
+            }>('/market/stats/global'),
+
         // Sentiment endpoints
         getSentiment: (limit = 100) =>
             apiFetch<{ success: boolean; data: any[] }>('/sentiment', { query: { limit } }),

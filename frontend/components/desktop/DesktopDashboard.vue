@@ -99,7 +99,7 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
             Top Cryptocurrencies
           </h2>
-          <span class="d-section-note">ASI = AI Sentiment Index</span>
+          <span class="d-section-note">ASI = AI Signal Index</span>
         </div>
 
         <div class="d-table-card">
@@ -195,13 +195,37 @@
 </template>
 
 <script setup lang="ts">
+interface Coin {
+  id: string
+  symbol: string
+  name: string
+  image: string
+  price: number
+  change24h: number
+  change7d: number
+  marketCap: number
+  asi: number
+  signal: string
+}
+
+const api = useApi()
+const { updatePrice, getFlashClass } = usePriceFlashRow()
+
 // Stats data
-const totalMarketCap = ref(3200000000000)
-const avgChange = ref(2.5)
+const totalMarketCap = ref(0)
+const avgChange = ref(0)
 const btcDominance = ref(52.3)
-const btcDomChange = ref(-0.3)
-const fearGreedValue = ref(72)
-const total24hVolume = ref(142000000000)
+const btcDomChange = ref(0)
+const fearGreedValue = ref(50)
+const total24hVolume = ref(0)
+const loading = ref(true)
+
+// Coins data
+const topCoins = ref<Coin[]>([])
+const sentimentMap = ref<Record<string, any>>({})
+
+// Socket status
+const socketConnected = ref(false)
 
 const fearGreedLabel = computed(() => {
   if (fearGreedValue.value >= 75) return 'Extreme Greed'
@@ -217,32 +241,136 @@ const fearGreedClass = computed(() => {
   return 'fear'
 })
 
-// Coins data
-const topCoins = ref([
-  { id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png', price: 98500, change24h: 2.4, change7d: 5.8, marketCap: 1900000000000, asi: 78, signal: 'BUY' },
-  { id: 'ethereum', symbol: 'ETH', name: 'Ethereum', image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png', price: 3450, change24h: 1.8, change7d: 4.2, marketCap: 415000000000, asi: 65, signal: 'HOLD' },
-  { id: 'solana', symbol: 'SOL', name: 'Solana', image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png', price: 185, change24h: 5.2, change7d: 12.4, marketCap: 82000000000, asi: 82, signal: 'BUY' },
-  { id: 'xrp', symbol: 'XRP', name: 'XRP', image: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png', price: 2.35, change24h: -1.2, change7d: 8.5, marketCap: 135000000000, asi: 58, signal: 'HOLD' },
-  { id: 'cardano', symbol: 'ADA', name: 'Cardano', image: 'https://assets.coingecko.com/coins/images/975/small/cardano.png', price: 0.98, change24h: 3.1, change7d: 15.2, marketCap: 34000000000, asi: 71, signal: 'BUY' },
-])
-
 const signalCounts = computed(() => ({
-  buy: topCoins.value.filter(c => c.signal === 'BUY').length * 25,
-  hold: topCoins.value.filter(c => c.signal === 'HOLD').length * 18,
-  sell: topCoins.value.filter(c => c.signal === 'SELL').length * 7,
+  buy: topCoins.value.filter(c => c.signal === 'BUY' || c.signal === 'STRONG_BUY').length,
+  hold: topCoins.value.filter(c => c.signal === 'HOLD').length,
+  sell: topCoins.value.filter(c => c.signal === 'SELL' || c.signal === 'STRONG_SELL').length,
 }))
 
-const trendingCoins = ref([
-  { id: 'pepe', symbol: 'PEPE', image: 'https://assets.coingecko.com/coins/images/29850/small/pepe.png', change: 45.2 },
-  { id: 'bonk', symbol: 'BONK', image: 'https://assets.coingecko.com/coins/images/28600/small/bonk.jpg', change: 28.5 },
-  { id: 'wif', symbol: 'WIF', image: 'https://assets.coingecko.com/coins/images/33566/small/dogwifhat.jpg', change: 18.3 },
-])
+const trendingCoins = computed(() => {
+  return [...topCoins.value]
+    .sort((a, b) => b.change24h - a.change24h)
+    .slice(0, 3)
+    .map(c => ({
+      id: c.id,
+      symbol: c.symbol,
+      image: c.image,
+      change: c.change24h,
+    }))
+})
 
 const whaleTransactions = ref([
   { id: 1, type: 'buy', symbol: 'BTC', amount: '500', value: '49.2M', time: '2h' },
   { id: 2, type: 'sell', symbol: 'ETH', amount: '15K', value: '51.7M', time: '4h' },
   { id: 3, type: 'buy', symbol: 'SOL', amount: '250K', value: '46.2M', time: '5h' },
 ])
+
+// Fetch data from API
+const fetchData = async () => {
+  loading.value = true
+  try {
+    // Fetch market data
+    const marketRes = await api.getMarketData(50)
+    if (marketRes.success && marketRes.data) {
+      topCoins.value = marketRes.data.map((coin: any) => ({
+        id: coin.coin_id,
+        symbol: coin.symbol?.toUpperCase(),
+        name: coin.name,
+        image: coin.image,
+        price: coin.price || coin.current_price || 0,
+        change24h: coin.change_24h || coin.price_change_percentage_24h || 0,
+        change7d: coin.change_7d || coin.price_change_percentage_7d || 0,
+        marketCap: coin.market_cap || 0,
+        asi: sentimentMap.value[coin.coin_id]?.asi_score || 50,
+        signal: sentimentMap.value[coin.coin_id]?.signal || 'HOLD',
+      }))
+
+      // Calculate market stats
+      totalMarketCap.value = topCoins.value.reduce((sum, c) => sum + c.marketCap, 0)
+      total24hVolume.value = marketRes.data.reduce((sum: number, c: any) => sum + (c.volume_24h || 0), 0)
+      
+      const changes = topCoins.value.map(c => c.change24h).filter(c => c !== undefined)
+      avgChange.value = changes.length > 0 ? changes.reduce((a, b) => a + b, 0) / changes.length : 0
+      
+      // Calculate BTC dominance
+      const btc = topCoins.value.find(c => c.id === 'bitcoin')
+      if (btc && totalMarketCap.value > 0) {
+        btcDominance.value = (btc.marketCap / totalMarketCap.value) * 100
+      }
+    }
+
+    // Fetch sentiment data
+    const sentimentRes = await api.getSentiment(50)
+    if (Array.isArray(sentimentRes)) {
+      sentimentMap.value = {}
+      sentimentRes.forEach((s: any) => {
+        sentimentMap.value[s.coin_id] = s
+      })
+      
+      // Update coins with sentiment
+      topCoins.value = topCoins.value.map(coin => ({
+        ...coin,
+        asi: sentimentMap.value[coin.id]?.asi_score || 50,
+        signal: sentimentMap.value[coin.id]?.signal || 'HOLD',
+      }))
+      
+      // Calculate Fear & Greed from average ASI
+      const avgAsi = Object.values(sentimentMap.value).reduce((sum: number, s: any) => sum + (s.asi_score || 50), 0) / 
+                     Math.max(1, Object.keys(sentimentMap.value).length)
+      fearGreedValue.value = Math.round(avgAsi) || 50
+    }
+  } catch (error) {
+    console.error('Failed to fetch data:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Socket.IO integration
+const setupSocketConnection = () => {
+  try {
+    const { connect, onPriceUpdate, connected } = useSocket()
+    
+    connect()
+    
+    watch(connected, (isConnected) => {
+      socketConnected.value = isConnected
+    }, { immediate: true })
+    
+    onPriceUpdate((updates) => {
+      updates.forEach((update: any) => {
+        const idx = topCoins.value.findIndex(
+          c => c.symbol === update.s
+        )
+        
+        if (idx !== -1) {
+          updatePrice(topCoins.value[idx].symbol, update.p)
+          topCoins.value[idx] = {
+            ...topCoins.value[idx],
+            price: update.p,
+            change24h: update.c,
+          }
+        }
+      })
+    })
+  } catch (error) {
+    console.error('[Desktop] Socket setup failed:', error)
+  }
+}
+
+onMounted(() => {
+  fetchData()
+  setupSocketConnection()
+  
+  // Fallback refresh if WebSocket not connected
+  const interval = setInterval(() => {
+    if (!socketConnected.value) {
+      fetchData()
+    }
+  }, 60000)
+  
+  onUnmounted(() => clearInterval(interval))
+})
 
 const formatCurrency = (n: number) => '$' + (n >= 1e12 ? (n/1e12).toFixed(2) + 'T' : n >= 1e9 ? (n/1e9).toFixed(2) + 'B' : n.toLocaleString())
 const formatPrice = (p: number) => '$' + (p >= 1 ? p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : p.toFixed(6))

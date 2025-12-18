@@ -1,34 +1,11 @@
 <template>
   <div class="mobile-layout">
-    <!-- Header -->
-    <header class="m-header">
-      <div class="m-header-content">
-        <div class="m-logo">
-          <Icon name="ph:chart-line-up-bold" class="m-logo-icon" style="color: #38efeb; width: 16px; height: 16px;" />
-          <span class="m-logo-text">AI Hub</span>
-        </div>
-        <div class="m-ticker">
-          <span class="m-ticker-label">BTC</span>
-          <span class="m-ticker-value" :class="{ negative: btcChange < 0 }">
-            {{ formatCurrency(btcPrice, 0) }}
-          </span>
-        </div>
-        <div class="m-actions">
-          <a href="https://aicryptohub.io" class="m-action-btn" title="Home">
-            <Icon name="ph:house" class="m-icon" />
-          </a>
-          <button class="m-action-btn" @click="$emit('openSearch')" title="Search">
-            <Icon name="ph:magnifying-glass" class="m-icon" />
-          </button>
-          <button class="m-action-btn" :class="{ active: activeTab === 'alerts' }" @click="$emit('setTab', 'alerts')" title="Alerts">
-            <Icon name="ph:bell" class="m-icon" />
-          </button>
-          <button class="m-action-btn" :class="{ active: activeTab === 'portfolio' }" @click="$emit('setTab', 'portfolio')" title="Portfolio">
-            <Icon name="ph:briefcase" class="m-icon" />
-          </button>
-        </div>
-      </div>
-    </header>
+    <!-- Shared Header -->
+    <SharedMobileHeader 
+      :active-tab="activeTab" 
+      @set-tab="$emit('setTab', $event)" 
+      @open-search="$emit('openSearch')" 
+    />
 
     <main class="m-main">
       <!-- Loading State -->

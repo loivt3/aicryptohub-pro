@@ -21,11 +21,19 @@ export interface Coin {
     ai_signal?: string
 }
 
+export interface PriceUpdate {
+    s: string      // Symbol (e.g., 'BTC')
+    p: number      // Price
+    c: number      // Change % 24h
+}
+
 interface MarketState {
     coins: Coin[]
     loading: boolean
     error: string | null
     lastUpdated: Date | null
+    socketConnected: boolean
+    socketMessageCount: number
 }
 
 export const useMarketStore = defineStore('market', {
@@ -34,6 +42,8 @@ export const useMarketStore = defineStore('market', {
         loading: false,
         error: null,
         lastUpdated: null,
+        socketConnected: false,
+        socketMessageCount: 0,
     }),
 
     getters: {
@@ -57,6 +67,10 @@ export const useMarketStore = defineStore('market', {
 
         getCoinById: (state) => (id: string) => {
             return state.coins.find(c => c.coin_id === id)
+        },
+
+        getCoinBySymbol: (state) => (symbol: string) => {
+            return state.coins.find(c => c.symbol.toUpperCase() === symbol.toUpperCase())
         },
     },
 
@@ -105,5 +119,45 @@ export const useMarketStore = defineStore('market', {
                 console.error('Realtime fetch error:', err)
             }
         },
+
+        /**
+         * Update prices from WebSocket
+         * Called by useSocket composable when receiving ticker_update events
+         */
+        updatePricesFromSocket(updates: PriceUpdate[]) {
+            if (!updates || !updates.length) return
+
+            let updatedCount = 0
+
+            updates.forEach(update => {
+                // Find coin by symbol (Binance uses symbol like 'BTC', 'ETH')
+                const index = this.coins.findIndex(
+                    c => c.symbol.toUpperCase() === update.s.toUpperCase()
+                )
+
+                if (index !== -1) {
+                    // Update price and change
+                    this.coins[index] = {
+                        ...this.coins[index],
+                        price: update.p,
+                        change_24h: update.c,
+                    }
+                    updatedCount++
+                }
+            })
+
+            if (updatedCount > 0) {
+                this.socketMessageCount++
+                this.lastUpdated = new Date()
+            }
+        },
+
+        /**
+         * Set socket connection status
+         */
+        setSocketConnected(connected: boolean) {
+            this.socketConnected = connected
+        },
     },
 })
+

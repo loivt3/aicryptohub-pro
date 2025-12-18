@@ -239,13 +239,17 @@ function formatBehavior(behavior) {
   return labels[behavior] || behavior
 }
 
+// Get API base from runtime config
+const config = useRuntimeConfig()
+const apiBase = config.public.apiBase
+
 // Fetch data
 async function fetchDivergence() {
   if (!props.coinId) return
   
   loading.value = true
   try {
-    const response = await fetch(`/api/v1/intent-divergence/${props.coinId}`)
+    const response = await fetch(`${apiBase}/intent-divergence/${props.coinId}`)
     if (response.ok) {
       localData.value = await response.json()
       

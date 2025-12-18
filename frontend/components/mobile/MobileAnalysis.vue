@@ -1,22 +1,11 @@
 <template>
   <div class="mobile-layout">
-    <!-- Header -->
-    <header class="m-header">
-      <div class="m-header-content">
-        <div class="m-logo">
-          <Icon name="ph:chart-line-up-bold" class="m-logo-icon" style="color: #38efeb; width: 16px; height: 16px;" />
-          <span class="m-logo-text">AI Hub</span>
-        </div>
-        <div class="m-ticker">
-          <span class="m-ticker-label">BTC</span>
-          <span class="m-ticker-value">$98,500</span>
-        </div>
-        <div class="m-actions">
-          <NuxtLink to="/" class="m-action-btn"><Icon name="ph:house" class="m-icon" /></NuxtLink>
-          <button class="m-action-btn"><Icon name="ph:magnifying-glass" class="m-icon" /></button>
-        </div>
-      </div>
-    </header>
+    <!-- Shared Header -->
+    <SharedMobileHeader 
+      :active-tab="activeTab" 
+      @set-tab="$emit('setTab', $event)" 
+      @open-search="$emit('openSearch')" 
+    />
 
     <main class="m-main">
       <!-- Search Section -->
@@ -496,11 +485,20 @@ interface SentimentResponse {
   reason?: string
 }
 
+defineProps<{
+  activeTab?: string
+}>()
+
 defineEmits<{
   (e: 'setTab', tab: string): void
+  (e: 'openSearch'): void
 }>()
 
 const api = useApi()
+
+// Header data
+const btcPrice = ref(98500)
+const alertCount = ref(3)
 
 // State
 const searchQuery = ref('')

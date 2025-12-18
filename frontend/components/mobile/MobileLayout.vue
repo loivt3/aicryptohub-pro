@@ -5,8 +5,7 @@
       <div class="m-header-content">
         <!-- Logo -->
         <div class="m-logo">
-          <Icon name="ph:chart-line-up-bold" class="m-logo-icon" style="color: #38efeb; width: 16px; height: 16px;" />
-          <span class="m-logo-text">AI Hub</span>
+          <img src="/images/coinsight-logo.png" alt="CoinSight" class="m-logo-img" />
         </div>
         
         <!-- BTC Ticker -->
@@ -116,6 +115,11 @@ const formatPrice = (price: number) => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.m-logo-img {
+  height: 28px;
+  width: auto;
 }
 
 .m-logo-icon {

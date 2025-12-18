@@ -32,6 +32,14 @@ SCHEDULER_STATE = {
         "is_running": False,
         "last_result": None,
     },
+    "onchain_collector": {
+        "enabled": True,
+        "interval_minutes": 30,
+        "last_run": None,
+        "next_run": None,
+        "is_running": False,
+        "last_result": None,
+    },
 }
 
 _scheduler: Optional[AsyncIOScheduler] = None
@@ -156,6 +164,83 @@ async def run_ai_workers_job():
         AI_STATE["is_running"] = False
 
 
+async def run_onchain_job():
+    """Background job to collect on-chain whale transactions"""
+    if SCHEDULER_STATE["onchain_collector"]["is_running"]:
+        logger.warning("On-chain collector job already running, skipping")
+        return
+    
+    SCHEDULER_STATE["onchain_collector"]["is_running"] = True
+    SCHEDULER_STATE["onchain_collector"]["last_run"] = datetime.now().isoformat()
+    
+    try:
+        from app.services.database import get_database_service
+        from app.services.onchain_collector import OnChainCollector
+        from app.core.config import get_settings
+        
+        logger.info("Scheduler: Starting On-chain collector job...")
+        
+        db = get_database_service()
+        settings = get_settings()
+        
+        # Initialize collector with Etherscan API key
+        collector = OnChainCollector(db, settings.ETHERSCAN_API_KEY)
+        
+        # Load exchange addresses for whale classification
+        await collector.load_exchange_addresses()
+        
+        # Get top coins with contract addresses
+        coins = db.get_coins_with_contracts(limit=20)
+        
+        stats = {
+            "whale_txs_found": 0,
+            "coins_processed": 0,
+            "errors": 0,
+        }
+        
+        for coin in coins:
+            try:
+                coin_id = coin.get("coin_id")
+                contract = coin.get("contract_address")
+                chain_id = coin.get("chain_id", 1)
+                price = coin.get("price", 0)
+                
+                if not contract or not price:
+                    continue
+                
+                # Collect whale transactions
+                whale_txs = await collector.collect_whale_transactions(
+                    coin_id=coin_id,
+                    chain_slug=coin.get("chain_slug", "ethereum"),
+                    chain_id=chain_id,
+                    contract_address=contract,
+                    token_price_usd=price,
+                    token_decimals=coin.get("decimals", 18),
+                    hours_back=24,
+                )
+                
+                if whale_txs:
+                    # Save whale transactions and update signals
+                    await collector.save_whale_transactions(whale_txs)
+                    await collector.update_onchain_signals(coin_id, whale_txs)
+                    stats["whale_txs_found"] += len(whale_txs)
+                
+                stats["coins_processed"] += 1
+                
+            except Exception as e:
+                logger.warning(f"Failed to collect on-chain for {coin.get('coin_id')}: {e}")
+                stats["errors"] += 1
+        
+        SCHEDULER_STATE["onchain_collector"]["last_result"] = stats
+        logger.info(f"Scheduler: On-chain job complete - {stats}")
+        
+    except Exception as e:
+        logger.error(f"Scheduler: On-chain collector job failed - {e}")
+        SCHEDULER_STATE["onchain_collector"]["last_result"] = {"error": str(e)}
+    finally:
+        SCHEDULER_STATE["onchain_collector"]["is_running"] = False
+
+
 # ==================== Scheduler Management ====================
 
 def get_scheduler() -> Optional[AsyncIOScheduler]:
@@ -195,6 +280,17 @@ def start_scheduler():
         )
         logger.info(f"Scheduled AI Workers job: every {SCHEDULER_STATE['ai_workers']['interval_minutes']} minutes")
     
+    # Add On-chain Collector job - every 30 minutes
+    if SCHEDULER_STATE["onchain_collector"]["enabled"]:
+        _scheduler.add_job(
+            run_onchain_job,
+            trigger=IntervalTrigger(minutes=SCHEDULER_STATE["onchain_collector"]["interval_minutes"]),
+            id="onchain_collector_job",
+            name="On-chain Collector",
+            replace_existing=True,
+        )
+        logger.info(f"Scheduled On-chain Collector job: every {SCHEDULER_STATE['onchain_collector']['interval_minutes']} minutes")
+    
     _scheduler.start()
     logger.info("Background scheduler started")
     
@@ -204,6 +300,8 @@ def start_scheduler():
             SCHEDULER_STATE["fetcher"]["next_run"] = job.next_run_time.isoformat() if job.next_run_time else None
         elif job.id == "ai_workers_job":
             SCHEDULER_STATE["ai_workers"]["next_run"] = job.next_run_time.isoformat() if job.next_run_time else None
+        elif job.id == "onchain_collector_job":
+            SCHEDULER_STATE["onchain_collector"]["next_run"] = job.next_run_time.isoformat() if job.next_run_time else None
 
 
 def stop_scheduler():
