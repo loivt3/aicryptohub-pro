@@ -1,24 +1,20 @@
 <template>
   <header class="m-header">
     <div class="m-header-content">
-      <!-- Logo -->
+      <!-- Left: Home Icon -->
+      <div class="m-header-left">
+        <a href="https://aicryptohub.io" class="m-action-btn" title="Home">
+          <Icon name="ph:house" class="m-icon" />
+        </a>
+      </div>
+      
+      <!-- Center: Logo -->
       <div class="m-logo">
         <img :src="logoSrc" alt="CoinSight" class="m-logo-img" />
       </div>
       
-      <!-- BTC Ticker -->
-      <div class="m-ticker">
-        <span class="m-ticker-label">BTC</span>
-        <span class="m-ticker-value" :class="{ negative: btcChange < 0 }">
-          {{ formatCurrency(btcPrice, 0) }}
-        </span>
-      </div>
-      
-      <!-- Action Icons -->
-      <div class="m-actions">
-        <a href="https://aicryptohub.io" class="m-action-btn" title="Home">
-          <Icon name="ph:house" class="m-icon" />
-        </a>
+      <!-- Right: Actions -->
+      <div class="m-header-right">
         <button class="m-action-btn" @click="$emit('openSearch')" title="Search">
           <Icon name="ph:magnifying-glass" class="m-icon" />
         </button>
@@ -106,16 +102,29 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  gap: 8px;
+}
+
+.m-header-left,
+.m-header-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.m-header-left {
+  min-width: 40px;
 }
 
 .m-logo {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
 }
 
 .m-logo-img {
-  height: 28px;
+  height: 40px;
   width: auto;
 }
 
