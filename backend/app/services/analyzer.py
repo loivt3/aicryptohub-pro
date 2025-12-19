@@ -484,9 +484,12 @@ class AnalyzerService:
         if len(ohlcv_data) < 30:
             return {
                 "timeframe": timeframe,
-                "asi_score": 50,
-                "signal": "NEUTRAL",
+                "asi_score": None,
+                "signal": None,
                 "data_available": False,
+                "data_status": "Insufficient data",
+                "candles_found": len(ohlcv_data),
+                "candles_required": 30,
             }
         
         # Create DataFrame
@@ -652,38 +655,65 @@ class AnalyzerService:
         
         # Calculate horizon scores
         # Short-term: prefer 1h if 1m not available
-        if tf_1m["data_available"]:
-            asi_short = tf_1m["asi_score"] * 0.3 + tf_1h["asi_score"] * 0.7
-        else:
-            asi_short = tf_1h["asi_score"]
+        asi_short = None
+        signal_short = None
+        short_status = "Insufficient data"
+        
+        if tf_1h["data_available"]:
+            if tf_1m["data_available"]:
+                asi_short = tf_1m["asi_score"] * 0.3 + tf_1h["asi_score"] * 0.7
+            else:
+                asi_short = tf_1h["asi_score"]
+            short_status = "OK"
         
         # Medium-term
-        if tf_4h["data_available"]:
-            asi_medium = tf_4h["asi_score"] * 0.4 + tf_1d["asi_score"] * 0.6
-        else:
-            asi_medium = tf_1d["asi_score"]
+        asi_medium = None
+        signal_medium = None
+        medium_status = "Insufficient data"
+        
+        if tf_1d["data_available"]:
+            if tf_4h["data_available"]:
+                asi_medium = tf_4h["asi_score"] * 0.4 + tf_1d["asi_score"] * 0.6
+            else:
+                asi_medium = tf_1d["asi_score"]
+            medium_status = "OK"
         
         # Long-term
-        if tf_1w["data_available"]:
-            asi_long = tf_1d["asi_score"] * 0.3 + tf_1w["asi_score"] * 0.7
-        else:
-            asi_long = tf_1d["asi_score"]
+        asi_long = None
+        signal_long = None
+        long_status = "Insufficient data"
+        
+        if tf_1d["data_available"]:
+            if tf_1w["data_available"]:
+                asi_long = tf_1d["asi_score"] * 0.3 + tf_1w["asi_score"] * 0.7
+            else:
+                asi_long = tf_1d["asi_score"]
+            long_status = "OK"
         
         # Get on-chain score
         onchain_score = await self._get_onchain_score(coin_id)
         
-        # Calculate combined ASI
-        # Technical avg = (short + medium + long) / 3
-        technical_avg = (asi_short + asi_medium + asi_long) / 3
+        # Calculate combined ASI - only if we have at least short-term data
+        asi_combined = None
+        combined_status = "Insufficient data"
         
-        # Combined = Technical (60%) + OnChain (40%)
-        if onchain_score["available"]:
-            asi_combined = technical_avg * 0.6 + onchain_score["score"] * 0.4
-        else:
-            asi_combined = technical_avg
+        # Count available horizons for averaging
+        available_scores = [s for s in [asi_short, asi_medium, asi_long] if s is not None]
         
-        # Determine signals
+        if available_scores:
+            technical_avg = sum(available_scores) / len(available_scores)
+            
+            # Combined = Technical (60%) + OnChain (40%)
+            if onchain_score["available"]:
+                asi_combined = technical_avg * 0.6 + onchain_score["score"] * 0.4
+            else:
+                asi_combined = technical_avg
+            combined_status = "OK"
+        
+        # Determine signals - handle None
         def get_signal(score):
+            if score is None:
+                return None
             if score >= 75: return "STRONG_BUY"
             elif score >= 60: return "BUY"
             elif score >= 40: return "NEUTRAL"
@@ -692,14 +722,20 @@ class AnalyzerService:
         
         return {
             "coin_id": coin_id,
-            "asi_short": round(asi_short),
-            "asi_medium": round(asi_medium),
-            "asi_long": round(asi_long),
-            "asi_combined": round(asi_combined),
+            "asi_short": round(asi_short) if asi_short is not None else None,
+            "asi_medium": round(asi_medium) if asi_medium is not None else None,
+            "asi_long": round(asi_long) if asi_long is not None else None,
+            "asi_combined": round(asi_combined) if asi_combined is not None else None,
             "signal_short": get_signal(asi_short),
             "signal_medium": get_signal(asi_medium),
             "signal_long": get_signal(asi_long),
             "signal_combined": get_signal(asi_combined),
+            "data_status": {
+                "short": short_status,
+                "medium": medium_status,
+                "long": long_status,
+                "combined": combined_status,
+            },
             "onchain_score": onchain_score,
             "timeframes": {
                 "1m": tf_1m,
@@ -723,7 +759,11 @@ class AnalyzerService:
         onchain_data = self.db.get_onchain_signals(coin_id)
         
         if not onchain_data:
-            return {"available": False, "score": 50}
+            return {
+                "available": False, 
+                "score": None,
+                "data_status": "Insufficient data",
+            }
         
         # Get individual scores
         whale_prob = onchain_data.get("bullish_probability", 50) or 50
