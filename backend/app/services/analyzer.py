@@ -96,17 +96,32 @@ class AnalyzerService:
         
         return results
     
-    async def _fetch_ohlcv_for_coin(self, coin_id: str) -> bool:
+    async def _fetch_ohlcv_for_coin(
+        self, 
+        coin_id: str, 
+        timeframe: str = "1h"
+    ) -> bool:
         """
-        Fetch OHLCV data from Binance for a single coin and save to database.
-        Called automatically when analyze_single_coin finds insufficient data.
+        On-demand OHLCV fetch from Binance for coins outside scheduled top 1000.
         
         Args:
             coin_id: CoinGecko coin ID (e.g., 'bitcoin')
+            timeframe: '1m', '1h', '4h', '1d', '1w'
             
         Returns:
             True if fetched and saved successfully
         """
+        # Timeframe config
+        TIMEFRAME_CONFIG = {
+            "1m": {"binance": "1m", "db_code": 0, "limit": 100},
+            "1h": {"binance": "1h", "db_code": 1, "limit": 100},
+            "4h": {"binance": "4h", "db_code": 4, "limit": 100},
+            "1d": {"binance": "1d", "db_code": 24, "limit": 100},
+            "1w": {"binance": "1w", "db_code": 168, "limit": 52},
+        }
+        
+        config = TIMEFRAME_CONFIG.get(timeframe, TIMEFRAME_CONFIG["1h"])
+        
         try:
             from app.services.data_fetcher import get_data_fetcher
             fetcher = get_data_fetcher()
@@ -118,10 +133,14 @@ class AnalyzerService:
                 return False
             
             # Fetch from Binance
-            klines = await fetcher.binance.fetch_klines(f"{symbol}USDT", "1h", limit=100)
+            klines = await fetcher.binance.fetch_klines(
+                f"{symbol}USDT", 
+                config["binance"], 
+                limit=config["limit"]
+            )
             
             if not klines or len(klines) < 30:
-                logger.warning(f"Binance returned insufficient data for {symbol}: {len(klines) if klines else 0}")
+                logger.warning(f"Binance returned insufficient {timeframe} data for {symbol}: {len(klines) if klines else 0}")
                 return False
             
             # Save to database
@@ -136,7 +155,7 @@ class AnalyzerService:
                 for kline in klines:
                     conn.execute(query, {
                         "symbol": symbol.upper(),
-                        "timeframe": 1,  # 1h = DB code 1 (matches TIMEFRAME_MAP)
+                        "timeframe": config["db_code"],
                         "open_time": datetime.fromtimestamp(kline["timestamp"] / 1000),
                         "open": kline["open"],
                         "high": kline["high"],
@@ -146,11 +165,11 @@ class AnalyzerService:
                         "trades_count": kline.get("trades", 0),
                     })
             
-            logger.info(f"Auto-fetched {len(klines)} OHLCV candles for {symbol}")
+            logger.info(f"On-demand fetched {len(klines)} {timeframe} candles for {symbol}")
             return True
             
         except Exception as e:
-            logger.error(f"Failed to auto-fetch OHLCV for {coin_id}: {e}")
+            logger.error(f"Failed to on-demand fetch OHLCV for {coin_id} ({timeframe}): {e}")
             return False
     
     async def analyze_single_coin(self, coin_id: str) -> Optional[Dict[str, Any]]:
@@ -481,6 +500,15 @@ class AnalyzerService:
         # Fetch OHLCV for specific timeframe
         ohlcv_data = self.db.get_ohlcv_data(coin_id, timeframe=timeframe, limit=limit)
         
+        # On-demand fetch if insufficient data (for coins outside scheduled top 1000)
+        if len(ohlcv_data) < 30:
+            logger.info(f"Insufficient {timeframe} data for {coin_id} ({len(ohlcv_data)} candles). Trying on-demand fetch...")
+            fetched = await self._fetch_ohlcv_for_coin(coin_id, timeframe=timeframe)
+            if fetched:
+                # Re-read from database after fetch
+                ohlcv_data = self.db.get_ohlcv_data(coin_id, timeframe=timeframe, limit=limit)
+        
+        # Still insufficient after on-demand fetch
         if len(ohlcv_data) < 30:
             return {
                 "timeframe": timeframe,
