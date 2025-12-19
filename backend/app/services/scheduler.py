@@ -40,16 +40,7 @@ SCHEDULER_STATE = {
         "is_running": False,
         "last_result": None,
     },
-    # Multi-TF OHLCV jobs
-    "ohlcv_1m": {
-        "enabled": True,
-        "interval_minutes": 1,
-        "timeframe": "1m",
-        "last_run": None,
-        "next_run": None,
-        "is_running": False,
-        "last_result": None,
-    },
+    # Multi-TF OHLCV jobs (timeframes: 1h, 4h, 1d, 1w, 1M)
     "ohlcv_4h": {
         "enabled": True,
         "interval_minutes": 240,  # 4 hours
@@ -77,11 +68,10 @@ SCHEDULER_STATE = {
         "is_running": False,
         "last_result": None,
     },
-    # Data retention - cleanup old 1m data
-    "data_retention": {
+    "ohlcv_1M": {
         "enabled": True,
-        "interval_minutes": 1440,  # Run once per day
-        "retention_days": 7,       # Keep 1m data for 7 days
+        "interval_minutes": 43200,  # 30 days (1 month)
+        "timeframe": "1M",
         "last_run": None,
         "next_run": None,
         "is_running": False,
@@ -322,9 +312,6 @@ async def run_ohlcv_job(job_name: str, timeframe: str):
 
 
 # Factory functions for APScheduler (can't pass args directly)
-async def run_ohlcv_1m_job():
-    await run_ohlcv_job("ohlcv_1m", "1m")
-
 async def run_ohlcv_4h_job():
     await run_ohlcv_job("ohlcv_4h", "4h")
 
@@ -334,51 +321,8 @@ async def run_ohlcv_1d_job():
 async def run_ohlcv_1w_job():
     await run_ohlcv_job("ohlcv_1w", "1w")
 
-
-async def run_data_retention_job():
-    """
-    Background job to cleanup old 1m OHLCV data.
-    Keeps 1m data for 7 days to save storage space.
-    """
-    if SCHEDULER_STATE["data_retention"]["is_running"]:
-        logger.warning("Data retention job already running, skipping")
-        return
-    
-    SCHEDULER_STATE["data_retention"]["is_running"] = True
-    SCHEDULER_STATE["data_retention"]["last_run"] = datetime.now().isoformat()
-    
-    try:
-        from app.services.database import get_database_service
-        from sqlalchemy import text
-        
-        logger.info("Scheduler: Starting data retention cleanup...")
-        
-        retention_days = SCHEDULER_STATE["data_retention"]["retention_days"]
-        db = get_database_service()
-        
-        # Delete 1m data older than retention period
-        # timeframe = 0 is 1m data
-        query = text("""
-            DELETE FROM aihub_ohlcv 
-            WHERE timeframe = 0 
-            AND open_time < NOW() - INTERVAL ':days days'
-        """)
-        
-        with db.engine.begin() as conn:
-            result = conn.execute(query, {"days": retention_days})
-            deleted_count = result.rowcount
-        
-        SCHEDULER_STATE["data_retention"]["last_result"] = {
-            "deleted_rows": deleted_count,
-            "retention_days": retention_days,
-        }
-        logger.info(f"Scheduler: Data retention complete - deleted {deleted_count} old 1m rows")
-        
-    except Exception as e:
-        logger.error(f"Scheduler: Data retention job failed - {e}")
-        SCHEDULER_STATE["data_retention"]["last_result"] = {"error": str(e)}
-    finally:
-        SCHEDULER_STATE["data_retention"]["is_running"] = False
+async def run_ohlcv_1M_job():
+    await run_ohlcv_job("ohlcv_1M", "1M")
 
 
 # ==================== Scheduler Management ====================
@@ -431,17 +375,6 @@ def start_scheduler():
         )
         logger.info(f"Scheduled On-chain Collector job: every {SCHEDULER_STATE['onchain_collector']['interval_minutes']} minutes")
     
-    # Add OHLCV 1m job - every 1 minute (top 50 coins only)
-    if SCHEDULER_STATE["ohlcv_1m"]["enabled"]:
-        _scheduler.add_job(
-            run_ohlcv_1m_job,
-            trigger=IntervalTrigger(minutes=SCHEDULER_STATE["ohlcv_1m"]["interval_minutes"]),
-            id="ohlcv_1m_job",
-            name="OHLCV 1m Fetcher",
-            replace_existing=True,
-        )
-        logger.info(f"Scheduled OHLCV 1m job: every {SCHEDULER_STATE['ohlcv_1m']['interval_minutes']} minute(s)")
-    
     # Add OHLCV 4h job - every 4 hours
     if SCHEDULER_STATE["ohlcv_4h"]["enabled"]:
         _scheduler.add_job(
@@ -475,16 +408,16 @@ def start_scheduler():
         )
         logger.info(f"Scheduled OHLCV 1w job: every {SCHEDULER_STATE['ohlcv_1w']['interval_minutes']} minutes")
     
-    # Add Data Retention job - runs daily to cleanup old 1m data
-    if SCHEDULER_STATE["data_retention"]["enabled"]:
+    # Add OHLCV 1M job - every 30 days (1 month)
+    if SCHEDULER_STATE["ohlcv_1M"]["enabled"]:
         _scheduler.add_job(
-            run_data_retention_job,
-            trigger=IntervalTrigger(minutes=SCHEDULER_STATE["data_retention"]["interval_minutes"]),
-            id="data_retention_job",
-            name="Data Retention Cleanup",
+            run_ohlcv_1M_job,
+            trigger=IntervalTrigger(minutes=SCHEDULER_STATE["ohlcv_1M"]["interval_minutes"]),
+            id="ohlcv_1M_job",
+            name="OHLCV 1M (Monthly) Fetcher",
             replace_existing=True,
         )
-        logger.info(f"Scheduled Data Retention job: every {SCHEDULER_STATE['data_retention']['interval_minutes']} minutes (keeps 1m data for {SCHEDULER_STATE['data_retention']['retention_days']} days)")
+        logger.info(f"Scheduled OHLCV 1M (monthly) job: every {SCHEDULER_STATE['ohlcv_1M']['interval_minutes']} minutes")
     
     _scheduler.start()
     logger.info("Background scheduler started")

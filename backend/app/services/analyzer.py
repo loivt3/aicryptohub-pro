@@ -113,11 +113,11 @@ class AnalyzerService:
         """
         # Timeframe config
         TIMEFRAME_CONFIG = {
-            "1m": {"binance": "1m", "db_code": 0, "limit": 100},
             "1h": {"binance": "1h", "db_code": 1, "limit": 100},
             "4h": {"binance": "4h", "db_code": 4, "limit": 100},
             "1d": {"binance": "1d", "db_code": 24, "limit": 100},
             "1w": {"binance": "1w", "db_code": 168, "limit": 52},
+            "1M": {"binance": "1M", "db_code": 720, "limit": 60},  # 1 month
         }
         
         config = TIMEFRAME_CONFIG.get(timeframe, TIMEFRAME_CONFIG["1h"])
@@ -667,34 +667,31 @@ class AnalyzerService:
         Calculate ASI for all horizons: Short, Medium, Long-term.
         
         Horizons:
-        - Short: 1m * 0.3 + 1h * 0.7 (Scalp/Day trade)
+        - Short: 1h (Scalp/Day trade)
         - Medium: 4h * 0.4 + 1d * 0.6 (Swing trade)
-        - Long: 1d * 0.3 + 1w * 0.7 (Position/HODL)
+        - Long: 1w * 0.4 + 1M * 0.6 (Position/HODL) - 1M = 1 month
         
         Returns:
             Dict with asi_short, asi_medium, asi_long, asi_combined
         """
         # Fetch ASI for each timeframe
-        tf_1m = await self.calculate_asi_for_timeframe(coin_id, "1m", 100)
         tf_1h = await self.calculate_asi_for_timeframe(coin_id, "1h", 100)
         tf_4h = await self.calculate_asi_for_timeframe(coin_id, "4h", 100)
         tf_1d = await self.calculate_asi_for_timeframe(coin_id, "1d", 100)
         tf_1w = await self.calculate_asi_for_timeframe(coin_id, "1w", 100)
+        tf_1M = await self.calculate_asi_for_timeframe(coin_id, "1M", 60)  # 1M = 1 month
         
         # Calculate horizon scores
-        # Short-term: prefer 1h if 1m not available
+        # Short-term: 1h only
         asi_short = None
         signal_short = None
         short_status = "Insufficient data"
         
         if tf_1h["data_available"]:
-            if tf_1m["data_available"]:
-                asi_short = tf_1m["asi_score"] * 0.3 + tf_1h["asi_score"] * 0.7
-            else:
-                asi_short = tf_1h["asi_score"]
+            asi_short = tf_1h["asi_score"]
             short_status = "OK"
         
-        # Medium-term
+        # Medium-term: 4h + 1d
         asi_medium = None
         signal_medium = None
         medium_status = "Insufficient data"
@@ -706,16 +703,16 @@ class AnalyzerService:
                 asi_medium = tf_1d["asi_score"]
             medium_status = "OK"
         
-        # Long-term
+        # Long-term: 1w + 1M (month)
         asi_long = None
         signal_long = None
         long_status = "Insufficient data"
         
-        if tf_1d["data_available"]:
-            if tf_1w["data_available"]:
-                asi_long = tf_1d["asi_score"] * 0.3 + tf_1w["asi_score"] * 0.7
+        if tf_1w["data_available"]:
+            if tf_1M["data_available"]:
+                asi_long = tf_1w["asi_score"] * 0.4 + tf_1M["asi_score"] * 0.6
             else:
-                asi_long = tf_1d["asi_score"]
+                asi_long = tf_1w["asi_score"]
             long_status = "OK"
         
         # Get on-chain score
@@ -766,11 +763,11 @@ class AnalyzerService:
             },
             "onchain_score": onchain_score,
             "timeframes": {
-                "1m": tf_1m,
                 "1h": tf_1h,
                 "4h": tf_4h,
                 "1d": tf_1d,
                 "1w": tf_1w,
+                "1M": tf_1M,
             },
             "analyzed_at": datetime.now().isoformat(),
         }

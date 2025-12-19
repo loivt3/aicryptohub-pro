@@ -491,11 +491,11 @@ class DatabaseService:
         """
         # Timeframe to DB code mapping
         TIMEFRAME_TO_DB_CODE = {
-            "1m": 0,
             "1h": 1,
             "4h": 4,
             "1d": 24,
             "1w": 168,
+            "1M": 720,  # 1 month
         }
         
         # Get symbol from coins table dynamically

@@ -16,12 +16,13 @@ logger = logging.getLogger(__name__)
 
 # Timeframe configuration for multi-TF OHLCV fetching
 # Scheduled: Top 1000 coins | On-demand: Any coin via _fetch_ohlcv_for_coin()
+# Note: 1M = 1 month (capital M)
 TIMEFRAME_MAP = {
-    "1m": {"binance": "1m", "db_code": 0, "limit": 500, "coins_limit": 100},     # 1 minute - top 100 (high frequency)
-    "1h": {"binance": "1h", "db_code": 1, "limit": 200, "coins_limit": 1000},    # 1 hour - top 1000
-    "4h": {"binance": "4h", "db_code": 4, "limit": 200, "coins_limit": 1000},    # 4 hours - top 1000
-    "1d": {"binance": "1d", "db_code": 24, "limit": 365, "coins_limit": 1000},   # 1 day - top 1000
-    "1w": {"binance": "1w", "db_code": 168, "limit": 200, "coins_limit": 1000},  # 1 week - top 1000
+    "1h": {"binance": "1h", "db_code": 1, "limit": 200, "coins_limit": 1000},      # 1 hour
+    "4h": {"binance": "4h", "db_code": 4, "limit": 200, "coins_limit": 1000},      # 4 hours
+    "1d": {"binance": "1d", "db_code": 24, "limit": 365, "coins_limit": 1000},     # 1 day
+    "1w": {"binance": "1w", "db_code": 168, "limit": 200, "coins_limit": 1000},    # 1 week
+    "1M": {"binance": "1M", "db_code": 720, "limit": 60, "coins_limit": 1000},     # 1 month (long-term)
 }
 
 class CoinGeckoFetcher:

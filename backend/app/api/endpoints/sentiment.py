@@ -97,7 +97,7 @@ async def get_multi_horizon_asi(
     Get multi-horizon ASI analysis for a coin.
     
     Returns:
-    - asi_short: Short-term score (1m + 1h) for scalp/day trading
+    - asi_short: Short-term score (1h) for scalp/day trading
     - asi_medium: Medium-term score (4h + 1d) for swing trading
     - asi_long: Long-term score (1d + 1w) for position/HODL
     - asi_combined: Technical (60%) + OnChain (40%)
