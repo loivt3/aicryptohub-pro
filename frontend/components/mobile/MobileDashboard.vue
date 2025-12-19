@@ -116,34 +116,89 @@
         </div>
       </section>
 
-      <!-- Multi-Horizon ASI Overview (NEW!) -->
+      <!-- Multi-Horizon ASI Signals (REDESIGNED) -->
       <section class="m-section">
         <div class="m-section-header">
           <h3 class="m-section-title">
-            <Icon name="ph:chart-line-up" class="w-4 h-4" style="color: #8b5cf6;" />
-            Multi-Horizon ASI
+            <Icon name="ph:pulse" class="w-4 h-4" style="color: #8b5cf6;" />
+            ASI by Horizon
           </h3>
-          <span class="m-section-link">S • M • L</span>
+          <NuxtLink to="/analysis" class="m-section-link">View All</NuxtLink>
         </div>
         
-        <div class="m-horizon-cards">
-          <div class="m-horizon-card">
-            <span class="m-horizon-label">Short</span>
-            <span class="m-horizon-tf">1h</span>
-            <span class="m-horizon-score" :class="getAsiClass(marketAsi.short)">{{ marketAsi.short ?? '--' }}</span>
-            <span class="m-horizon-use">Day</span>
+        <!-- Horizon Tabs -->
+        <div class="m-horizon-tabs">
+          <button 
+            class="m-horizon-tab" 
+            :class="{ active: activeHorizon === 'short' }"
+            @click="activeHorizon = 'short'"
+          >
+            <span class="tab-label">Short</span>
+            <span class="tab-tf">1h</span>
+          </button>
+          <button 
+            class="m-horizon-tab" 
+            :class="{ active: activeHorizon === 'medium' }"
+            @click="activeHorizon = 'medium'"
+          >
+            <span class="tab-label">Medium</span>
+            <span class="tab-tf">4h+1d</span>
+          </button>
+          <button 
+            class="m-horizon-tab" 
+            :class="{ active: activeHorizon === 'long' }"
+            @click="activeHorizon = 'long'"
+          >
+            <span class="tab-label">Long</span>
+            <span class="tab-tf">1w+1M</span>
+          </button>
+        </div>
+        
+        <!-- Stats Bar -->
+        <div class="m-horizon-stats">
+          <div class="m-stat-mini">
+            <span class="stat-value positive">{{ horizonStats.buyCount }}</span>
+            <span class="stat-label">Buy</span>
           </div>
-          <div class="m-horizon-card">
-            <span class="m-horizon-label">Medium</span>
-            <span class="m-horizon-tf">4h+1d</span>
-            <span class="m-horizon-score" :class="getAsiClass(marketAsi.medium)">{{ marketAsi.medium ?? '--' }}</span>
-            <span class="m-horizon-use">Swing</span>
+          <div class="m-stat-mini">
+            <span class="stat-value neutral">{{ horizonStats.neutralCount }}</span>
+            <span class="stat-label">Neutral</span>
           </div>
-          <div class="m-horizon-card">
-            <span class="m-horizon-label">Long</span>
-            <span class="m-horizon-tf">1w+1M</span>
-            <span class="m-horizon-score" :class="getAsiClass(marketAsi.long)">{{ marketAsi.long ?? '--' }}</span>
-            <span class="m-horizon-use">HODL</span>
+          <div class="m-stat-mini">
+            <span class="stat-value negative">{{ horizonStats.sellCount }}</span>
+            <span class="stat-label">Sell</span>
+          </div>
+          <div class="m-stat-mini">
+            <span class="stat-value">{{ horizonStats.avgAsi }}</span>
+            <span class="stat-label">Avg ASI</span>
+          </div>
+        </div>
+        
+        <!-- Coin List -->
+        <div class="m-horizon-list">
+          <div v-for="(coin, idx) in horizonCoins" :key="coin.coin_id" class="m-horizon-coin">
+            <div class="m-horizon-coin-row">
+              <span class="m-rank" :class="getRankClass(idx)">{{ idx + 1 }}</span>
+              <img :src="coin.image" class="m-avatar" />
+              <div class="m-info">
+                <span class="m-info-title">{{ coin.symbol?.toUpperCase() }}</span>
+                <span class="m-info-subtitle">{{ coin.name }}</span>
+              </div>
+              <span class="m-signal-badge" :class="'m-signal-' + (coin.signal || 'hold').toLowerCase().replace('_', '-')">
+                {{ coin.signal || 'HOLD' }}
+              </span>
+            </div>
+            <div class="m-horizon-coin-bar">
+              <div class="m-asi-bar">
+                <div class="m-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: (coin.asi_score || 50) + '%' }"></div>
+              </div>
+              <span class="m-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score ?? '--' }}</span>
+            </div>
+          </div>
+          
+          <div v-if="horizonCoins.length === 0" class="m-horizon-empty">
+            <Icon name="ph:chart-bar" class="w-8 h-8 opacity-30" />
+            <span>No multi-horizon data yet</span>
           </div>
         </div>
       </section>
@@ -607,6 +662,52 @@ const marketAsi = ref<{ short: number | null; medium: number | null; long: numbe
   long: null,
 })
 
+// Active horizon tab for filtering
+const activeHorizon = ref<'short' | 'medium' | 'long'>('short')
+
+// Multi-horizon data for all coins (fetched from API)
+const multiHorizonData = ref<Record<string, any>>({})
+
+// Coins filtered by selected horizon
+const horizonCoins = computed(() => {
+  const coins = [...allCoins.value].slice(0, 50) // Top 50 coins
+  
+  // For now, use existing ASI data - will be replaced when multi-horizon API is ready
+  return coins
+    .map(c => ({
+      ...c,
+      asi_score: sentimentMap.value[c.coin_id]?.asi_score ?? null,
+      signal: sentimentMap.value[c.coin_id]?.signal || 'HOLD',
+    }))
+    .filter(c => c.asi_score !== null)
+    .sort((a, b) => (b.asi_score || 0) - (a.asi_score || 0))
+    .slice(0, 5)
+})
+
+// Stats for current horizon
+const horizonStats = computed(() => {
+  const coins = horizonCoins.value
+  const buySignals = ['BUY', 'STRONG_BUY']
+  const sellSignals = ['SELL', 'STRONG_SELL']
+  
+  const buyCount = coins.filter(c => buySignals.includes(c.signal)).length
+  const sellCount = coins.filter(c => sellSignals.includes(c.signal)).length
+  const neutralCount = coins.length - buyCount - sellCount
+  
+  const scores = coins.map(c => c.asi_score || 0).filter(s => s > 0)
+  const avgAsi = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : '--'
+  
+  return { buyCount, neutralCount, sellCount, avgAsi }
+})
+
+// Get rank class based on position
+const getRankClass = (idx: number) => {
+  if (idx === 0) return 'm-rank--gold'
+  if (idx === 1) return 'm-rank--silver'
+  if (idx === 2) return 'm-rank--bronze'
+  return ''
+}
+
 // Computed lists from API data
 const topGainers = computed(() => {
   return [...allCoins.value]
@@ -895,5 +996,155 @@ const toggleFavorite = (coinId: string) => {
 .m-horizon-use {
   font-size: 9px;
   color: #666;
+}
+
+/* NEW: Horizon Tabs */
+.m-horizon-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 12px;
+  margin-bottom: 12px;
+}
+
+.m-horizon-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 8px;
+  background: rgba(30, 30, 50, 0.6);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.m-horizon-tab:hover {
+  background: rgba(40, 40, 70, 0.8);
+}
+
+.m-horizon-tab.active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(56, 189, 248, 0.15));
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.m-horizon-tab .tab-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.m-horizon-tab .tab-tf {
+  font-size: 10px;
+  color: #888;
+  margin-top: 2px;
+}
+
+.m-horizon-tab.active .tab-label {
+  color: #8b5cf6;
+}
+
+/* Stats Bar */
+.m-horizon-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 0 12px;
+  margin-bottom: 12px;
+}
+
+.m-stat-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px;
+  background: rgba(30, 30, 50, 0.5);
+  border-radius: 8px;
+}
+
+.m-stat-mini .stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.m-stat-mini .stat-value.positive { color: #22c55e; }
+.m-stat-mini .stat-value.neutral { color: #f59e0b; }
+.m-stat-mini .stat-value.negative { color: #ef4444; }
+
+.m-stat-mini .stat-label {
+  font-size: 10px;
+  color: #888;
+  margin-top: 2px;
+}
+
+/* Horizon Coin List */
+.m-horizon-list {
+  padding: 0 12px;
+}
+
+.m-horizon-coin {
+  background: rgba(30, 30, 50, 0.6);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.m-horizon-coin-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.m-horizon-coin-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.m-horizon-coin-bar .m-asi-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.m-horizon-coin-bar .m-asi-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.m-horizon-coin-bar .m-asi-fill.positive { background: linear-gradient(90deg, #22c55e, #16a34a); }
+.m-horizon-coin-bar .m-asi-fill.neutral { background: linear-gradient(90deg, #f59e0b, #d97706); }
+.m-horizon-coin-bar .m-asi-fill.negative { background: linear-gradient(90deg, #ef4444, #dc2626); }
+
+.m-horizon-coin-bar .m-asi-value {
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 24px;
+  text-align: right;
+}
+
+.m-horizon-coin-bar .m-asi-value.positive { color: #22c55e; }
+.m-horizon-coin-bar .m-asi-value.neutral { color: #f59e0b; }
+.m-horizon-coin-bar .m-asi-value.negative { color: #ef4444; }
+
+/* Rank badges */
+.m-rank--gold { background: linear-gradient(135deg, #fbbf24, #f59e0b) !important; color: #000 !important; }
+.m-rank--silver { background: linear-gradient(135deg, #9ca3af, #6b7280) !important; color: #000 !important; }
+.m-rank--bronze { background: linear-gradient(135deg, #d97706, #b45309) !important; color: #fff !important; }
+
+/* Empty state */
+.m-horizon-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 0;
+  color: #666;
+  font-size: 13px;
 }
 </style>
