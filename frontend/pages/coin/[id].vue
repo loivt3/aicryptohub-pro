@@ -122,6 +122,11 @@
           </div>
         </div>
       </div>
+      
+      <!-- Multi-Horizon ASI (New!) -->
+      <div class="mt-6">
+        <MultiHorizonAsi :coin-id="coinId" />
+      </div>
     </div>
   </div>
 </template>
