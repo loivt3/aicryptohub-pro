@@ -90,6 +90,105 @@
       </div>
     </section>
 
+    <!-- ASI by Horizon Section (matching mobile) -->
+    <section class="d-section">
+      <div class="d-section-header">
+        <h2 class="d-section-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M3 12h4l3 8l4-16l3 8h4"/></svg>
+          ASI by Horizon
+        </h2>
+        <NuxtLink to="/analysis" class="d-section-note" style="color: #8b5cf6; cursor: pointer;">View All →</NuxtLink>
+      </div>
+      
+      <!-- Horizon Tabs -->
+      <div class="d-horizon-tabs">
+        <button 
+          class="d-horizon-tab" 
+          :class="{ active: activeHorizon === 'short' }"
+          @click="activeHorizon = 'short'"
+        >
+          <span class="tab-label">Short</span>
+          <span class="tab-tf">1h</span>
+        </button>
+        <button 
+          class="d-horizon-tab" 
+          :class="{ active: activeHorizon === 'medium' }"
+          @click="activeHorizon = 'medium'"
+        >
+          <span class="tab-label">Medium</span>
+          <span class="tab-tf">4h+1d</span>
+        </button>
+        <button 
+          class="d-horizon-tab" 
+          :class="{ active: activeHorizon === 'long' }"
+          @click="activeHorizon = 'long'"
+        >
+          <span class="tab-label">Long</span>
+          <span class="tab-tf">1w+1M</span>
+        </button>
+      </div>
+      
+      <!-- Stats Bar -->
+      <div class="d-horizon-stats">
+        <div class="d-stat-mini">
+          <span class="stat-value positive">{{ horizonStats.buyCount }}</span>
+          <span class="stat-label">Buy</span>
+        </div>
+        <div class="d-stat-mini">
+          <span class="stat-value neutral">{{ horizonStats.neutralCount }}</span>
+          <span class="stat-label">Neutral</span>
+        </div>
+        <div class="d-stat-mini">
+          <span class="stat-value negative">{{ horizonStats.sellCount }}</span>
+          <span class="stat-label">Sell</span>
+        </div>
+        <div class="d-stat-mini">
+          <span class="stat-value">{{ horizonStats.avgAsi }}</span>
+          <span class="stat-label">Avg ASI</span>
+        </div>
+      </div>
+      
+      <!-- Coin Cards Grid (Desktop: 2 columns) -->
+      <div class="d-horizon-grid">
+        <div v-for="(coin, idx) in horizonCoins" :key="coin.coin_id" class="d-horizon-card">
+          <div class="d-horizon-card-main">
+            <span class="d-rank">{{ idx + 1 }}</span>
+            <img :src="coin.image" class="d-coin-avatar" />
+            <div class="d-coin-info">
+              <span class="d-coin-name">{{ coin.symbol?.toUpperCase() }}</span>
+              <span class="d-coin-symbol">{{ coin.name }}</span>
+            </div>
+            <div class="d-price-col">
+              <span class="d-price">{{ formatPrice(coin.price) }}</span>
+              <span class="d-change" :class="coin.change_24h >= 0 ? 'text-success' : 'text-danger'">
+                {{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(2) }}%
+              </span>
+            </div>
+            <!-- Mini Sparkline -->
+            <div class="d-mini-sparkline">
+              <svg viewBox="0 0 50 24" preserveAspectRatio="none">
+                <path d="M0,20 C5,18 10,14 15,12 C20,10 25,16 30,11 C35,6 40,10 45,8 L50,24 L0,24 Z" :fill="coin.change_24h >= 0 ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'" />
+                <path d="M0,20 C5,18 10,14 15,12 C20,10 25,16 30,11 C35,6 40,10 45,8" fill="none" :stroke="coin.change_24h >= 0 ? '#22c55e' : '#ef4444'" stroke-width="1.5" />
+              </svg>
+            </div>
+          </div>
+          <div class="d-horizon-card-meta">
+            <span class="d-meta-mcap">MCap: {{ formatMarketCap(coin.market_cap) }}</span>
+            <div class="d-meta-asi">
+              <span class="d-meta-asi-label">ASI</span>
+              <div class="d-asi-bar"><div class="d-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: (coin.asi_score || 50) + '%' }"></div></div>
+              <span class="d-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score ?? '--' }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div v-if="horizonCoins.length === 0" class="d-horizon-empty">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><path d="M3 3v18h18"/><path d="M18.5 8l-5.5 5.5-3-3-5 5"/></svg>
+          <span>No multi-horizon data yet</span>
+        </div>
+      </div>
+    </section>
+
     <!-- Main Content Grid -->
     <div class="d-content-grid">
       <!-- Coins Table -->
@@ -226,6 +325,46 @@ const sentimentMap = ref<Record<string, any>>({})
 
 // Socket status
 const socketConnected = ref(false)
+
+// ASI by Horizon data
+const activeHorizon = ref<'short' | 'medium' | 'long'>('short')
+const multiHorizonData = ref<Record<string, any>>({})
+
+// Computed: horizon coins list
+const horizonCoins = computed(() => {
+  // Use top 5 coins with multi-horizon data
+  const asiKey = activeHorizon.value === 'short' ? 'asi_short' 
+    : activeHorizon.value === 'medium' ? 'asi_medium' 
+    : 'asi_long'
+  const signalKey = activeHorizon.value === 'short' ? 'signal_short'
+    : activeHorizon.value === 'medium' ? 'signal_medium'
+    : 'signal_long'
+  
+  return topCoins.value.slice(0, 5).map(coin => {
+    const mhData = multiHorizonData.value[coin.id]
+    return {
+      ...coin,
+      coin_id: coin.id,
+      price: coin.price,
+      change_24h: coin.change24h,
+      market_cap: coin.marketCap,
+      asi_score: mhData?.[asiKey] ?? sentimentMap.value[coin.id]?.asi_score ?? 50,
+      signal: mhData?.[signalKey] ?? sentimentMap.value[coin.id]?.signal ?? 'HOLD',
+    }
+  })
+})
+
+// Computed: horizon stats
+const horizonStats = computed(() => {
+  const coins = horizonCoins.value
+  const buyCount = coins.filter(c => c.signal === 'BUY' || c.signal === 'STRONG_BUY').length
+  const sellCount = coins.filter(c => c.signal === 'SELL' || c.signal === 'STRONG_SELL').length
+  const neutralCount = coins.length - buyCount - sellCount
+  const avgAsi = coins.length > 0 
+    ? Math.round(coins.reduce((sum, c) => sum + (c.asi_score || 50), 0) / coins.length)
+    : 50
+  return { buyCount, neutralCount, sellCount, avgAsi }
+})
 
 const fearGreedLabel = computed(() => {
   if (fearGreedValue.value >= 75) return 'Extreme Greed'
@@ -739,4 +878,175 @@ const getAsiClass = (v: number) => v >= 60 ? 'positive' : v <= 40 ? 'negative' :
 .d-whale-amount { display: block; font-weight: 700; font-size: 14px; color: #ffffff; }
 .d-whale-value { font-size: 12px; color: rgba(255, 255, 255, 0.5); }
 .d-whale-time { font-size: 12px; color: rgba(255, 255, 255, 0.3); }
+
+/* ASI by Horizon Section */
+.d-horizon-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.d-horizon-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 20px;
+  background: var(--aihub-bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.d-horizon-tab:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.d-horizon-tab.active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));
+  border-color: #8b5cf6;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+}
+
+.d-horizon-tab .tab-label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+}
+
+.d-horizon-tab .tab-tf {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.d-horizon-tab.active .tab-tf {
+  color: #8b5cf6;
+}
+
+.d-horizon-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.d-stat-mini {
+  flex: 1;
+  text-align: center;
+  padding: 16px;
+  background: var(--aihub-bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+.d-stat-mini .stat-value {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.d-stat-mini .stat-value.positive { color: #00ff88; }
+.d-stat-mini .stat-value.neutral { color: #ffa502; }
+.d-stat-mini .stat-value.negative { color: #ff4757; }
+
+.d-stat-mini .stat-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 4px;
+}
+
+.d-horizon-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.d-horizon-card {
+  background: var(--aihub-bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 16px;
+  transition: all 0.3s ease;
+}
+
+.d-horizon-card:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.1);
+  transform: translateY(-2px);
+}
+
+.d-horizon-card-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.d-horizon-card .d-coin-info {
+  flex: 1;
+}
+
+.d-price-col {
+  text-align: right;
+}
+
+.d-price {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.d-change {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.d-mini-sparkline {
+  width: 60px;
+  height: 24px;
+}
+
+.d-mini-sparkline svg {
+  width: 100%;
+  height: 100%;
+}
+
+.d-horizon-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.d-meta-mcap {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.d-meta-asi {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.d-meta-asi-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.d-horizon-empty {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px;
+  color: rgba(255, 255, 255, 0.3);
+  text-align: center;
+}
 </style>
