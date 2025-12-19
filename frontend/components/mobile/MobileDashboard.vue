@@ -671,14 +671,39 @@ const multiHorizonData = ref<Record<string, any>>({})
 // Coins filtered by selected horizon
 const horizonCoins = computed(() => {
   const coins = [...allCoins.value].slice(0, 50) // Top 50 coins
+  const horizon = activeHorizon.value
   
-  // For now, use existing ASI data - will be replaced when multi-horizon API is ready
+  // Map coins with horizon-specific ASI data
   return coins
-    .map(c => ({
-      ...c,
-      asi_score: sentimentMap.value[c.coin_id]?.asi_score ?? null,
-      signal: sentimentMap.value[c.coin_id]?.signal || 'HOLD',
-    }))
+    .map(c => {
+      const mhData = multiHorizonData.value[c.coin_id]
+      let asi_score: number | null = null
+      let signal = 'HOLD'
+      
+      if (mhData) {
+        // Use horizon-specific data
+        if (horizon === 'short') {
+          asi_score = mhData.asi_short ?? null
+          signal = mhData.signal_short || 'HOLD'
+        } else if (horizon === 'medium') {
+          asi_score = mhData.asi_medium ?? null
+          signal = mhData.signal_medium || 'HOLD'
+        } else {
+          asi_score = mhData.asi_long ?? null
+          signal = mhData.signal_long || 'HOLD'
+        }
+      } else {
+        // Fallback to existing sentiment data
+        asi_score = sentimentMap.value[c.coin_id]?.asi_score ?? null
+        signal = sentimentMap.value[c.coin_id]?.signal || 'HOLD'
+      }
+      
+      return {
+        ...c,
+        asi_score,
+        signal,
+      }
+    })
     .filter(c => c.asi_score !== null)
     .sort((a, b) => (b.asi_score || 0) - (a.asi_score || 0))
     .slice(0, 5)
@@ -835,6 +860,34 @@ const fetchData = async () => {
       }
     } catch (e) {
       console.warn('Failed to fetch multi-horizon ASI:', e)
+    }
+    
+    // Fetch multi-horizon ASI for top 10 coins
+    try {
+      const config = useRuntimeConfig()
+      const topCoinIds = allCoins.value.slice(0, 10).map(c => c.coin_id)
+      
+      // Fetch multi-horizon data for each coin in parallel
+      const mhPromises = topCoinIds.map(async (coinId) => {
+        try {
+          const res = await $fetch<any>(`${config.public.apiBase}/api/v1/sentiment/${coinId}/multi-horizon`)
+          if (res?.success && res.data) {
+            return { coinId, data: res.data }
+          }
+          return null
+        } catch {
+          return null
+        }
+      })
+      
+      const mhResults = await Promise.all(mhPromises)
+      mhResults.forEach(result => {
+        if (result) {
+          multiHorizonData.value[result.coinId] = result.data
+        }
+      })
+    } catch (e) {
+      console.warn('Failed to fetch multi-horizon data for coins:', e)
     }
   } catch (error) {
     console.error('Failed to fetch data:', error)
