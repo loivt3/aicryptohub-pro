@@ -362,12 +362,12 @@ onMounted(() => {
   fetchData()
   setupSocketConnection()
   
-  // Fallback refresh if WebSocket not connected
+  // Fallback refresh if WebSocket not connected (every 10s)
   const interval = setInterval(() => {
     if (!socketConnected.value) {
       fetchData()
     }
-  }, 60000)
+  }, 10000)
   
   onUnmounted(() => clearInterval(interval))
 })

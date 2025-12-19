@@ -695,12 +695,12 @@ onMounted(() => {
   // Setup real-time WebSocket connection
   setupSocketConnection()
   
-  // Fallback: Refresh every 60 seconds if WebSocket not available
+  // Fallback: Refresh every 10 seconds if WebSocket not available
   const interval = setInterval(() => {
     if (!socketConnected.value) {
       fetchData()
     }
-  }, 60000)
+  }, 10000)
   onUnmounted(() => clearInterval(interval))
 })
 
