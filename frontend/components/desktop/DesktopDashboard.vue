@@ -338,6 +338,64 @@
         </div>
       </aside>
     </div>
+
+    <!-- Top Market Signals Section -->
+    <section class="d-section">
+      <div class="d-section-header">
+        <h2 class="d-section-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+          Top Market Signals
+        </h2>
+        <span class="d-section-note">AI-powered trading signals</span>
+      </div>
+      
+      <div class="d-table-card">
+        <table class="d-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Coin</th>
+              <th class="text-right">Price</th>
+              <th class="text-right">24h</th>
+              <th>ASI Score</th>
+              <th>Signal</th>
+              <th>Reasoning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(coin, idx) in marketSignals" :key="coin.id">
+              <td><span class="d-rank">{{ idx + 1 }}</span></td>
+              <td>
+                <div class="d-coin-cell">
+                  <img :src="coin.image" class="d-coin-avatar" />
+                  <div>
+                    <span class="d-coin-name">{{ coin.symbol }}</span>
+                    <span class="d-coin-symbol">{{ coin.name }}</span>
+                  </div>
+                </div>
+              </td>
+              <td class="text-right font-mono">{{ formatPrice(coin.price) }}</td>
+              <td class="text-right" :class="coin.change24h >= 0 ? 'text-success' : 'text-danger'">
+                {{ coin.change24h >= 0 ? '+' : '' }}{{ coin.change24h?.toFixed(2) }}%
+              </td>
+              <td>
+                <div class="d-asi-cell">
+                  <div class="d-asi-bar"><div class="d-asi-fill" :class="getAsiClass(coin.asi)" :style="{ width: coin.asi + '%' }"></div></div>
+                  <span class="d-asi-value" :class="getAsiClass(coin.asi)">{{ coin.asi }}</span>
+                </div>
+              </td>
+              <td><span class="d-signal" :class="'signal-' + coin.signal.toLowerCase()">{{ coin.signal }}</span></td>
+              <td class="d-reasoning">{{ coin.reasoning || 'Technical analysis in progress...' }}</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div v-if="marketSignals.length === 0" class="d-table-empty">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><path d="M3 3v18h18"/><path d="M18.5 8l-5.5 5.5-3-3-5 5"/></svg>
+          <span>No signal data available</span>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -467,6 +525,25 @@ const trendingCoins = computed(() => {
       symbol: c.symbol,
       image: c.image,
       change: c.change24h,
+    }))
+})
+
+// Market Signals - top 10 by ASI score (highest confidence signals)
+const marketSignals = computed(() => {
+  return [...topCoins.value]
+    .filter(c => c.asi)
+    .sort((a, b) => b.asi - a.asi)
+    .slice(0, 10)
+    .map(c => ({
+      id: c.id,
+      symbol: c.symbol,
+      name: c.name,
+      image: c.image,
+      price: c.price,
+      change24h: c.change24h,
+      asi: c.asi || 50,
+      signal: c.signal || 'HOLD',
+      reasoning: c.reasoning || null
     }))
 })
 
@@ -1089,5 +1166,16 @@ const getAsiClass = (v: number) => v >= 60 ? 'positive' : v <= 40 ? 'negative' :
   text-align: center;
   color: rgba(255, 255, 255, 0.3);
   font-size: 13px;
+}
+
+/* Reasoning column for Market Signals */
+.d-reasoning {
+  max-width: 280px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>
