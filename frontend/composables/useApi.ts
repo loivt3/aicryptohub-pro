@@ -94,5 +94,15 @@ export const useApi = () => {
 
         getOnchainSignals: (coinId: string) =>
             apiFetch<any>(`/onchain/signals/${coinId}`),
+
+        // Shadow/Intent Divergence endpoints
+        getIntentDivergence: (coinId: string, includeAi = true) =>
+            apiFetch<any>(`/intent-divergence/${coinId}`, { query: { include_ai: includeAi } }),
+
+        getShadowRadar: (coinId: string) =>
+            apiFetch<any>(`/intent-divergence/radar/${coinId}`),
+
+        getDivergenceHistory: (coinId?: string, limit = 10) =>
+            apiFetch<any[]>('/intent-divergence/history', { query: { coin_id: coinId, limit } }),
     }
 }

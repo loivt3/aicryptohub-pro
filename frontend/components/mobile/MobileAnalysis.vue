@@ -413,6 +413,80 @@
         </div>
       </section>
 
+      <!-- Shadow Insight Section -->
+      <section v-if="analysisCoin && !loading && shadowData" class="m-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div>
+            <h3 class="m-section-title" style="margin-bottom: 4px;">
+              <Icon name="ph:eye" class="w-4 h-4" style="color: #a855f7;" />
+              Shadow Insight
+            </h3>
+            <div style="font-size: 0.65rem; color: rgba(255,255,255,0.35);">Whale-crowd divergence analysis</div>
+          </div>
+          <span v-if="shadowData.divergence_type" :style="getDivergenceBadgeStyle(shadowData.divergence_type)">
+            {{ formatDivergence(shadowData.divergence_type) }}
+          </span>
+        </div>
+        
+        <!-- Intent Score & Metrics Row -->
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+          <!-- Intent Score Gauge -->
+          <div class="m-card m-card--dark" style="flex: 1; padding: 14px; text-align: center;">
+            <div style="font-size: 0.65rem; color: rgba(255,255,255,0.4); letter-spacing: 1px; margin-bottom: 8px;">INTENT SCORE</div>
+            <div :style="{ fontSize: '2rem', fontWeight: '700', color: getIntentColor(shadowData.intent_score) }">
+              {{ shadowData.intent_score || 50 }}
+            </div>
+            <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 8px; overflow: hidden;">
+              <div :style="{ width: (shadowData.intent_score || 50) + '%', height: '100%', background: getIntentGradient(shadowData.intent_score), borderRadius: '2px' }"></div>
+            </div>
+          </div>
+          
+          <!-- Metrics Column -->
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+            <!-- Whale Score -->
+            <div class="m-card m-card--dark" style="padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 1rem;">🐋</span>
+                <span style="font-size: 0.7rem; color: rgba(255,255,255,0.6);">Whale</span>
+              </div>
+              <span :style="{ fontSize: '0.9rem', fontWeight: '600', color: shadowData.whale_score > 50 ? '#22c55e' : shadowData.whale_score < 50 ? '#ef4444' : '#eab308' }">
+                {{ shadowData.whale_score || 50 }}
+              </span>
+            </div>
+            <!-- Crowd Fear -->
+            <div class="m-card m-card--dark" style="padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 1rem;">😨</span>
+                <span style="font-size: 0.7rem; color: rgba(255,255,255,0.6);">Crowd</span>
+              </div>
+              <span :style="{ fontSize: '0.9rem', fontWeight: '600', color: shadowData.sentiment_score > 50 ? '#22c55e' : shadowData.sentiment_score < 50 ? '#ef4444' : '#eab308' }">
+                {{ shadowData.sentiment_score || 50 }}
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- AI Shadow Insight Box -->
+        <div v-if="shadowData.shadow_insight" class="m-card m-card--dark" style="padding: 14px; border-left: 3px solid #a855f7; background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), transparent);">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <Icon name="ph:brain" class="w-4 h-4" style="color: #a855f7;" />
+            <span style="font-size: 0.7rem; font-weight: 600; color: #a855f7; letter-spacing: 0.5px;">AI INSIGHT</span>
+          </div>
+          <p style="font-size: 0.85rem; color: rgba(255,255,255,0.75); line-height: 1.5; margin: 0;">
+            {{ shadowData.shadow_insight }}
+          </p>
+        </div>
+        
+        <!-- Golden Shadow Alert -->
+        <div v-if="shadowData.is_golden_shadow" style="margin-top: 10px; padding: 12px; background: linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(168, 85, 247, 0.1)); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: 12px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.5rem;">⚡</span>
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 600; color: #eab308;">Golden Shadow Entry</div>
+            <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5);">High-confidence whale divergence signal</div>
+          </div>
+        </div>
+      </section>
+
       <!-- Empty State -->
       <section v-if="!analysisCoin && !loading" class="m-section">
         <div class="m-card m-card--dark" style="text-align: center; padding: 60px 16px;">
@@ -539,6 +613,64 @@ const onchain = ref({
   exchangeFlow: { signal: 'NEUTRAL', inflow: '$0', outflow: '$0', netFlow: 0 },
   whaleActivity: { signal: 'NEUTRAL', largeTxCount: 0, topHoldersChange: 0 },
 })
+
+// Shadow/Intent Divergence data
+interface ShadowData {
+  intent_score: number
+  whale_score: number
+  sentiment_score: number
+  divergence_type: string
+  divergence_label: string
+  shadow_insight: string
+  is_golden_shadow: boolean
+  whale_net_flow_usd: number
+}
+
+const shadowData = ref<ShadowData | null>(null)
+
+// Shadow helper functions
+const getIntentColor = (score: number) => {
+  if (score >= 70) return '#22c55e'
+  if (score >= 55) return '#4ade80'
+  if (score <= 30) return '#ef4444'
+  if (score <= 45) return '#f97316'
+  return '#eab308'
+}
+
+const getIntentGradient = (score: number) => {
+  if (score >= 60) return 'linear-gradient(90deg, #22c55e, #4ade80)'
+  if (score <= 40) return 'linear-gradient(90deg, #ef4444, #f97316)'
+  return 'linear-gradient(90deg, #eab308, #fcd34d)'
+}
+
+const getDivergenceBadgeStyle = (divType: string) => {
+  const baseStyle = {
+    padding: '4px 12px',
+    borderRadius: '12px',
+    fontSize: '0.7rem',
+    fontWeight: '700' as const,
+    border: '1px solid',
+  }
+  
+  if (divType === 'shadow_accumulation') {
+    return { ...baseStyle, background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', borderColor: 'rgba(34, 197, 94, 0.4)' }
+  } else if (divType === 'bull_trap') {
+    return { ...baseStyle, background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.4)' }
+  } else if (divType === 'confirmation') {
+    return { ...baseStyle, background: 'rgba(0, 212, 255, 0.2)', color: '#00d4ff', borderColor: 'rgba(0, 212, 255, 0.4)' }
+  }
+  return { ...baseStyle, background: 'rgba(234, 179, 8, 0.2)', color: '#eab308', borderColor: 'rgba(234, 179, 8, 0.4)' }
+}
+
+const formatDivergence = (divType: string) => {
+  const labels: Record<string, string> = {
+    shadow_accumulation: '🐋 Shadow Accumulation',
+    bull_trap: '⚠️ Bull Trap',
+    confirmation: '✓ Confirmation',
+    neutral: '— Neutral',
+  }
+  return labels[divType] || divType
+}
 
 const timeframes = computed(() => [
   { label: '1H', value: analysisCoin.value?.change_1h || 0, active: false },
@@ -711,9 +843,30 @@ const executeSearch = async (coinId?: string) => {
       } catch (e) {
         console.warn('On-chain data not available:', e)
       }
+      
+      // Fetch shadow/intent divergence data
+      try {
+        const shadowRes = await api.getIntentDivergence(targetCoinId)
+        if (shadowRes) {
+          shadowData.value = {
+            intent_score: shadowRes.intent_score || 50,
+            whale_score: shadowRes.whale_score || 50,
+            sentiment_score: shadowRes.sentiment_score || 50,
+            divergence_type: shadowRes.divergence_type || 'neutral',
+            divergence_label: shadowRes.divergence_label || 'Neutral',
+            shadow_insight: shadowRes.shadow_insight || '',
+            is_golden_shadow: shadowRes.is_golden_shadow || false,
+            whale_net_flow_usd: shadowRes.whale_net_flow_usd || 0,
+          }
+        }
+      } catch (e) {
+        console.warn('Shadow data not available:', e)
+        shadowData.value = null
+      }
     } else {
       analysisCoin.value = null
       dataSource.value = null
+      shadowData.value = null
     }
   } catch (error) {
     console.error('Analysis failed:', error)
