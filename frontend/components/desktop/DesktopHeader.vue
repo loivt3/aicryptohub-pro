@@ -39,8 +39,7 @@
     <!-- Main Header -->
     <div class="d-header-main">
       <NuxtLink to="/" class="d-logo">
-        <div class="d-logo-icon">🔥</div>
-        <span class="d-logo-text">AI Hub</span>
+        <img src="/images/coinsight-logo.png" alt="CoinSight" class="d-logo-img" />
       </NuxtLink>
       
       <nav class="d-nav">
@@ -208,27 +207,12 @@ const formatPrice = (price: number) => {
 .d-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
   text-decoration: none;
 }
 
-.d-logo-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #38efeb, #9f7aea);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-}
-
-.d-logo-text {
-  font-size: 20px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #38efeb, #9f7aea);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.d-logo-img {
+  height: 36px;
+  width: auto;
 }
 
 /* Navigation */
