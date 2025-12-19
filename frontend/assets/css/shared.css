@@ -1,0 +1,295 @@
+/**
+ * AI Crypto Hub - Shared Styles
+ * Common components used by both mobile and desktop
+ * Design system based on CoinMarketCap-inspired UI
+ */
+
+/* ==========================================
+   ASI Score Bar Component
+   ========================================== */
+.asi-bar {
+    flex: 1;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.asi-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+.asi-fill.bullish,
+.asi-fill.buy {
+    background: linear-gradient(90deg, #22c55e, #4ade80);
+}
+
+.asi-fill.neutral,
+.asi-fill.hold {
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+}
+
+.asi-fill.bearish,
+.asi-fill.sell {
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+/* ASI Value Text */
+.asi-value {
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--aihub-font-mono);
+    min-width: 28px;
+    text-align: right;
+}
+
+.asi-value.bullish,
+.asi-value.buy {
+    color: #22c55e;
+}
+
+.asi-value.neutral,
+.asi-value.hold {
+    color: #f59e0b;
+}
+
+.asi-value.bearish,
+.asi-value.sell {
+    color: #ef4444;
+}
+
+/* ==========================================
+   Signal Badges (Shared)
+   ========================================== */
+.d-signal,
+.m-signal {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.signal-buy,
+.signal-strong_buy {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.signal-sell,
+.signal-strong_sell {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.signal-hold,
+.signal-neutral {
+    background: rgba(234, 179, 8, 0.15);
+    color: #eab308;
+}
+
+/* ==========================================
+   Inline Tabs Component (CoinMarketCap Style)
+   ========================================== */
+.inline-tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.inline-tab {
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.inline-tab:hover {
+    border-color: rgba(139, 92, 246, 0.4);
+    color: #fff;
+}
+
+.inline-tab.active {
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+/* ==========================================
+   Section Headers (Shared)
+   ========================================== */
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+}
+
+.section-note,
+.section-link {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.section-link:hover {
+    color: #8b5cf6;
+}
+
+/* ==========================================
+   Coin Avatar Component
+   ========================================== */
+.coin-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.coin-avatar-sm {
+    width: 24px;
+    height: 24px;
+}
+
+.coin-avatar-lg {
+    width: 40px;
+    height: 40px;
+}
+
+/* ==========================================
+   Rank Badge
+   ========================================== */
+.rank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.rank--success {
+    color: #22c55e;
+}
+
+.rank--danger {
+    color: #ef4444;
+}
+
+.rank--accent {
+    color: #8b5cf6;
+}
+
+/* ==========================================
+   Empty State Component
+   ========================================== */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px 20px;
+    color: rgba(255, 255, 255, 0.4);
+    text-align: center;
+}
+
+.empty-state-icon {
+    width: 48px;
+    height: 48px;
+    opacity: 0.3;
+}
+
+.empty-state-text {
+    font-size: 14px;
+}
+
+/* ==========================================
+   Mini Sparkline Chart Container
+   ========================================== */
+.sparkline {
+    width: 60px;
+    height: 24px;
+}
+
+.sparkline svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* ==========================================
+   Price Change Colors
+   ========================================== */
+.text-success {
+    color: #22c55e !important;
+}
+
+.text-danger {
+    color: #ef4444 !important;
+}
+
+.text-warning {
+    color: #f59e0b !important;
+}
+
+.text-info {
+    color: #38bdf8 !important;
+}
+
+.text-accent {
+    color: #8b5cf6 !important;
+}
+
+/* ==========================================
+   Card Hover Effects
+   ========================================== */
+.card-hover {
+    transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+    border-color: rgba(139, 92, 246, 0.3);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.1);
+    transform: translateY(-2px);
+}
+
+/* ==========================================
+   Triple Grid Layout (3-column)
+   ========================================== */
+.triple-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+@media (max-width: 1024px) {
+    .triple-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .triple-grid {
+        grid-template-columns: 1fr;
+    }
+}
