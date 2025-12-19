@@ -174,27 +174,46 @@
           </div>
         </div>
         
-        <!-- Coin List -->
-        <div class="m-horizon-list">
-          <div v-for="(coin, idx) in horizonCoins" :key="coin.coin_id" class="m-horizon-coin">
-            <div class="m-horizon-coin-row">
-              <span class="m-rank" :class="getRankClass(idx)">{{ idx + 1 }}</span>
-              <img :src="coin.image" class="m-avatar" />
-              <div class="m-info">
-                <span class="m-info-title">{{ coin.symbol?.toUpperCase() }}</span>
-                <span class="m-info-subtitle">{{ coin.name }}</span>
+        <!-- Coin List (matching Top Gainers style) -->
+        <div class="m-list m-list--dark">
+          <template v-for="(coin, idx) in horizonCoins" :key="coin.coin_id">
+            <!-- Main Row + Meta combined -->
+            <div class="m-list-item m-list-item--with-meta">
+              <div class="m-list-item-main">
+                <span class="m-rank" :class="getRankClass(idx)">{{ idx + 1 }}</span>
+                <img :src="coin.image" class="m-avatar" />
+                <div class="m-info">
+                  <span class="m-info-title">{{ coin.symbol?.toUpperCase() }}</span>
+                  <span class="m-info-subtitle">{{ coin.name }}</span>
+                </div>
+                <div class="m-price-col">
+                  <span class="m-info-title" :class="getFlashClass(coin.symbol)">{{ formatCurrency(coin.price) }}</span>
+                  <span class="m-info-subtitle" :class="coin.change_24h >= 0 ? 'm-text-success' : 'm-text-danger'">
+                    {{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(2) }}%
+                  </span>
+                </div>
+                <!-- Mini Sparkline -->
+                <div class="m-mini-sparkline" style="width: 50px; height: 24px;">
+                  <svg viewBox="0 0 50 24" preserveAspectRatio="none" style="width: 100%; height: 100%;">
+                    <path d="M0,20 C5,18 10,14 15,12 C20,10 25,16 30,11 C35,6 40,10 45,8 L50,24 L0,24 Z" :fill="coin.change_24h >= 0 ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'"/>
+                    <path d="M0,20 C5,18 10,14 15,12 C20,10 25,16 30,11 C35,6 40,10 45,8" fill="none" :stroke="coin.change_24h >= 0 ? '#22c55e' : '#ef4444'" stroke-width="1.5"/>
+                  </svg>
+                </div>
+                <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" />
               </div>
-              <span class="m-signal-badge" :class="'m-signal-' + (coin.signal || 'hold').toLowerCase().replace('_', '-')">
-                {{ coin.signal || 'HOLD' }}
-              </span>
-            </div>
-            <div class="m-horizon-coin-bar">
-              <div class="m-asi-bar">
-                <div class="m-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: (coin.asi_score || 50) + '%' }"></div>
+              <!-- ASI Meta Row - inside list-item -->
+              <div class="m-list-item-meta">
+                <span class="m-meta-mcap">MCap: {{ formatMarketCap(coin.market_cap) }}</span>
+                <div class="m-meta-asi">
+                  <span class="m-meta-asi-label">ASI</span>
+                  <div class="m-meta-asi-bar">
+                    <div class="m-meta-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: (coin.asi_score || 50) + '%' }"></div>
+                  </div>
+                  <span class="m-meta-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score ?? '--' }}</span>
+                </div>
               </div>
-              <span class="m-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score ?? '--' }}</span>
             </div>
-          </div>
+          </template>
           
           <div v-if="horizonCoins.length === 0" class="m-horizon-empty">
             <Icon name="ph:chart-bar" class="w-8 h-8 opacity-30" />
