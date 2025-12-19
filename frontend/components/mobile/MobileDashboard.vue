@@ -850,7 +850,7 @@ const fetchData = async () => {
     // Fetch multi-horizon ASI (using BTC as market indicator)
     try {
       const config = useRuntimeConfig()
-      const asiRes = await $fetch<any>(`${config.public.apiBase}/api/v1/sentiment/bitcoin/multi-horizon`)
+      const asiRes = await $fetch<any>(`${config.public.apiBase}/sentiment/bitcoin/multi-horizon`)
       if (asiRes?.success && asiRes.data) {
         marketAsi.value = {
           short: asiRes.data.asi_short,
@@ -870,7 +870,7 @@ const fetchData = async () => {
       // Fetch multi-horizon data for each coin in parallel
       const mhPromises = topCoinIds.map(async (coinId) => {
         try {
-          const res = await $fetch<any>(`${config.public.apiBase}/api/v1/sentiment/${coinId}/multi-horizon`)
+          const res = await $fetch<any>(`${config.public.apiBase}/sentiment/${coinId}/multi-horizon`)
           if (res?.success && res.data) {
             return { coinId, data: res.data }
           }
