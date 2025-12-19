@@ -9,12 +9,42 @@
         @setTab="activeTab = $event"
         @openSearch="showSearch = true"
       />
-      <MobileMarket v-else-if="activeTab === 'market'" />
-      <MobileAnalysis v-else-if="activeTab === 'analysis'" />
-      <MobilePortfolio v-else-if="activeTab === 'portfolio'" />
-      <MobileAlerts v-else-if="activeTab === 'alerts'" />
-      <MobileAIChat v-else-if="activeTab === 'aichat'" />
-      <MobileShadow v-else-if="activeTab === 'shadow'" />
+      <MobileMarket 
+        v-else-if="activeTab === 'market'" 
+        :activeTab="activeTab"
+        @setTab="activeTab = $event"
+        @openSearch="showSearch = true"
+      />
+      <MobileAnalysis 
+        v-else-if="activeTab === 'analysis'" 
+        :activeTab="activeTab"
+        @setTab="activeTab = $event"
+        @openSearch="showSearch = true"
+      />
+      <MobilePortfolio 
+        v-else-if="activeTab === 'portfolio'" 
+        :activeTab="activeTab"
+        @setTab="activeTab = $event"
+        @openSearch="showSearch = true"
+      />
+      <MobileAlerts 
+        v-else-if="activeTab === 'alerts'" 
+        :activeTab="activeTab"
+        @setTab="activeTab = $event"
+        @openSearch="showSearch = true"
+      />
+      <MobileAIChat 
+        v-else-if="activeTab === 'aichat'" 
+        :activeTab="activeTab"
+        @setTab="activeTab = $event"
+        @openSearch="showSearch = true"
+      />
+      <MobileShadow 
+        v-else-if="activeTab === 'shadow'" 
+        :activeTab="activeTab"
+        @setTab="activeTab = $event"
+        @openSearch="showSearch = true"
+      />
       
       <!-- Mobile Search Overlay -->
       <MobileSearch :isOpen="showSearch" @close="showSearch = false" @select="onCoinSelect" />

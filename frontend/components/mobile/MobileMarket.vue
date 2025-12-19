@@ -160,7 +160,7 @@
         <Icon name="ph:squares-four" class="m-nav-icon" />
         <span class="m-nav-label">Dashboard</span>
       </button>
-      <button class="m-nav-item active" :class="{ active: activeTab === 'market' }">
+      <button class="m-nav-item" :class="{ active: activeTab === 'market' }" @click="$emit('setTab', 'market')">
         <Icon name="ph:trend-up" class="m-nav-icon" />
         <span class="m-nav-label">Market</span>
       </button>
