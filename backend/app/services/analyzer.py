@@ -136,7 +136,7 @@ class AnalyzerService:
                 for kline in klines:
                     conn.execute(query, {
                         "symbol": symbol.upper(),
-                        "timeframe": 60,  # 1h = 60 minutes
+                        "timeframe": 1,  # 1h = DB code 1 (matches TIMEFRAME_MAP)
                         "open_time": datetime.fromtimestamp(kline["timestamp"] / 1000),
                         "open": kline["open"],
                         "high": kline["high"],
@@ -459,6 +459,312 @@ class AnalyzerService:
         
         return reasoning
     
+    # ==================== MULTI-HORIZON ASI ====================
+    
+    async def calculate_asi_for_timeframe(
+        self,
+        coin_id: str,
+        timeframe: str = "1h",
+        limit: int = 100
+    ) -> Dict[str, Any]:
+        """
+        Calculate ASI score for a specific timeframe.
+        
+        Args:
+            coin_id: Coin identifier
+            timeframe: '1m', '1h', '4h', '1d', '1w'
+            limit: Number of candles to fetch
+            
+        Returns:
+            Dict with asi_score, signal, indicators for that timeframe
+        """
+        # Fetch OHLCV for specific timeframe
+        ohlcv_data = self.db.get_ohlcv_data(coin_id, timeframe=timeframe, limit=limit)
+        
+        if len(ohlcv_data) < 30:
+            return {
+                "timeframe": timeframe,
+                "asi_score": 50,
+                "signal": "NEUTRAL",
+                "data_available": False,
+            }
+        
+        # Create DataFrame
+        df = pd.DataFrame(ohlcv_data)
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df = df.drop_duplicates(subset=["timestamp"], keep="last")
+        df = df.set_index("timestamp").sort_index()
+        df = df.rename(columns={
+            "open": "Open", "high": "High", "low": "Low",
+            "close": "Close", "volume": "Volume",
+        })
+        
+        # Calculate base indicators
+        indicators = self.calculate_indicators(df)
+        
+        # Add enhanced indicators (OBV, VWAP, CCI)
+        from app.services.indicators import calculate_all_enhanced_indicators
+        enhanced = calculate_all_enhanced_indicators(df)
+        indicators.update(enhanced)
+        
+        # Calculate ASI with enhanced scoring
+        asi_score, signal = self.calculate_enhanced_asi_score(indicators)
+        
+        return {
+            "timeframe": timeframe,
+            "asi_score": asi_score,
+            "signal": signal,
+            "indicators": indicators,
+            "data_available": True,
+        }
+    
+    def calculate_enhanced_asi_score(self, indicators: Dict[str, Any]) -> tuple[int, str]:
+        """
+        Enhanced ASI calculation including OBV, VWAP, CCI.
+        
+        Scoring breakdown (100 points total):
+        - RSI: 20 points
+        - MACD: 15 points
+        - Bollinger: 15 points
+        - Stochastic: 10 points
+        - ADX: 10 points
+        - EMA Trend: 10 points
+        - OBV: 10 points (enhanced)
+        - VWAP: 5 points (enhanced)
+        - CCI: 5 points (enhanced)
+        """
+        score = 50  # Start neutral
+        
+        # RSI contribution (20 points)
+        rsi = indicators.get("rsi_14", 50)
+        if rsi < 30:
+            score += 12  # Oversold = bullish
+        elif rsi < 40:
+            score += 6
+        elif rsi > 70:
+            score -= 12  # Overbought = bearish
+        elif rsi > 60:
+            score -= 6
+        
+        # MACD contribution (15 points)
+        macd_hist = indicators.get("macd_histogram", 0)
+        macd_line = indicators.get("macd_line", 0)
+        macd_signal = indicators.get("macd_signal", 0)
+        
+        if macd_hist > 0:
+            score += min(8, abs(macd_hist) * 80)
+        else:
+            score -= min(8, abs(macd_hist) * 80)
+        
+        if macd_line > macd_signal:
+            score += 4
+        else:
+            score -= 4
+        
+        # Bollinger Bands contribution (15 points)
+        bb_pct = indicators.get("bb_percent_b", 0.5)
+        if bb_pct < 0.2:
+            score += 8
+        elif bb_pct > 0.8:
+            score -= 8
+        
+        # Stochastic contribution (10 points)
+        stoch_k = indicators.get("stoch_k", 50)
+        stoch_d = indicators.get("stoch_d", 50)
+        
+        if stoch_k < 20:
+            score += 5
+        elif stoch_k > 80:
+            score -= 5
+        
+        if stoch_k > stoch_d:
+            score += 2
+        else:
+            score -= 2
+        
+        # ADX contribution (10 points)
+        adx = indicators.get("adx", 0)
+        price_change = indicators.get("price_change_24h", 0)
+        
+        if adx > 25:
+            if price_change > 0:
+                score += 6
+            else:
+                score -= 6
+        
+        # EMA Trend (10 points)
+        ema_9 = indicators.get("ema_9", 0)
+        ema_21 = indicators.get("ema_21", 0)
+        ema_50 = indicators.get("ema_50", 0)
+        
+        if ema_9 > ema_21 > ema_50:
+            score += 6  # Strong uptrend
+        elif ema_9 < ema_21 < ema_50:
+            score -= 6  # Strong downtrend
+        
+        # Enhanced: OBV contribution (10 points) - maps 0-10 to +/-5
+        obv_score = indicators.get("obv_score", 5)
+        score += (obv_score - 5)  # -5 to +5
+        
+        # Enhanced: VWAP contribution (5 points) - maps 0-5 to +/-2.5
+        vwap_score = indicators.get("vwap_score", 2.5)
+        score += (vwap_score - 2.5)  # -2.5 to +2.5
+        
+        # Enhanced: CCI contribution (5 points) - maps 0-5 to +/-2.5
+        cci_score = indicators.get("cci_score", 2.5)
+        score += (cci_score - 2.5)  # -2.5 to +2.5
+        
+        # Clamp to 0-100
+        score = max(0, min(100, score))
+        
+        # Determine signal
+        if score >= 75:
+            signal = "STRONG_BUY"
+        elif score >= 60:
+            signal = "BUY"
+        elif score >= 40:
+            signal = "NEUTRAL"
+        elif score >= 25:
+            signal = "SELL"
+        else:
+            signal = "STRONG_SELL"
+        
+        return int(score), signal
+    
+    async def calculate_multi_horizon_asi(self, coin_id: str) -> Dict[str, Any]:
+        """
+        Calculate ASI for all horizons: Short, Medium, Long-term.
+        
+        Horizons:
+        - Short: 1m * 0.3 + 1h * 0.7 (Scalp/Day trade)
+        - Medium: 4h * 0.4 + 1d * 0.6 (Swing trade)
+        - Long: 1d * 0.3 + 1w * 0.7 (Position/HODL)
+        
+        Returns:
+            Dict with asi_short, asi_medium, asi_long, asi_combined
+        """
+        # Fetch ASI for each timeframe
+        tf_1m = await self.calculate_asi_for_timeframe(coin_id, "1m", 100)
+        tf_1h = await self.calculate_asi_for_timeframe(coin_id, "1h", 100)
+        tf_4h = await self.calculate_asi_for_timeframe(coin_id, "4h", 100)
+        tf_1d = await self.calculate_asi_for_timeframe(coin_id, "1d", 100)
+        tf_1w = await self.calculate_asi_for_timeframe(coin_id, "1w", 100)
+        
+        # Calculate horizon scores
+        # Short-term: prefer 1h if 1m not available
+        if tf_1m["data_available"]:
+            asi_short = tf_1m["asi_score"] * 0.3 + tf_1h["asi_score"] * 0.7
+        else:
+            asi_short = tf_1h["asi_score"]
+        
+        # Medium-term
+        if tf_4h["data_available"]:
+            asi_medium = tf_4h["asi_score"] * 0.4 + tf_1d["asi_score"] * 0.6
+        else:
+            asi_medium = tf_1d["asi_score"]
+        
+        # Long-term
+        if tf_1w["data_available"]:
+            asi_long = tf_1d["asi_score"] * 0.3 + tf_1w["asi_score"] * 0.7
+        else:
+            asi_long = tf_1d["asi_score"]
+        
+        # Get on-chain score
+        onchain_score = await self._get_onchain_score(coin_id)
+        
+        # Calculate combined ASI
+        # Technical avg = (short + medium + long) / 3
+        technical_avg = (asi_short + asi_medium + asi_long) / 3
+        
+        # Combined = Technical (60%) + OnChain (40%)
+        if onchain_score["available"]:
+            asi_combined = technical_avg * 0.6 + onchain_score["score"] * 0.4
+        else:
+            asi_combined = technical_avg
+        
+        # Determine signals
+        def get_signal(score):
+            if score >= 75: return "STRONG_BUY"
+            elif score >= 60: return "BUY"
+            elif score >= 40: return "NEUTRAL"
+            elif score >= 25: return "SELL"
+            else: return "STRONG_SELL"
+        
+        return {
+            "coin_id": coin_id,
+            "asi_short": round(asi_short),
+            "asi_medium": round(asi_medium),
+            "asi_long": round(asi_long),
+            "asi_combined": round(asi_combined),
+            "signal_short": get_signal(asi_short),
+            "signal_medium": get_signal(asi_medium),
+            "signal_long": get_signal(asi_long),
+            "signal_combined": get_signal(asi_combined),
+            "onchain_score": onchain_score,
+            "timeframes": {
+                "1m": tf_1m,
+                "1h": tf_1h,
+                "4h": tf_4h,
+                "1d": tf_1d,
+                "1w": tf_1w,
+            },
+            "analyzed_at": datetime.now().isoformat(),
+        }
+    
+    async def _get_onchain_score(self, coin_id: str) -> Dict[str, Any]:
+        """
+        Get on-chain score from existing on-chain signals.
+        
+        Components:
+        - Whale score: 40%
+        - Network score: 30%
+        - Holder score: 30%
+        """
+        onchain_data = self.db.get_onchain_signals(coin_id)
+        
+        if not onchain_data:
+            return {"available": False, "score": 50}
+        
+        # Get individual scores
+        whale_prob = onchain_data.get("bullish_probability", 50) or 50
+        
+        # Map whale_signal to score
+        whale_signal = onchain_data.get("whale_signal", "NEUTRAL")
+        whale_score = 50
+        if whale_signal == "BULLISH":
+            whale_score = 70
+        elif whale_signal == "STRONG_BULLISH":
+            whale_score = 85
+        elif whale_signal == "BEARISH":
+            whale_score = 30
+        elif whale_signal == "STRONG_BEARISH":
+            whale_score = 15
+        
+        # Network signal
+        network_signal = onchain_data.get("network_signal", "NEUTRAL")
+        network_score = 50
+        if network_signal == "BULLISH":
+            network_score = 70
+        elif network_signal == "BEARISH":
+            network_score = 30
+        
+        # DAU change
+        dau_change = onchain_data.get("dau_change_1d_pct", 0) or 0
+        dau_score = 50 + min(25, max(-25, dau_change))  # ±25 from neutral
+        
+        # Calculate combined on-chain score
+        combined = whale_score * 0.4 + network_score * 0.3 + dau_score * 0.3
+        
+        return {
+            "available": True,
+            "score": round(combined),
+            "whale_score": whale_score,
+            "network_score": network_score,
+            "dau_score": round(dau_score),
+            "whale_signal": whale_signal,
+            "network_signal": network_signal,
+        }
+
     def calculate_intent_divergence(
         self,
         whale_action: str,

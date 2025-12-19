@@ -262,9 +262,22 @@ CREATE INDEX IF NOT EXISTS idx_coins_market_cap ON aihub_coins(market_cap DESC);
 CREATE INDEX IF NOT EXISTS idx_coins_rank ON aihub_coins(rank);
 CREATE INDEX IF NOT EXISTS idx_ohlcv_symbol ON aihub_ohlcv(symbol);
 CREATE INDEX IF NOT EXISTS idx_ohlcv_symbol_time ON aihub_ohlcv(symbol, open_time);
+CREATE INDEX IF NOT EXISTS idx_ohlcv_timeframe ON aihub_ohlcv(timeframe);
+CREATE INDEX IF NOT EXISTS idx_ohlcv_symbol_tf_time ON aihub_ohlcv(symbol, timeframe, open_time);
 CREATE INDEX IF NOT EXISTS idx_sentiment_symbol ON aihub_sentiment(symbol);
 CREATE INDEX IF NOT EXISTS idx_price_history_symbol ON aihub_price_history(symbol);
 CREATE INDEX IF NOT EXISTS idx_chains_slug ON chains(slug);
+
+-- Unique constraint for OHLCV deduplication (prevents duplicate candles)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'uq_ohlcv_symbol_tf_time'
+    ) THEN
+        ALTER TABLE aihub_ohlcv ADD CONSTRAINT uq_ohlcv_symbol_tf_time 
+            UNIQUE (symbol, timeframe, open_time);
+    END IF;
+END $$;
 
 -- ============================================
 -- STEP 6: Grant permissions to user

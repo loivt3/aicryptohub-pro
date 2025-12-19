@@ -14,6 +14,14 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
+# Timeframe configuration for multi-TF OHLCV fetching
+TIMEFRAME_MAP = {
+    "1m": {"binance": "1m", "db_code": 0, "limit": 500, "coins_limit": 100},     # 1 minute - top 100 coins
+    "1h": {"binance": "1h", "db_code": 1, "limit": 200, "coins_limit": 500},     # 1 hour - 200 candles (8 days)
+    "4h": {"binance": "4h", "db_code": 4, "limit": 200, "coins_limit": 500},     # 4 hours - 200 candles (33 days)
+    "1d": {"binance": "1d", "db_code": 24, "limit": 365, "coins_limit": 500},    # 1 day - 1 year history
+    "1w": {"binance": "1w", "db_code": 168, "limit": 200, "coins_limit": 500},   # 1 week - ~4 years history
+}
 
 class CoinGeckoFetcher:
     """CoinGecko API"""
@@ -555,21 +563,34 @@ class MultiSourceFetcher:
         
         return stats
     
-    async def fetch_ohlcv_concurrent(self, symbols: List[str], limit: int = 5000) -> Dict[str, int]:
-        """Fetch OHLCV from Binance for ALL symbols concurrently (no Supabase limit)"""
+    async def fetch_ohlcv_concurrent(self, symbols: List[str], timeframe: str = "1h", limit: int = 5000) -> Dict[str, int]:
+        """
+        Fetch OHLCV from Binance for symbols concurrently.
+        
+        Args:
+            symbols: List of coin symbols (e.g., ['BTC', 'ETH'])
+            timeframe: Timeframe to fetch - '1m', '1h', '4h', '1d', '1w'
+            limit: Max number of coins to process
+        """
         from sqlalchemy import text
         
-        stats = {"fetched": 0, "saved": 0, "failed": 0}
+        # Get timeframe config
+        tf_config = TIMEFRAME_MAP.get(timeframe, TIMEFRAME_MAP["1h"])
+        binance_interval = tf_config["binance"]
+        klines_limit = tf_config["limit"]
+        db_code = tf_config["db_code"]
+        
+        stats = {"fetched": 0, "saved": 0, "failed": 0, "timeframe": timeframe}
         
         # Larger batch size for Proxmox (no rate limit worries with local DB)
         batch_size = 20
         total = min(len(symbols), limit)
         
-        logger.info(f"Fetching OHLCV for {total} coins...")
+        logger.info(f"Fetching OHLCV [{timeframe}] for {total} coins...")
         
         for i in range(0, total, batch_size):
             batch = symbols[i:i + batch_size]
-            tasks = [self.binance.fetch_klines(f"{sym}USDT", "1h", 100) for sym in batch]
+            tasks = [self.binance.fetch_klines(f"{sym}USDT", binance_interval, klines_limit) for sym in batch]
             results = await asyncio.gather(*tasks, return_exceptions=True)
             
             for sym, result in zip(batch, results):
@@ -577,22 +598,29 @@ class MultiSourceFetcher:
                     stats["failed"] += 1
                 elif isinstance(result, list) and len(result) > 0:
                     stats["fetched"] += 1
-                    saved = await self._save_klines(sym, result)
+                    saved = await self._save_klines(sym, result, db_code)
                     if saved:
                         stats["saved"] += 1
             
             # Progress log every 100 coins
             if (i + batch_size) % 100 == 0:
-                logger.info(f"OHLCV progress: {i + batch_size}/{total}")
+                logger.info(f"OHLCV [{timeframe}] progress: {i + batch_size}/{total}")
         
-        logger.info(f"OHLCV complete: {stats['saved']}/{stats['fetched']} saved")
+        logger.info(f"OHLCV [{timeframe}] complete: {stats['saved']}/{stats['fetched']} saved")
         return stats
     
-    async def _save_klines(self, symbol: str, klines: List) -> bool:
-        """Save Binance klines to aihub_ohlcv"""
+    async def _save_klines(self, symbol: str, klines: List, timeframe_code: int = 1) -> bool:
+        """
+        Save Binance klines to aihub_ohlcv.
+        
+        Args:
+            symbol: Coin symbol (e.g., 'BTC')
+            klines: List of Binance klines
+            timeframe_code: DB code from TIMEFRAME_MAP (0=1m, 1=1h, 4=4h, 24=1d, 168=1w)
+        """
         from sqlalchemy import text
         
-        # Schema: symbol, timeframe (1=1h), open_time, open, high, low, close, volume
+        # Schema: symbol, timeframe, open_time, open, high, low, close, volume
         query = text("""
             INSERT INTO aihub_ohlcv (symbol, timeframe, open_time, open, high, low, close, volume)
             VALUES (:symbol, :timeframe, :open_time, :open, :high, :low, :close, :volume)
@@ -606,7 +634,7 @@ class MultiSourceFetcher:
                     if len(k) >= 6:
                         conn.execute(query, {
                             "symbol": symbol.upper(),
-                            "timeframe": 1,  # 1h = 1
+                            "timeframe": timeframe_code,
                             "open_time": datetime.fromtimestamp(k[0] / 1000),
                             "open": float(k[1]),
                             "high": float(k[2]),
@@ -649,11 +677,21 @@ class DataFetcherService:
         
         return {"fetched": stats["total"], "saved": stats["saved"], "duration": duration}
     
-    async def fetch_ohlcv_for_all_coins(self, limit: int = 5000) -> Dict[str, Any]:
-        """Fetch OHLCV for ALL coins from Binance (Proxmox has no limits!)"""
+    async def fetch_ohlcv_for_all_coins(self, timeframe: str = "1h", limit: int = None) -> Dict[str, Any]:
+        """
+        Fetch OHLCV for coins from Binance for a specific timeframe.
+        
+        Args:
+            timeframe: One of '1m', '1h', '4h', '1d', '1w'
+            limit: Max coins to fetch (default: uses TIMEFRAME_MAP coins_limit)
+        """
         from sqlalchemy import text
         
-        # Get ALL symbols with market cap
+        # Get timeframe config
+        tf_config = TIMEFRAME_MAP.get(timeframe, TIMEFRAME_MAP["1h"])
+        coins_limit = limit or tf_config["coins_limit"]
+        
+        # Get symbols with market cap
         query = text("""
             SELECT symbol FROM aihub_coins 
             WHERE market_cap > 0 
@@ -662,14 +700,37 @@ class DataFetcherService:
         """)
         
         with self.db.engine.connect() as conn:
-            rows = conn.execute(query, {"limit": limit}).fetchall()
+            rows = conn.execute(query, {"limit": coins_limit}).fetchall()
         
         symbols = [row[0] for row in rows]
-        logger.info(f"Fetching OHLCV for {len(symbols)} coins (Proxmox unlimited)")
+        logger.info(f"Fetching OHLCV [{timeframe}] for {len(symbols)} coins")
         
-        stats = await self.multi_fetcher.fetch_ohlcv_concurrent(symbols, limit)
+        stats = await self.multi_fetcher.fetch_ohlcv_concurrent(symbols, timeframe, coins_limit)
         
         return stats
+    
+    async def fetch_ohlcv_multi_timeframe(self, timeframes: List[str] = None) -> Dict[str, Any]:
+        """
+        Fetch OHLCV for multiple timeframes.
+        
+        Args:
+            timeframes: List of timeframes to fetch. Default: ['1h', '4h', '1d']
+        """
+        if timeframes is None:
+            timeframes = ["1h", "4h", "1d"]
+        
+        all_stats = {}
+        
+        for tf in timeframes:
+            if tf in TIMEFRAME_MAP:
+                logger.info(f"Fetching OHLCV for timeframe: {tf}")
+                stats = await self.fetch_ohlcv_for_all_coins(timeframe=tf)
+                all_stats[tf] = stats
+        
+        return {
+            "timeframes_fetched": len(all_stats),
+            "stats": all_stats,
+        }
     
     async def fetch_missing_contracts(self, limit: int = 100) -> Dict[str, Any]:
         """

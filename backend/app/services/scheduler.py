@@ -40,6 +40,53 @@ SCHEDULER_STATE = {
         "is_running": False,
         "last_result": None,
     },
+    # Multi-TF OHLCV jobs
+    "ohlcv_1m": {
+        "enabled": True,
+        "interval_minutes": 1,
+        "timeframe": "1m",
+        "last_run": None,
+        "next_run": None,
+        "is_running": False,
+        "last_result": None,
+    },
+    "ohlcv_4h": {
+        "enabled": True,
+        "interval_minutes": 240,  # 4 hours
+        "timeframe": "4h",
+        "last_run": None,
+        "next_run": None,
+        "is_running": False,
+        "last_result": None,
+    },
+    "ohlcv_1d": {
+        "enabled": True,
+        "interval_minutes": 1440,  # 24 hours
+        "timeframe": "1d",
+        "last_run": None,
+        "next_run": None,
+        "is_running": False,
+        "last_result": None,
+    },
+    "ohlcv_1w": {
+        "enabled": True,
+        "interval_minutes": 10080,  # 7 days
+        "timeframe": "1w",
+        "last_run": None,
+        "next_run": None,
+        "is_running": False,
+        "last_result": None,
+    },
+    # Data retention - cleanup old 1m data
+    "data_retention": {
+        "enabled": True,
+        "interval_minutes": 1440,  # Run once per day
+        "retention_days": 7,       # Keep 1m data for 7 days
+        "last_run": None,
+        "next_run": None,
+        "is_running": False,
+        "last_result": None,
+    },
 }
 
 _scheduler: Optional[AsyncIOScheduler] = None
@@ -241,6 +288,99 @@ async def run_onchain_job():
         SCHEDULER_STATE["onchain_collector"]["is_running"] = False
 
 
+async def run_ohlcv_job(job_name: str, timeframe: str):
+    """
+    Background job to fetch OHLCV data for a specific timeframe.
+    
+    Args:
+        job_name: State key like 'ohlcv_1m', 'ohlcv_4h', etc.
+        timeframe: Timeframe string '1m', '4h', '1d', '1w'
+    """
+    if SCHEDULER_STATE[job_name]["is_running"]:
+        logger.warning(f"OHLCV job [{timeframe}] already running, skipping")
+        return
+    
+    SCHEDULER_STATE[job_name]["is_running"] = True
+    SCHEDULER_STATE[job_name]["last_run"] = datetime.now().isoformat()
+    
+    try:
+        from app.services.data_fetcher import get_data_fetcher
+        
+        logger.info(f"Scheduler: Starting OHLCV job [{timeframe}]...")
+        
+        fetcher = get_data_fetcher()
+        result = await fetcher.fetch_ohlcv_for_all_coins(timeframe=timeframe)
+        
+        SCHEDULER_STATE[job_name]["last_result"] = result
+        logger.info(f"Scheduler: OHLCV [{timeframe}] job complete - {result}")
+        
+    except Exception as e:
+        logger.error(f"Scheduler: OHLCV [{timeframe}] job failed - {e}")
+        SCHEDULER_STATE[job_name]["last_result"] = {"error": str(e)}
+    finally:
+        SCHEDULER_STATE[job_name]["is_running"] = False
+
+
+# Factory functions for APScheduler (can't pass args directly)
+async def run_ohlcv_1m_job():
+    await run_ohlcv_job("ohlcv_1m", "1m")
+
+async def run_ohlcv_4h_job():
+    await run_ohlcv_job("ohlcv_4h", "4h")
+
+async def run_ohlcv_1d_job():
+    await run_ohlcv_job("ohlcv_1d", "1d")
+
+async def run_ohlcv_1w_job():
+    await run_ohlcv_job("ohlcv_1w", "1w")
+
+
+async def run_data_retention_job():
+    """
+    Background job to cleanup old 1m OHLCV data.
+    Keeps 1m data for 7 days to save storage space.
+    """
+    if SCHEDULER_STATE["data_retention"]["is_running"]:
+        logger.warning("Data retention job already running, skipping")
+        return
+    
+    SCHEDULER_STATE["data_retention"]["is_running"] = True
+    SCHEDULER_STATE["data_retention"]["last_run"] = datetime.now().isoformat()
+    
+    try:
+        from app.services.database import get_database_service
+        from sqlalchemy import text
+        
+        logger.info("Scheduler: Starting data retention cleanup...")
+        
+        retention_days = SCHEDULER_STATE["data_retention"]["retention_days"]
+        db = get_database_service()
+        
+        # Delete 1m data older than retention period
+        # timeframe = 0 is 1m data
+        query = text("""
+            DELETE FROM aihub_ohlcv 
+            WHERE timeframe = 0 
+            AND open_time < NOW() - INTERVAL ':days days'
+        """)
+        
+        with db.engine.begin() as conn:
+            result = conn.execute(query, {"days": retention_days})
+            deleted_count = result.rowcount
+        
+        SCHEDULER_STATE["data_retention"]["last_result"] = {
+            "deleted_rows": deleted_count,
+            "retention_days": retention_days,
+        }
+        logger.info(f"Scheduler: Data retention complete - deleted {deleted_count} old 1m rows")
+        
+    except Exception as e:
+        logger.error(f"Scheduler: Data retention job failed - {e}")
+        SCHEDULER_STATE["data_retention"]["last_result"] = {"error": str(e)}
+    finally:
+        SCHEDULER_STATE["data_retention"]["is_running"] = False
+
+
 # ==================== Scheduler Management ====================
 
 def get_scheduler() -> Optional[AsyncIOScheduler]:
@@ -291,6 +431,61 @@ def start_scheduler():
         )
         logger.info(f"Scheduled On-chain Collector job: every {SCHEDULER_STATE['onchain_collector']['interval_minutes']} minutes")
     
+    # Add OHLCV 1m job - every 1 minute (top 50 coins only)
+    if SCHEDULER_STATE["ohlcv_1m"]["enabled"]:
+        _scheduler.add_job(
+            run_ohlcv_1m_job,
+            trigger=IntervalTrigger(minutes=SCHEDULER_STATE["ohlcv_1m"]["interval_minutes"]),
+            id="ohlcv_1m_job",
+            name="OHLCV 1m Fetcher",
+            replace_existing=True,
+        )
+        logger.info(f"Scheduled OHLCV 1m job: every {SCHEDULER_STATE['ohlcv_1m']['interval_minutes']} minute(s)")
+    
+    # Add OHLCV 4h job - every 4 hours
+    if SCHEDULER_STATE["ohlcv_4h"]["enabled"]:
+        _scheduler.add_job(
+            run_ohlcv_4h_job,
+            trigger=IntervalTrigger(minutes=SCHEDULER_STATE["ohlcv_4h"]["interval_minutes"]),
+            id="ohlcv_4h_job",
+            name="OHLCV 4h Fetcher",
+            replace_existing=True,
+        )
+        logger.info(f"Scheduled OHLCV 4h job: every {SCHEDULER_STATE['ohlcv_4h']['interval_minutes']} minutes")
+    
+    # Add OHLCV 1d job - every 24 hours
+    if SCHEDULER_STATE["ohlcv_1d"]["enabled"]:
+        _scheduler.add_job(
+            run_ohlcv_1d_job,
+            trigger=IntervalTrigger(minutes=SCHEDULER_STATE["ohlcv_1d"]["interval_minutes"]),
+            id="ohlcv_1d_job",
+            name="OHLCV 1d Fetcher",
+            replace_existing=True,
+        )
+        logger.info(f"Scheduled OHLCV 1d job: every {SCHEDULER_STATE['ohlcv_1d']['interval_minutes']} minutes")
+    
+    # Add OHLCV 1w job - every 7 days
+    if SCHEDULER_STATE["ohlcv_1w"]["enabled"]:
+        _scheduler.add_job(
+            run_ohlcv_1w_job,
+            trigger=IntervalTrigger(minutes=SCHEDULER_STATE["ohlcv_1w"]["interval_minutes"]),
+            id="ohlcv_1w_job",
+            name="OHLCV 1w Fetcher",
+            replace_existing=True,
+        )
+        logger.info(f"Scheduled OHLCV 1w job: every {SCHEDULER_STATE['ohlcv_1w']['interval_minutes']} minutes")
+    
+    # Add Data Retention job - runs daily to cleanup old 1m data
+    if SCHEDULER_STATE["data_retention"]["enabled"]:
+        _scheduler.add_job(
+            run_data_retention_job,
+            trigger=IntervalTrigger(minutes=SCHEDULER_STATE["data_retention"]["interval_minutes"]),
+            id="data_retention_job",
+            name="Data Retention Cleanup",
+            replace_existing=True,
+        )
+        logger.info(f"Scheduled Data Retention job: every {SCHEDULER_STATE['data_retention']['interval_minutes']} minutes (keeps 1m data for {SCHEDULER_STATE['data_retention']['retention_days']} days)")
+    
     _scheduler.start()
     logger.info("Background scheduler started")
     
@@ -302,6 +497,11 @@ def start_scheduler():
             SCHEDULER_STATE["ai_workers"]["next_run"] = job.next_run_time.isoformat() if job.next_run_time else None
         elif job.id == "onchain_collector_job":
             SCHEDULER_STATE["onchain_collector"]["next_run"] = job.next_run_time.isoformat() if job.next_run_time else None
+        elif job.id.startswith("ohlcv_"):
+            # Update OHLCV job next run times
+            job_key = job.id.replace("_job", "")
+            if job_key in SCHEDULER_STATE:
+                SCHEDULER_STATE[job_key]["next_run"] = job.next_run_time.isoformat() if job.next_run_time else None
 
 
 def stop_scheduler():

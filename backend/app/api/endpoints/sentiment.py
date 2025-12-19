@@ -86,3 +86,46 @@ async def get_coin_sentiment(
         )
     
     return SentimentData(**data)
+
+
+@router.get("/{coin_id}/multi-horizon")
+async def get_multi_horizon_asi(
+    coin_id: str,
+    db: DatabaseService = Depends(get_db_service),
+):
+    """
+    Get multi-horizon ASI analysis for a coin.
+    
+    Returns:
+    - asi_short: Short-term score (1m + 1h) for scalp/day trading
+    - asi_medium: Medium-term score (4h + 1d) for swing trading
+    - asi_long: Long-term score (1d + 1w) for position/HODL
+    - asi_combined: Technical (60%) + OnChain (40%)
+    """
+    from app.core.config import get_settings
+    
+    settings = get_settings()
+    analyzer = AnalyzerService(db, settings)
+    
+    try:
+        result = await analyzer.calculate_multi_horizon_asi(coin_id)
+        return {
+            "success": True,
+            "data": result,
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "data": {
+                "coin_id": coin_id,
+                "asi_short": 50,
+                "asi_medium": 50,
+                "asi_long": 50,
+                "asi_combined": 50,
+                "signal_short": "NEUTRAL",
+                "signal_medium": "NEUTRAL",
+                "signal_long": "NEUTRAL",
+                "signal_combined": "NEUTRAL",
+            }
+        }

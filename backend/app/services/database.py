@@ -483,18 +483,30 @@ class DatabaseService:
         
         Args:
             coin_id: Coin identifier (e.g., 'bitcoin' -> 'BTC', 'ethereum' -> 'ETH')
-            timeframe: Candle timeframe (not used - single timeframe table)
+            timeframe: Candle timeframe - '1m', '1h', '4h', '1d', '1w'
             limit: Number of candles to fetch
             
         Returns:
             List of OHLCV dictionaries
         """
+        # Timeframe to DB code mapping
+        TIMEFRAME_TO_DB_CODE = {
+            "1m": 0,
+            "1h": 1,
+            "4h": 4,
+            "1d": 24,
+            "1w": 168,
+        }
+        
         # Get symbol from coins table dynamically
         symbol = self._get_symbol_for_coin(coin_id)
         
         if not symbol:
             logger.warning(f"No symbol found for coin_id: {coin_id}")
             return []
+        
+        # Get DB code for timeframe (default to 1h)
+        tf_code = TIMEFRAME_TO_DB_CODE.get(timeframe, 1)
         
         query = text("""
             SELECT 
@@ -506,7 +518,7 @@ class DatabaseService:
                 volume,
                 open_time
             FROM aihub_ohlcv
-            WHERE symbol = :symbol
+            WHERE symbol = :symbol AND timeframe = :timeframe
             ORDER BY open_time DESC
             LIMIT :limit
         """)
@@ -515,6 +527,7 @@ class DatabaseService:
             with self.engine.connect() as conn:
                 result = conn.execute(query, {
                     "symbol": symbol,
+                    "timeframe": tf_code,
                     "limit": limit
                 })
                 rows = result.fetchall()
