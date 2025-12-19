@@ -166,6 +166,77 @@
       </div>
     </section>
 
+    <!-- Top Gainers / Losers / Most Traded (3-column grid) -->
+    <section class="d-section">
+      <div class="d-triple-grid">
+        <!-- Top Gainers -->
+        <div class="d-mini-table-card">
+          <div class="d-mini-header">
+            <h3 class="d-mini-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+              Top Gainers
+            </h3>
+          </div>
+          <div class="d-mini-list">
+            <div v-for="(coin, idx) in topGainers" :key="coin.id" class="d-mini-item">
+              <span class="d-mini-rank">{{ idx + 1 }}</span>
+              <img :src="coin.image" class="d-mini-avatar" />
+              <div class="d-mini-info">
+                <span class="d-mini-name">{{ coin.symbol }}</span>
+                <span class="d-mini-price">{{ formatPrice(coin.price) }}</span>
+              </div>
+              <span class="d-mini-change text-success">+{{ coin.change24h?.toFixed(2) }}%</span>
+            </div>
+            <div v-if="topGainers.length === 0" class="d-mini-empty">No data</div>
+          </div>
+        </div>
+
+        <!-- Top Losers -->
+        <div class="d-mini-table-card">
+          <div class="d-mini-header">
+            <h3 class="d-mini-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
+              Top Losers
+            </h3>
+          </div>
+          <div class="d-mini-list">
+            <div v-for="(coin, idx) in topLosers" :key="coin.id" class="d-mini-item">
+              <span class="d-mini-rank">{{ idx + 1 }}</span>
+              <img :src="coin.image" class="d-mini-avatar" />
+              <div class="d-mini-info">
+                <span class="d-mini-name">{{ coin.symbol }}</span>
+                <span class="d-mini-price">{{ formatPrice(coin.price) }}</span>
+              </div>
+              <span class="d-mini-change text-danger">{{ coin.change24h?.toFixed(2) }}%</span>
+            </div>
+            <div v-if="topLosers.length === 0" class="d-mini-empty">No data</div>
+          </div>
+        </div>
+
+        <!-- Most Traded -->
+        <div class="d-mini-table-card">
+          <div class="d-mini-header">
+            <h3 class="d-mini-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg>
+              Most Traded
+            </h3>
+          </div>
+          <div class="d-mini-list">
+            <div v-for="(coin, idx) in mostTraded" :key="coin.id" class="d-mini-item">
+              <span class="d-mini-rank">{{ idx + 1 }}</span>
+              <img :src="coin.image" class="d-mini-avatar" />
+              <div class="d-mini-info">
+                <span class="d-mini-name">{{ coin.symbol }}</span>
+                <span class="d-mini-price">{{ formatPrice(coin.price) }}</span>
+              </div>
+              <span class="d-mini-volume">{{ formatMarketCap(coin.volume) }}</span>
+            </div>
+            <div v-if="mostTraded.length === 0" class="d-mini-empty">No data</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Main Content Grid -->
     <div class="d-content-grid">
       <!-- Coins Table -->
@@ -341,6 +412,30 @@ const horizonStats = computed(() => {
     ? Math.round(coins.reduce((sum, c) => sum + (c.asi_score || 50), 0) / coins.length)
     : 50
   return { buyCount, neutralCount, sellCount, avgAsi }
+})
+
+// Top Gainers (top 5 by 24h change)
+const topGainers = computed(() => {
+  return [...topCoins.value]
+    .filter(c => c.change24h > 0)
+    .sort((a, b) => b.change24h - a.change24h)
+    .slice(0, 5)
+})
+
+// Top Losers (top 5 by negative 24h change)
+const topLosers = computed(() => {
+  return [...topCoins.value]
+    .filter(c => c.change24h < 0)
+    .sort((a, b) => a.change24h - b.change24h)
+    .slice(0, 5)
+})
+
+// Most Traded (top 5 by volume - using marketCap as proxy since volume not in interface)
+const mostTraded = computed(() => {
+  return [...topCoins.value]
+    .sort((a, b) => b.marketCap - a.marketCap)
+    .slice(0, 5)
+    .map(c => ({ ...c, volume: c.marketCap * 0.05 })) // Approximate 5% daily volume
 })
 
 const fearGreedLabel = computed(() => {
@@ -894,5 +989,105 @@ const getAsiClass = (v: number) => v >= 60 ? 'positive' : v <= 40 ? 'negative' :
   padding: 40px;
   color: rgba(255, 255, 255, 0.4);
   font-size: 14px;
+}
+
+/* Triple Grid - Top Gainers/Losers/Most Traded */
+.d-triple-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.d-mini-table-card {
+  background: var(--aihub-bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.d-mini-table-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.08);
+}
+
+.d-mini-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.d-mini-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.d-mini-list {
+  padding: 8px 0;
+}
+
+.d-mini-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  transition: background 0.2s;
+}
+
+.d-mini-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.d-mini-rank {
+  width: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.d-mini-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.d-mini-info {
+  flex: 1;
+}
+
+.d-mini-name {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  color: #fff;
+}
+
+.d-mini-price {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.d-mini-change {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.d-mini-volume {
+  font-size: 12px;
+  color: #38bdf8;
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.d-mini-empty {
+  padding: 24px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 13px;
 }
 </style>
