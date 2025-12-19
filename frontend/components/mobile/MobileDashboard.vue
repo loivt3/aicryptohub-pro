@@ -116,6 +116,38 @@
         </div>
       </section>
 
+      <!-- Multi-Horizon ASI Overview (NEW!) -->
+      <section class="m-section">
+        <div class="m-section-header">
+          <h3 class="m-section-title">
+            <Icon name="ph:chart-line-up" class="w-4 h-4" style="color: #8b5cf6;" />
+            Multi-Horizon ASI
+          </h3>
+          <span class="m-section-link">S • M • L</span>
+        </div>
+        
+        <div class="m-horizon-cards">
+          <div class="m-horizon-card">
+            <span class="m-horizon-label">Short</span>
+            <span class="m-horizon-tf">1h</span>
+            <span class="m-horizon-score" :class="getAsiClass(marketAsi.short)">{{ marketAsi.short ?? '--' }}</span>
+            <span class="m-horizon-use">Day</span>
+          </div>
+          <div class="m-horizon-card">
+            <span class="m-horizon-label">Medium</span>
+            <span class="m-horizon-tf">4h+1d</span>
+            <span class="m-horizon-score" :class="getAsiClass(marketAsi.medium)">{{ marketAsi.medium ?? '--' }}</span>
+            <span class="m-horizon-use">Swing</span>
+          </div>
+          <div class="m-horizon-card">
+            <span class="m-horizon-label">Long</span>
+            <span class="m-horizon-tf">1w+1M</span>
+            <span class="m-horizon-score" :class="getAsiClass(marketAsi.long)">{{ marketAsi.long ?? '--' }}</span>
+            <span class="m-horizon-use">HODL</span>
+          </div>
+        </div>
+      </section>
+
       <!-- Top Gainers Section -->
       <section class="m-section">
         <div class="m-section-header">
@@ -568,6 +600,13 @@ const btcDomChange = ref(0)
 const fearGreedValue = ref(50)
 const total24hVolume = ref(0)
 
+// Multi-Horizon ASI (market average)
+const marketAsi = ref<{ short: number | null; medium: number | null; long: number | null }>({
+  short: null,
+  medium: null,
+  long: null,
+})
+
 // Computed lists from API data
 const topGainers = computed(() => {
   return [...allCoins.value]
@@ -680,6 +719,21 @@ const fetchData = async () => {
       sentimentRes.forEach((s: SentimentData) => {
         sentimentMap.value[s.coin_id] = s
       })
+    }
+    
+    // Fetch multi-horizon ASI (using BTC as market indicator)
+    try {
+      const config = useRuntimeConfig()
+      const asiRes = await $fetch<any>(`${config.public.apiBase}/api/v1/sentiment/bitcoin/multi-horizon`)
+      if (asiRes?.success && asiRes.data) {
+        marketAsi.value = {
+          short: asiRes.data.asi_short,
+          medium: asiRes.data.asi_medium,
+          long: asiRes.data.asi_long,
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch multi-horizon ASI:', e)
     }
   } catch (error) {
     console.error('Failed to fetch data:', error)
@@ -797,5 +851,49 @@ const toggleFavorite = (coinId: string) => {
 
 .text-yellow-400 {
   color: #fbbf24;
+}
+
+/* Multi-Horizon ASI Cards */
+.m-horizon-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 0 12px;
+}
+
+.m-horizon-card {
+  background: rgba(30, 30, 50, 0.8);
+  border-radius: 8px;
+  padding: 12px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.m-horizon-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.m-horizon-tf {
+  font-size: 9px;
+  color: #888;
+}
+
+.m-horizon-score {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 4px 0;
+}
+
+.m-horizon-score.positive { color: #22c55e; }
+.m-horizon-score.neutral { color: #f59e0b; }
+.m-horizon-score.negative { color: #ef4444; }
+
+.m-horizon-use {
+  font-size: 9px;
+  color: #666;
 }
 </style>
