@@ -5,7 +5,7 @@
       <div class="m-header-content">
         <!-- Logo -->
         <div class="m-logo">
-          <img src="/images/coinsight-logo.png" alt="CoinSight" class="m-logo-img" />
+          <img src="/images/coinsight-logo-v2.png" alt="CoinSight" class="m-logo-img" />
         </div>
         
         <!-- BTC Ticker -->

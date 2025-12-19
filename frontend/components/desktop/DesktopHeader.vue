@@ -39,7 +39,7 @@
     <!-- Main Header -->
     <div class="d-header-main">
       <NuxtLink to="/" class="d-logo">
-        <img src="/images/coinsight-logo.png" alt="CoinSight" class="d-logo-img" />
+        <img src="/images/coinsight-logo-v2.png" alt="CoinSight" class="d-logo-img" />
       </NuxtLink>
       
       <nav class="d-nav">

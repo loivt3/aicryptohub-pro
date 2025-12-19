@@ -60,7 +60,7 @@ const btcChange = ref(2.4)
 const alertCount = ref(3)
 
 // Logo path - use explicit path to avoid hydration issues
-const logoSrc = '/images/coinsight-logo.png'
+const logoSrc = '/images/coinsight-logo-v2.png'
 
 // Format currency
 const formatCurrency = (n: number, decimals = 2) => {
