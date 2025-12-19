@@ -124,7 +124,7 @@ onMounted(async () => {
 }
 
 .m-logo-img {
-  height: 60px;
+  height: 80px;
   width: auto;
 }
 
