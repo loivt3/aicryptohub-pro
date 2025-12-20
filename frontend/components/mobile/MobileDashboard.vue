@@ -551,35 +551,36 @@
         </div>
       </section>
 
-      <!-- AI Signals Heatmap Section -->
+      <!-- AI Signals Treemap Section -->
       <section class="m-section">
         <div class="m-section-header">
           <h3 class="m-section-title">
             <Icon name="ph:squares-four" class="w-4 h-4" style="color: #8b5cf6;" />
-            Market Signals Heatmap
+            Market Heatmap
           </h3>
           <NuxtLink to="/analysis" class="m-section-link">View All</NuxtLink>
         </div>
         
-        <!-- Heatmap Grid -->
-        <div class="m-heatmap-grid">
+        <!-- Treemap Container -->
+        <div class="m-treemap-container" ref="treemapContainer">
           <div 
-            v-for="coin in aiSignals" 
-            :key="coin.coin_id" 
-            class="m-heatmap-tile"
-            :style="getHeatmapStyle(coin.asi_score)"
+            v-for="(tile, idx) in treemapLayout" 
+            :key="tile.coin_id" 
+            class="m-treemap-tile"
+            :style="{
+              left: tile.x + '%',
+              top: tile.y + '%',
+              width: tile.w + '%',
+              height: tile.h + '%',
+              ...getTreemapTileStyle(tile.asi_score, tile.change_24h),
+            }"
           >
-            <div class="m-heatmap-header">
-              <img :src="coin.image" class="m-heatmap-avatar" />
-              <span class="m-heatmap-symbol">{{ coin.symbol?.toUpperCase() }}</span>
-            </div>
-            <div class="m-heatmap-score">{{ coin.asi_score }}</div>
-            <div class="m-heatmap-signal" :class="'signal-' + (coin.signal || 'hold').toLowerCase().replace('_', '-')">
-              {{ formatSignal(coin.signal) }}
-            </div>
-            <div class="m-heatmap-change" :class="coin.change_24h >= 0 ? 'up' : 'down'">
-              {{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(1) }}%
-            </div>
+            <span class="treemap-symbol" :class="{ 'treemap-symbol-small': tile.w < 15 }">
+              {{ tile.symbol?.toUpperCase() }}
+            </span>
+            <span v-if="tile.w >= 12" class="treemap-change" :class="tile.change_24h >= 0 ? 'up' : 'down'">
+              {{ tile.change_24h >= 0 ? '+' : '' }}{{ tile.change_24h?.toFixed(1) }}%
+            </span>
           </div>
         </div>
         
@@ -828,9 +829,88 @@ const aiSignals = computed(() => {
       asi_score: sentimentMap.value[c.coin_id]?.asi_score || 50,
       signal: sentimentMap.value[c.coin_id]?.signal || 'HOLD',
     }))
-    .sort((a, b) => b.asi_score - a.asi_score)  // Sort by ASI descending
-    .slice(0, 15)  // 5 columns x 3 rows = 15 tiles
+    .sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0))  // Sort by market cap for treemap
+    .slice(0, 20)  // Top 20 coins for treemap
 })
+
+// Treemap layout calculator - squarified algorithm
+const treemapLayout = computed(() => {
+  const coins = aiSignals.value
+  if (!coins.length) return []
+  
+  const totalMcap = coins.reduce((sum, c) => sum + (c.market_cap || 0), 0)
+  if (totalMcap === 0) return []
+  
+  // Calculate normalized weights
+  const items = coins.map(c => ({
+    ...c,
+    weight: (c.market_cap || 0) / totalMcap,
+  }))
+  
+  // Simplified squarified treemap layout
+  const layout: any[] = []
+  let currentY = 0
+  let rowItems: any[] = []
+  let rowWeight = 0
+  const targetRowHeight = 100 / Math.ceil(Math.sqrt(items.length))
+  
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    rowItems.push(item)
+    rowWeight += item.weight
+    
+    // Check if row is full enough or last item
+    const rowHeightPct = rowWeight * 100
+    if (rowHeightPct >= targetRowHeight || i === items.length - 1) {
+      // Layout this row
+      let currentX = 0
+      const actualRowHeight = Math.min(rowWeight * 100 * 1.5, 100 - currentY)
+      
+      for (const rowItem of rowItems) {
+        const widthPct = (rowItem.weight / rowWeight) * 100
+        layout.push({
+          ...rowItem,
+          x: currentX,
+          y: currentY,
+          w: widthPct,
+          h: actualRowHeight,
+        })
+        currentX += widthPct
+      }
+      
+      currentY += actualRowHeight
+      rowItems = []
+      rowWeight = 0
+    }
+  }
+  
+  return layout
+})
+
+// Treemap tile style based on price change (like CoinGecko)
+const getTreemapTileStyle = (asiScore: number, change24h: number) => {
+  // Color based on change percentage (typical treemap style)
+  let bgColor: string
+  
+  if (change24h >= 5) {
+    bgColor = '#00c853'  // Strong green
+  } else if (change24h >= 2) {
+    bgColor = '#26a69a'  // Teal green
+  } else if (change24h >= 0) {
+    bgColor = '#2e7d6f'  // Muted teal
+  } else if (change24h >= -2) {
+    bgColor = '#4a4a4a'  // Gray
+  } else if (change24h >= -5) {
+    bgColor = '#b71c1c'  // Red
+  } else {
+    bgColor = '#d32f2f'  // Strong red
+  }
+  
+  return {
+    background: bgColor,
+    borderColor: 'rgba(0,0,0,0.3)',
+  }
+}
 
 const fearGreedLabel = computed(() => {
   if (fearGreedValue.value >= 75) return 'Extreme Greed'
@@ -1494,32 +1574,72 @@ const toggleFavorite = (coinId: string) => {
 
 /* Landscape/wider screens: show more columns */
 @media (min-width: 480px) {
-  .m-heatmap-grid {
-    grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
+  .m-treemap-container {
+    height: 280px;
   }
   
-  .m-heatmap-tile {
-    min-height: 100px;
-    padding: 12px 6px;
+  .treemap-symbol {
+    font-size: 16px;
   }
   
-  .m-heatmap-avatar {
-    width: 28px;
-    height: 28px;
+  .treemap-change {
+    font-size: 12px;
   }
-  
-  .m-heatmap-symbol {
-    font-size: 11px;
-  }
-  
-  .m-heatmap-score {
-    font-size: 22px;
-  }
-  
-  .m-heatmap-signal {
-    font-size: 8px;
-    padding: 2px 6px;
-  }
+}
+
+/* ==================== TREEMAP STYLES ==================== */
+.m-treemap-container {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  margin: 0 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #1a1a2e;
+}
+
+.m-treemap-tile {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0,0,0,0.3);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.m-treemap-tile:hover {
+  filter: brightness(1.2);
+  z-index: 10;
+}
+
+.treemap-symbol {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+  letter-spacing: 0.5px;
+}
+
+.treemap-symbol-small {
+  font-size: 10px;
+}
+
+.treemap-change {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.9);
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+  margin-top: 2px;
+}
+
+.treemap-change.up {
+  color: #b9f6ca;
+}
+
+.treemap-change.down {
+  color: #ffcdd2;
 }
 </style>
