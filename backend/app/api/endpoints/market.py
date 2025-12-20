@@ -110,14 +110,46 @@ async def get_ohlcv_data(
 @router.get("/stats/global")
 async def get_global_market_stats():
     """Get global market statistics from CoinGecko"""
+    import asyncio
     from app.services.price_aggregator import get_price_aggregator
+    
+    # Default fallback data
+    default_data = {
+        "total_market_cap": 0,
+        "total_volume_24h": 0,
+        "btc_dominance": 50,
+        "eth_dominance": 0,
+        "market_cap_change_24h": 0,
+        "fear_greed_index": 50,
+        "fear_greed_classification": "Neutral",
+    }
     
     try:
         aggregator = get_price_aggregator()
-        stats = await aggregator.get_global_stats()
         
-        # Also fetch Fear & Greed index
-        fear_greed = await fetch_fear_greed_index()
+        # Fetch stats and fear_greed in PARALLEL with timeout
+        async def get_stats_with_timeout():
+            return await asyncio.wait_for(
+                aggregator.get_global_stats(),
+                timeout=10.0
+            )
+        
+        async def get_fear_greed_with_timeout():
+            return await asyncio.wait_for(
+                fetch_fear_greed_index(),
+                timeout=8.0
+            )
+        
+        # Run both in parallel
+        results = await asyncio.gather(
+            get_stats_with_timeout(),
+            get_fear_greed_with_timeout(),
+            return_exceptions=True,
+        )
+        
+        # Handle results
+        stats = results[0] if not isinstance(results[0], Exception) else {}
+        fear_greed = results[1] if not isinstance(results[1], Exception) else {"value": 50, "classification": "Neutral"}
         
         return {
             "success": True,
@@ -133,19 +165,17 @@ async def get_global_market_stats():
             },
             "timestamp": datetime.now().isoformat(),
         }
+    except asyncio.TimeoutError:
+        return {
+            "success": False,
+            "error": "Request timed out",
+            "data": default_data,
+        }
     except Exception as e:
         return {
             "success": False,
             "error": str(e),
-            "data": {
-                "total_market_cap": 0,
-                "total_volume_24h": 0,
-                "btc_dominance": 50,
-                "eth_dominance": 0,
-                "market_cap_change_24h": 0,
-                "fear_greed_index": 50,
-                "fear_greed_classification": "Neutral",
-            }
+            "data": default_data,
         }
 
 

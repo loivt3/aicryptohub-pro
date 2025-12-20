@@ -132,7 +132,7 @@ const fetchData = async () => {
   try {
     const config = useRuntimeConfig()
     const response = await $fetch<{ success: boolean; data: MultiHorizonData }>(
-      `${config.public.apiBase}/api/v1/sentiment/${props.coinId}/multi-horizon`
+      `${config.public.apiBase}/sentiment/${props.coinId}/multi-horizon`
     )
     if (response.success) {
       data.value = response.data

@@ -102,30 +102,44 @@ async def get_multi_horizon_asi(
     - asi_long: Long-term score (1d + 1w) for position/HODL
     - asi_combined: Technical (60%) + OnChain (40%)
     """
+    import asyncio
     from app.core.config import get_settings
     
     settings = get_settings()
     analyzer = AnalyzerService(db, settings)
     
+    # Default fallback data
+    default_data = {
+        "coin_id": coin_id,
+        "asi_short": 50,
+        "asi_medium": 50,
+        "asi_long": 50,
+        "asi_combined": 50,
+        "signal_short": "NEUTRAL",
+        "signal_medium": "NEUTRAL",
+        "signal_long": "NEUTRAL",
+        "signal_combined": "NEUTRAL",
+    }
+    
     try:
-        result = await analyzer.calculate_multi_horizon_asi(coin_id)
+        # Add 25-second timeout to prevent gateway timeout (504)
+        result = await asyncio.wait_for(
+            analyzer.calculate_multi_horizon_asi(coin_id),
+            timeout=25.0
+        )
         return {
             "success": True,
             "data": result,
+        }
+    except asyncio.TimeoutError:
+        return {
+            "success": False,
+            "error": "Calculation timed out - using default values",
+            "data": default_data,
         }
     except Exception as e:
         return {
             "success": False,
             "error": str(e),
-            "data": {
-                "coin_id": coin_id,
-                "asi_short": 50,
-                "asi_medium": 50,
-                "asi_long": 50,
-                "asi_combined": 50,
-                "signal_short": "NEUTRAL",
-                "signal_medium": "NEUTRAL",
-                "signal_long": "NEUTRAL",
-                "signal_combined": "NEUTRAL",
-            }
+            "data": default_data,
         }

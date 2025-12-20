@@ -396,23 +396,50 @@ const multiHorizonData = ref<Record<string, any>>({})
 // Computed: horizon coins list
 const horizonCoins = computed(() => {
   // Use top 5 coins with multi-horizon data
-  const asiKey = activeHorizon.value === 'short' ? 'asi_short' 
-    : activeHorizon.value === 'medium' ? 'asi_medium' 
-    : 'asi_long'
-  const signalKey = activeHorizon.value === 'short' ? 'signal_short'
-    : activeHorizon.value === 'medium' ? 'signal_medium'
-    : 'signal_long'
+  const horizon = activeHorizon.value
   
   return topCoins.value.slice(0, 5).map(coin => {
     const mhData = multiHorizonData.value[coin.id]
+    let asi_score: number | null = null
+    let signal = 'HOLD'
+    
+    if (mhData) {
+      // Try horizon-specific data first
+      if (horizon === 'short') {
+        asi_score = mhData.asi_short ?? null
+        signal = mhData.signal_short || 'HOLD'
+      } else if (horizon === 'medium') {
+        asi_score = mhData.asi_medium ?? null
+        signal = mhData.signal_medium || 'HOLD'
+      } else {
+        asi_score = mhData.asi_long ?? null
+        signal = mhData.signal_long || 'HOLD'
+      }
+      
+      // Fallback to combined or short-term if specific horizon is null
+      if (asi_score === null && mhData.asi_combined !== null) {
+        asi_score = mhData.asi_combined
+        signal = mhData.signal_combined || 'HOLD'
+      } else if (asi_score === null && mhData.asi_short !== null) {
+        asi_score = mhData.asi_short
+        signal = mhData.signal_short || 'HOLD'
+      }
+    }
+    
+    // Final fallback to existing sentiment data
+    if (asi_score === null) {
+      asi_score = sentimentMap.value[coin.id]?.asi_score ?? 50
+      signal = sentimentMap.value[coin.id]?.signal || 'HOLD'
+    }
+    
     return {
       ...coin,
       coin_id: coin.id,
       price: coin.price,
       change_24h: coin.change24h,
       market_cap: coin.marketCap,
-      asi_score: mhData?.[asiKey] ?? sentimentMap.value[coin.id]?.asi_score ?? 50,
-      signal: mhData?.[signalKey] ?? sentimentMap.value[coin.id]?.signal ?? 'HOLD',
+      asi_score,
+      signal,
     }
   })
 })
@@ -563,6 +590,34 @@ const fetchData = async () => {
       const avgAsi = Object.values(sentimentMap.value).reduce((sum: number, s: any) => sum + (s.asi_score || 50), 0) / 
                      Math.max(1, Object.keys(sentimentMap.value).length)
       fearGreedValue.value = Math.round(avgAsi) || 50
+    }
+    
+    // Fetch multi-horizon ASI for top coins
+    try {
+      const config = useRuntimeConfig()
+      const topCoinIds = topCoins.value.slice(0, 10).map(c => c.id)
+      
+      // Fetch multi-horizon data for each coin in parallel
+      const mhPromises = topCoinIds.map(async (coinId) => {
+        try {
+          const res = await $fetch<any>(`${config.public.apiBase}/sentiment/${coinId}/multi-horizon`)
+          if (res?.success && res.data) {
+            return { coinId, data: res.data }
+          }
+          return null
+        } catch {
+          return null
+        }
+      })
+      
+      const mhResults = await Promise.all(mhPromises)
+      mhResults.forEach(result => {
+        if (result) {
+          multiHorizonData.value[result.coinId] = result.data
+        }
+      })
+    } catch (e) {
+      console.warn('Failed to fetch multi-horizon data for coins:', e)
     }
   } catch (error) {
     console.error('Failed to fetch data:', error)
@@ -861,13 +916,22 @@ const getAsiClass = (v: number) => v >= 60 ? 'positive' : v <= 40 ? 'negative' :
   letter-spacing: 0.5px;
 }
 
+.signal-strong_buy,
+.signal-strong-buy { 
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 200, 100, 0.3)); 
+  color: #00ff88;
+  border: 1px solid rgba(0, 255, 136, 0.5);
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.2);
+}
+
 .signal-buy { 
   background: rgba(0, 255, 136, 0.15); 
   color: #00ff88;
   border: 1px solid rgba(0, 255, 136, 0.3);
 }
 
-.signal-hold { 
+.signal-hold,
+.signal-neutral { 
   background: rgba(255, 165, 2, 0.15); 
   color: #ffa502;
   border: 1px solid rgba(255, 165, 2, 0.3);
@@ -877,6 +941,14 @@ const getAsiClass = (v: number) => v >= 60 ? 'positive' : v <= 40 ? 'negative' :
   background: rgba(255, 71, 87, 0.15); 
   color: #ff4757;
   border: 1px solid rgba(255, 71, 87, 0.3);
+}
+
+.signal-strong_sell,
+.signal-strong-sell { 
+  background: linear-gradient(135deg, rgba(255, 71, 87, 0.2), rgba(220, 38, 38, 0.3)); 
+  color: #ff4757;
+  border: 1px solid rgba(255, 71, 87, 0.5);
+  box-shadow: 0 0 12px rgba(255, 71, 87, 0.2);
 }
 
 /* Sidebar - Premium */

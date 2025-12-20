@@ -211,6 +211,9 @@
                   </div>
                   <span class="m-meta-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score ?? '--' }}</span>
                 </div>
+                <span class="m-signal-badge" :class="'m-signal-' + (coin.signal || 'hold').toLowerCase().replace('_', '-')">
+                  {{ formatSignal(coin.signal) }}
+                </span>
               </div>
             </div>
           </template>
@@ -548,35 +551,43 @@
         </div>
       </section>
 
-      <!-- AI Signals Section -->
+      <!-- AI Signals Heatmap Section -->
       <section class="m-section">
         <div class="m-section-header">
           <h3 class="m-section-title">
-            <Icon name="ph:chart-bar" class="w-4 h-4" style="color: #8b5cf6;" />
-            Top 10 Market Signals
+            <Icon name="ph:squares-four" class="w-4 h-4" style="color: #8b5cf6;" />
+            Market Signals Heatmap
           </h3>
           <NuxtLink to="/analysis" class="m-section-link">View All</NuxtLink>
         </div>
         
-        <div class="m-list">
-          <div v-for="coin in aiSignals" :key="coin.coin_id" class="m-signal-card">
-            <div class="m-signal-row">
-              <img :src="coin.image" class="m-avatar" />
-              <div class="m-info">
-                <span class="m-info-title">{{ coin.symbol }}</span>
-                <span class="m-info-subtitle">{{ coin.name }}</span>
-              </div>
-              <span class="m-signal-badge" :class="'m-signal-' + coin.signal.toLowerCase().replace('_', '-')">
-                {{ coin.signal }}
-              </span>
+        <!-- Heatmap Grid -->
+        <div class="m-heatmap-grid">
+          <div 
+            v-for="coin in aiSignals" 
+            :key="coin.coin_id" 
+            class="m-heatmap-tile"
+            :style="getHeatmapStyle(coin.asi_score)"
+          >
+            <div class="m-heatmap-header">
+              <img :src="coin.image" class="m-heatmap-avatar" />
+              <span class="m-heatmap-symbol">{{ coin.symbol?.toUpperCase() }}</span>
             </div>
-            <div class="m-asi-row">
-              <div class="m-asi-bar">
-                <div class="m-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
-              </div>
-              <span class="m-asi-label" :class="getAsiClass(coin.asi_score)">ASI: {{ coin.asi_score }}</span>
+            <div class="m-heatmap-score">{{ coin.asi_score }}</div>
+            <div class="m-heatmap-signal" :class="'signal-' + (coin.signal || 'hold').toLowerCase().replace('_', '-')">
+              {{ formatSignal(coin.signal) }}
+            </div>
+            <div class="m-heatmap-change" :class="coin.change_24h >= 0 ? 'up' : 'down'">
+              {{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(1) }}%
             </div>
           </div>
+        </div>
+        
+        <!-- Legend -->
+        <div class="m-heatmap-legend">
+          <span class="legend-label">Bearish</span>
+          <div class="legend-bar"></div>
+          <span class="legend-label">Bullish</span>
         </div>
       </section>
 
@@ -698,29 +709,48 @@ const horizonCoins = computed(() => {
       const mhData = multiHorizonData.value[c.coin_id]
       let asi_score: number | null = null
       let signal = 'HOLD'
+      let dataSource = 'none'
       
       if (mhData) {
-        // Use horizon-specific data
+        // Try horizon-specific data first
         if (horizon === 'short') {
           asi_score = mhData.asi_short ?? null
           signal = mhData.signal_short || 'HOLD'
+          if (asi_score !== null) dataSource = 'horizon'
         } else if (horizon === 'medium') {
           asi_score = mhData.asi_medium ?? null
           signal = mhData.signal_medium || 'HOLD'
+          if (asi_score !== null) dataSource = 'horizon'
         } else {
           asi_score = mhData.asi_long ?? null
           signal = mhData.signal_long || 'HOLD'
+          if (asi_score !== null) dataSource = 'horizon'
         }
-      } else {
-        // Fallback to existing sentiment data
+        
+        // Fallback to combined or short-term if specific horizon is null
+        if (asi_score === null && mhData.asi_combined !== null) {
+          asi_score = mhData.asi_combined
+          signal = mhData.signal_combined || 'HOLD'
+          dataSource = 'combined'
+        } else if (asi_score === null && mhData.asi_short !== null) {
+          asi_score = mhData.asi_short
+          signal = mhData.signal_short || 'HOLD'
+          dataSource = 'short_fallback'
+        }
+      }
+      
+      // Final fallback to existing sentiment data
+      if (asi_score === null) {
         asi_score = sentimentMap.value[c.coin_id]?.asi_score ?? null
         signal = sentimentMap.value[c.coin_id]?.signal || 'HOLD'
+        if (asi_score !== null) dataSource = 'sentiment'
       }
       
       return {
         ...c,
         asi_score,
         signal,
+        dataSource,
       }
     })
     .filter(c => c.asi_score !== null)
@@ -798,9 +828,8 @@ const aiSignals = computed(() => {
       asi_score: sentimentMap.value[c.coin_id]?.asi_score || 50,
       signal: sentimentMap.value[c.coin_id]?.signal || 'HOLD',
     }))
-    .filter(c => c.signal !== 'HOLD')
-    .sort((a, b) => b.asi_score - a.asi_score)
-    .slice(0, 10)
+    .sort((a, b) => b.asi_score - a.asi_score)  // Sort by ASI descending
+    .slice(0, 15)  // 5 columns x 3 rows = 15 tiles
 })
 
 const fearGreedLabel = computed(() => {
@@ -1004,6 +1033,65 @@ const getAsiClass = (score: number) => {
   if (score >= 60) return 'positive'
   if (score <= 40) return 'negative'
   return 'neutral'
+}
+
+const formatSignal = (signal: string | null | undefined) => {
+  if (!signal) return 'HOLD'
+  // Convert STRONG_BUY to S.BUY, STRONG_SELL to S.SELL for compact display
+  const signalMap: Record<string, string> = {
+    'STRONG_BUY': 'S.BUY',
+    'BUY': 'BUY',
+    'NEUTRAL': 'HOLD',
+    'HOLD': 'HOLD',
+    'SELL': 'SELL',
+    'STRONG_SELL': 'S.SELL',
+  }
+  return signalMap[signal.toUpperCase()] || signal
+}
+
+// Generate heatmap gradient style based on ASI score
+const getHeatmapStyle = (score: number | null | undefined) => {
+  const asi = score ?? 50
+  
+  // Map ASI (0-100) to color
+  // 0-25: Strong bearish (deep red)
+  // 25-40: Bearish (red-orange)
+  // 40-60: Neutral (yellow-orange)
+  // 60-75: Bullish (lime green)
+  // 75-100: Strong bullish (bright green)
+  
+  let r, g, b
+  
+  if (asi <= 25) {
+    // Deep red: rgb(220, 38, 38)
+    r = 220; g = 38; b = 38
+  } else if (asi <= 40) {
+    // Transition from red to orange
+    const t = (asi - 25) / 15
+    r = Math.round(220 + (245 - 220) * t)
+    g = Math.round(38 + (158 - 38) * t)
+    b = Math.round(38 + (11 - 38) * t)
+  } else if (asi <= 60) {
+    // Neutral yellow-orange: rgb(245, 158, 11) to rgb(234, 179, 8)
+    const t = (asi - 40) / 20
+    r = Math.round(245 + (234 - 245) * t)
+    g = Math.round(158 + (179 - 158) * t)
+    b = Math.round(11 + (8 - 11) * t)
+  } else if (asi <= 75) {
+    // Transition to lime green
+    const t = (asi - 60) / 15
+    r = Math.round(234 + (132 - 234) * t)
+    g = Math.round(179 + (204 - 179) * t)
+    b = Math.round(8 + (22 - 8) * t)
+  } else {
+    // Strong bullish bright green: rgb(34, 197, 94)
+    r = 34; g = 197; b = 94
+  }
+  
+  return {
+    background: `linear-gradient(135deg, rgba(${r}, ${g}, ${b}, 0.25), rgba(${r}, ${g}, ${b}, 0.4))`,
+    borderColor: `rgba(${r}, ${g}, ${b}, 0.5)`,
+  }
 }
 
 const toggleFavorite = (coinId: string) => {
@@ -1218,5 +1306,220 @@ const toggleFavorite = (coinId: string) => {
   padding: 32px 0;
   color: #666;
   font-size: 13px;
+}
+
+/* Signal Badges for ASI by Horizon */
+.m-list-item-meta .m-signal-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 3px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-left: auto;
+}
+
+.m-signal-s-buy,
+.m-signal-strong-buy {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(22, 163, 74, 0.35));
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.m-signal-buy {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.m-signal-hold,
+.m-signal-neutral {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.m-signal-sell {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.m-signal-s-sell,
+.m-signal-strong-sell {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(220, 38, 38, 0.35));
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+/* ==================== HEATMAP STYLES ==================== */
+.m-heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  padding: 0 12px;
+}
+
+.m-heatmap-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 4px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  min-height: 90px;
+}
+
+.m-heatmap-tile:active {
+  transform: scale(0.97);
+}
+
+.m-heatmap-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 4px;
+}
+
+.m-heatmap-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.m-heatmap-symbol {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.m-heatmap-score {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.m-heatmap-signal {
+  font-size: 7px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 2px;
+}
+
+/* Signal colors in heatmap */
+.m-heatmap-signal.signal-strong-buy,
+.m-heatmap-signal.signal-s-buy {
+  background: rgba(34, 197, 94, 0.3);
+  color: #fff;
+}
+
+.m-heatmap-signal.signal-buy {
+  background: rgba(34, 197, 94, 0.2);
+  color: #fff;
+}
+
+.m-heatmap-signal.signal-hold,
+.m-heatmap-signal.signal-neutral {
+  background: rgba(245, 158, 11, 0.3);
+  color: #fff;
+}
+
+.m-heatmap-signal.signal-sell {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fff;
+}
+
+.m-heatmap-signal.signal-strong-sell,
+.m-heatmap-signal.signal-s-sell {
+  background: rgba(239, 68, 68, 0.3);
+  color: #fff;
+}
+
+.m-heatmap-change {
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.m-heatmap-change.up {
+  color: #86efac;
+}
+
+.m-heatmap-change.down {
+  color: #fca5a5;
+}
+
+/* Heatmap Legend */
+.m-heatmap-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 12px 12px 0;
+  padding: 8px;
+  background: rgba(30, 30, 50, 0.5);
+  border-radius: 8px;
+}
+
+.m-heatmap-legend .legend-label {
+  font-size: 10px;
+  color: #888;
+  font-weight: 500;
+}
+
+.m-heatmap-legend .legend-bar {
+  flex: 1;
+  max-width: 160px;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    rgb(220, 38, 38) 0%,
+    rgb(245, 158, 11) 40%,
+    rgb(234, 179, 8) 50%,
+    rgb(132, 204, 22) 70%,
+    rgb(34, 197, 94) 100%
+  );
+}
+
+/* Landscape/wider screens: show more columns */
+@media (min-width: 480px) {
+  .m-heatmap-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+  
+  .m-heatmap-tile {
+    min-height: 100px;
+    padding: 12px 6px;
+  }
+  
+  .m-heatmap-avatar {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .m-heatmap-symbol {
+    font-size: 11px;
+  }
+  
+  .m-heatmap-score {
+    font-size: 22px;
+  }
+  
+  .m-heatmap-signal {
+    font-size: 8px;
+    padding: 2px 6px;
+  }
 }
 </style>

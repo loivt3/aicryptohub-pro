@@ -102,45 +102,139 @@ class AnalyzerService:
         timeframe: str = "1h"
     ) -> bool:
         """
-        On-demand OHLCV fetch from Binance for coins outside scheduled top 1000.
+        On-demand OHLCV fetch from multiple exchanges with fallback.
+        Fetches from 5 sources in PARALLEL: Binance, OKX, Bybit, KuCoin, Gate.io
         
         Args:
             coin_id: CoinGecko coin ID (e.g., 'bitcoin')
-            timeframe: '1m', '1h', '4h', '1d', '1w'
+            timeframe: '1m', '1h', '4h', '1d', '1w', '1M'
             
         Returns:
-            True if fetched and saved successfully
+            True if fetched and saved successfully from any source
         """
-        # Timeframe config
+        import asyncio
+        import httpx
+        
+        # Timeframe config - mapping to each exchange format
         TIMEFRAME_CONFIG = {
-            "1h": {"binance": "1h", "db_code": 1, "limit": 100},
-            "4h": {"binance": "4h", "db_code": 4, "limit": 100},
-            "1d": {"binance": "1d", "db_code": 24, "limit": 100},
-            "1w": {"binance": "1w", "db_code": 168, "limit": 52},
-            "1M": {"binance": "1M", "db_code": 720, "limit": 60},  # 1 month
+            "1h": {"binance": "1h", "okx": "1H", "bybit": "60", "kucoin": "1hour", "gate": "1h", "db_code": 1, "limit": 100},
+            "4h": {"binance": "4h", "okx": "4H", "bybit": "240", "kucoin": "4hour", "gate": "4h", "db_code": 4, "limit": 100},
+            "1d": {"binance": "1d", "okx": "1D", "bybit": "D", "kucoin": "1day", "gate": "1d", "db_code": 24, "limit": 100},
+            "1w": {"binance": "1w", "okx": "1W", "bybit": "W", "kucoin": "1week", "gate": "1w", "db_code": 168, "limit": 52},
+            "1M": {"binance": "1M", "okx": "1M", "bybit": "M", "kucoin": "1month", "gate": "1M", "db_code": 720, "limit": 60},
         }
         
         config = TIMEFRAME_CONFIG.get(timeframe, TIMEFRAME_CONFIG["1h"])
         
+        # Get symbol from coin_id
+        symbol = self.db._get_symbol_for_coin(coin_id)
+        if not symbol:
+            logger.warning(f"No symbol found for {coin_id}, cannot fetch OHLCV")
+            return False
+        
+        symbol = symbol.upper()
+        
+        async def fetch_binance():
+            """Binance klines"""
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(
+                    "https://api.binance.com/api/v3/klines",
+                    params={"symbol": f"{symbol}USDT", "interval": config["binance"], "limit": config["limit"]}
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return [{"timestamp": k[0], "open": float(k[1]), "high": float(k[2]), 
+                             "low": float(k[3]), "close": float(k[4]), "volume": float(k[5]),
+                             "source": "binance"} for k in data]
+            return None
+        
+        async def fetch_okx():
+            """OKX klines"""
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(
+                    "https://www.okx.com/api/v5/market/candles",
+                    params={"instId": f"{symbol}-USDT", "bar": config["okx"], "limit": str(config["limit"])}
+                )
+                if resp.status_code == 200:
+                    result = resp.json()
+                    data = result.get("data", [])
+                    return [{"timestamp": int(k[0]), "open": float(k[1]), "high": float(k[2]),
+                             "low": float(k[3]), "close": float(k[4]), "volume": float(k[5]),
+                             "source": "okx"} for k in data]
+            return None
+        
+        async def fetch_bybit():
+            """Bybit klines"""
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(
+                    "https://api.bybit.com/v5/market/kline",
+                    params={"category": "spot", "symbol": f"{symbol}USDT", "interval": config["bybit"], "limit": config["limit"]}
+                )
+                if resp.status_code == 200:
+                    result = resp.json()
+                    data = result.get("result", {}).get("list", [])
+                    return [{"timestamp": int(k[0]), "open": float(k[1]), "high": float(k[2]),
+                             "low": float(k[3]), "close": float(k[4]), "volume": float(k[5]),
+                             "source": "bybit"} for k in data]
+            return None
+        
+        async def fetch_kucoin():
+            """KuCoin klines"""
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(
+                    "https://api.kucoin.com/api/v1/market/candles",
+                    params={"symbol": f"{symbol}-USDT", "type": config["kucoin"]}
+                )
+                if resp.status_code == 200:
+                    result = resp.json()
+                    data = result.get("data", [])
+                    # KuCoin format: [timestamp, open, close, high, low, volume, turnover]
+                    return [{"timestamp": int(k[0]) * 1000, "open": float(k[1]), "high": float(k[3]),
+                             "low": float(k[4]), "close": float(k[2]), "volume": float(k[5]),
+                             "source": "kucoin"} for k in data[-config["limit"]:]]
+            return None
+        
+        async def fetch_gate():
+            """Gate.io klines"""
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(
+                    f"https://api.gateio.ws/api/v4/spot/candlesticks",
+                    params={"currency_pair": f"{symbol}_USDT", "interval": config["gate"], "limit": config["limit"]}
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    # Gate format: [timestamp, volume, close, high, low, open]
+                    return [{"timestamp": int(k[0]) * 1000, "open": float(k[5]), "high": float(k[3]),
+                             "low": float(k[4]), "close": float(k[2]), "volume": float(k[1]),
+                             "source": "gate"} for k in data]
+            return None
+        
         try:
-            from app.services.data_fetcher import get_data_fetcher
-            fetcher = get_data_fetcher()
-            
-            # Get symbol from coin_id
-            symbol = self.db._get_symbol_for_coin(coin_id)
-            if not symbol:
-                logger.warning(f"No symbol found for {coin_id}, cannot fetch OHLCV")
-                return False
-            
-            # Fetch from Binance
-            klines = await fetcher.binance.fetch_klines(
-                f"{symbol}USDT", 
-                config["binance"], 
-                limit=config["limit"]
+            # Fetch from ALL 5 sources in PARALLEL
+            results = await asyncio.gather(
+                fetch_binance(),
+                fetch_okx(),
+                fetch_bybit(),
+                fetch_kucoin(),
+                fetch_gate(),
+                return_exceptions=True,
             )
             
-            if not klines or len(klines) < 30:
-                logger.warning(f"Binance returned insufficient {timeframe} data for {symbol}: {len(klines) if klines else 0}")
+            # Find first successful result with enough data
+            klines = None
+            source_used = None
+            sources = ["binance", "okx", "bybit", "kucoin", "gate"]
+            
+            for i, result in enumerate(results):
+                if isinstance(result, list) and len(result) >= 30:
+                    klines = result
+                    source_used = sources[i]
+                    break
+                elif isinstance(result, Exception):
+                    logger.debug(f"{sources[i]} OHLCV failed for {symbol}: {result}")
+            
+            if not klines:
+                logger.warning(f"All sources returned insufficient {timeframe} data for {symbol}")
                 return False
             
             # Save to database
@@ -162,10 +256,10 @@ class AnalyzerService:
                         "low": kline["low"],
                         "close": kline["close"],
                         "volume": kline["volume"],
-                        "trades_count": kline.get("trades", 0),
+                        "trades_count": 0,
                     })
             
-            logger.info(f"On-demand fetched {len(klines)} {timeframe} candles for {symbol}")
+            logger.info(f"On-demand fetched {len(klines)} {timeframe} candles for {symbol} from {source_used}")
             return True
             
         except Exception as e:
@@ -674,12 +768,30 @@ class AnalyzerService:
         Returns:
             Dict with asi_short, asi_medium, asi_long, asi_combined
         """
-        # Fetch ASI for each timeframe
-        tf_1h = await self.calculate_asi_for_timeframe(coin_id, "1h", 100)
-        tf_4h = await self.calculate_asi_for_timeframe(coin_id, "4h", 100)
-        tf_1d = await self.calculate_asi_for_timeframe(coin_id, "1d", 100)
-        tf_1w = await self.calculate_asi_for_timeframe(coin_id, "1w", 100)
-        tf_1M = await self.calculate_asi_for_timeframe(coin_id, "1M", 60)  # 1M = 1 month
+        import asyncio
+        
+        # Fetch ASI for ALL timeframes in PARALLEL (much faster!)
+        tf_results = await asyncio.gather(
+            self.calculate_asi_for_timeframe(coin_id, "1h", 100),
+            self.calculate_asi_for_timeframe(coin_id, "4h", 100),
+            self.calculate_asi_for_timeframe(coin_id, "1d", 100),
+            self.calculate_asi_for_timeframe(coin_id, "1w", 100),
+            self.calculate_asi_for_timeframe(coin_id, "1M", 60),  # 1M = 1 month
+            return_exceptions=True,  # Don't fail if one timeframe fails
+        )
+        
+        # Unpack results (handle exceptions gracefully)
+        def safe_result(r, default_tf):
+            if isinstance(r, Exception):
+                logger.warning(f"Timeframe {default_tf} failed: {r}")
+                return {"data_available": False, "timeframe": default_tf}
+            return r
+        
+        tf_1h = safe_result(tf_results[0], "1h")
+        tf_4h = safe_result(tf_results[1], "4h")
+        tf_1d = safe_result(tf_results[2], "1d")
+        tf_1w = safe_result(tf_results[3], "1w")
+        tf_1M = safe_result(tf_results[4], "1M")
         
         # Calculate horizon scores
         # Short-term: 1h only
