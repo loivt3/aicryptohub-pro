@@ -31,6 +31,7 @@ class SocketIOManager:
                 async_mode='asgi',
                 cors_allowed_origins=[
                     'https://aicryptohub.io',
+                    'https://app.aicryptohub.io',
                     'http://localhost:3000',
                     'http://localhost:8080',
                     '*'  # Allow all for development
