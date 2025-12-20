@@ -126,6 +126,7 @@
               <th>Coin</th>
               <th class="text-right">Price</th>
               <th class="text-right">24h</th>
+              <th class="text-center">7D Chart</th>
               <th class="text-right">Market Cap</th>
               <th>ASI</th>
               <th>Signal</th>
@@ -146,6 +147,18 @@
               <td class="text-right font-mono">{{ formatPrice(coin.price) }}</td>
               <td class="text-right" :class="coin.change_24h >= 0 ? 'text-success' : 'text-danger'">
                 {{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(2) }}%
+              </td>
+              <td class="d-sparkline-cell">
+                <svg class="d-sparkline-svg" viewBox="0 0 80 28" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient :id="getGradientId(coin, 'asi')" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" :stop-color="coin.change_24h >= 0 ? 'rgba(0, 230, 118, 0.4)' : 'rgba(255, 82, 82, 0.4)'"/>
+                      <stop offset="100%" stop-color="transparent"/>
+                    </linearGradient>
+                  </defs>
+                  <path :d="generateSparklineFill(coin, 80, 28)" :fill="`url(#${getGradientId(coin, 'asi')})`"/>
+                  <path :d="generateSparkline(coin, 80, 28)" fill="none" :stroke="getSparklineColor(coin)" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
               </td>
               <td class="text-right font-mono">{{ formatMarketCap(coin.market_cap) }}</td>
               <td>
@@ -185,6 +198,16 @@
                 <span class="d-mini-name">{{ coin.symbol }}</span>
                 <span class="d-mini-price">{{ formatPrice(coin.price) }}</span>
               </div>
+              <svg class="d-mini-sparkline" viewBox="0 0 50 18" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient :id="getGradientId(coin, 'gain')" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="rgba(0, 230, 118, 0.35)"/>
+                    <stop offset="100%" stop-color="transparent"/>
+                  </linearGradient>
+                </defs>
+                <path :d="generateSparklineFill(coin, 50, 18)" :fill="`url(#${getGradientId(coin, 'gain')})`"/>
+                <path :d="generateSparkline(coin, 50, 18)" fill="none" stroke="#00E676" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
               <span class="d-mini-change text-success">+{{ coin.change24h?.toFixed(2) }}%</span>
             </div>
             <div v-if="topGainers.length === 0" class="d-mini-empty">No data</div>
@@ -207,6 +230,16 @@
                 <span class="d-mini-name">{{ coin.symbol }}</span>
                 <span class="d-mini-price">{{ formatPrice(coin.price) }}</span>
               </div>
+              <svg class="d-mini-sparkline" viewBox="0 0 50 18" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient :id="getGradientId(coin, 'lose')" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="rgba(255, 82, 82, 0.35)"/>
+                    <stop offset="100%" stop-color="transparent"/>
+                  </linearGradient>
+                </defs>
+                <path :d="generateSparklineFill(coin, 50, 18)" :fill="`url(#${getGradientId(coin, 'lose')})`"/>
+                <path :d="generateSparkline(coin, 50, 18)" fill="none" stroke="#FF5252" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
               <span class="d-mini-change text-danger">{{ coin.change24h?.toFixed(2) }}%</span>
             </div>
             <div v-if="topLosers.length === 0" class="d-mini-empty">No data</div>
@@ -229,6 +262,16 @@
                 <span class="d-mini-name">{{ coin.symbol }}</span>
                 <span class="d-mini-price">{{ formatPrice(coin.price) }}</span>
               </div>
+              <svg class="d-mini-sparkline" viewBox="0 0 50 18" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient :id="getGradientId(coin, 'vol')" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" :stop-color="coin.change24h >= 0 ? 'rgba(0, 230, 118, 0.35)' : 'rgba(255, 82, 82, 0.35)'"/>
+                    <stop offset="100%" stop-color="transparent"/>
+                  </linearGradient>
+                </defs>
+                <path :d="generateSparklineFill(coin, 50, 18)" :fill="`url(#${getGradientId(coin, 'vol')})`"/>
+                <path :d="generateSparkline(coin, 50, 18)" fill="none" :stroke="coin.change24h >= 0 ? '#00E676' : '#FF5252'" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
               <span class="d-mini-volume">{{ formatMarketCap(coin.volume) }}</span>
             </div>
             <div v-if="mostTraded.length === 0" class="d-mini-empty">No data</div>
@@ -257,6 +300,7 @@
               <th>Coin</th>
               <th class="text-right">Price</th>
               <th class="text-right">24h</th>
+              <th class="text-center">7D Chart</th>
               <th>ASI Score</th>
               <th>Signal</th>
               <th>Reasoning</th>
@@ -277,6 +321,18 @@
               <td class="text-right font-mono">{{ formatPrice(coin.price) }}</td>
               <td class="text-right" :class="coin.change24h >= 0 ? 'text-success' : 'text-danger'">
                 {{ coin.change24h >= 0 ? '+' : '' }}{{ coin.change24h?.toFixed(2) }}%
+              </td>
+              <td class="d-sparkline-cell">
+                <svg class="d-sparkline-svg" viewBox="0 0 80 28" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient :id="getGradientId(coin, 'sig')" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" :stop-color="coin.change24h >= 0 ? 'rgba(0, 230, 118, 0.4)' : 'rgba(255, 82, 82, 0.4)'"/>
+                      <stop offset="100%" stop-color="transparent"/>
+                    </linearGradient>
+                  </defs>
+                  <path :d="generateSparklineFill(coin, 80, 28)" :fill="`url(#${getGradientId(coin, 'sig')})`"/>
+                  <path :d="generateSparkline(coin, 80, 28)" fill="none" :stroke="getSparklineColor(coin)" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
               </td>
               <td>
                 <div class="d-asi-cell">
@@ -315,6 +371,7 @@ interface Coin {
 
 const api = useApi()
 const { updatePrice, getFlashClass } = usePriceFlashRow()
+const { generateSparkline, generateSparklineFill, getSparklineColor, getGradientId } = useSparkline()
 
 // Stats data
 const totalMarketCap = ref(0)
@@ -1077,5 +1134,29 @@ const getAsiClass = (v: number) => v >= 60 ? 'positive' : v <= 40 ? 'negative' :
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Sparkline Charts */
+.d-sparkline-cell {
+  padding: 8px 12px !important;
+  width: 100px;
+  text-align: center;
+}
+
+.d-sparkline-svg {
+  width: 80px;
+  height: 28px;
+  display: block;
+}
+
+/* Mini card sparkline */
+.d-mini-sparkline {
+  width: 50px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.text-center {
+  text-align: center;
 }
 </style>
