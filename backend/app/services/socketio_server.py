@@ -26,16 +26,10 @@ class SocketIOManager:
         try:
             import socketio
             
-            # Create Socket.io server with CORS
+            # Create Socket.io server with CORS - allow all origins
             self.sio = socketio.AsyncServer(
                 async_mode='asgi',
-                cors_allowed_origins=[
-                    'https://aicryptohub.io',
-                    'https://app.aicryptohub.io',
-                    'http://localhost:3000',
-                    'http://localhost:8080',
-                    '*'  # Allow all for development
-                ],
+                cors_allowed_origins="*",  # Allow all origins
                 logger=False,
                 engineio_logger=False
             )
