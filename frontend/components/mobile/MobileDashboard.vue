@@ -833,55 +833,68 @@ const aiSignals = computed(() => {
     .slice(0, 20)  // Top 20 coins for treemap
 })
 
-// Treemap layout calculator - squarified algorithm
+// Treemap layout calculator - improved row-based algorithm
 const treemapLayout = computed(() => {
   const coins = aiSignals.value
   if (!coins.length) return []
   
-  const totalMcap = coins.reduce((sum, c) => sum + (c.market_cap || 0), 0)
-  if (totalMcap === 0) return []
-  
-  // Calculate normalized weights
+  // Use logarithmic scale to prevent BTC from dominating
   const items = coins.map(c => ({
     ...c,
-    weight: (c.market_cap || 0) / totalMcap,
+    weight: Math.log10((c.market_cap || 1) + 1),
   }))
   
-  // Simplified squarified treemap layout
+  const totalWeight = items.reduce((sum, c) => sum + c.weight, 0)
+  if (totalWeight === 0) return []
+  
+  // Normalize weights
+  items.forEach(item => {
+    item.weight = item.weight / totalWeight
+  })
+  
+  // Define rows based on number of items
+  // Row 1: Top 2 (biggest)
+  // Row 2: Next 3
+  // Row 3: Next 5
+  // Row 4: Next 5
+  // Row 5: Remaining
+  const rowConfig = [
+    { count: 2, height: 30 },   // 30% height for top 2
+    { count: 3, height: 25 },   // 25% for next 3
+    { count: 5, height: 20 },   // 20% for next 5
+    { count: 5, height: 15 },   // 15% for next 5
+    { count: 5, height: 10 },   // 10% for remaining
+  ]
+  
   const layout: any[] = []
   let currentY = 0
-  let rowItems: any[] = []
-  let rowWeight = 0
-  const targetRowHeight = 100 / Math.ceil(Math.sqrt(items.length))
+  let itemIndex = 0
   
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i]
-    rowItems.push(item)
-    rowWeight += item.weight
+  for (const row of rowConfig) {
+    if (itemIndex >= items.length) break
     
-    // Check if row is full enough or last item
-    const rowHeightPct = rowWeight * 100
-    if (rowHeightPct >= targetRowHeight || i === items.length - 1) {
-      // Layout this row
-      let currentX = 0
-      const actualRowHeight = Math.min(rowWeight * 100 * 1.5, 100 - currentY)
-      
-      for (const rowItem of rowItems) {
-        const widthPct = (rowItem.weight / rowWeight) * 100
-        layout.push({
-          ...rowItem,
-          x: currentX,
-          y: currentY,
-          w: widthPct,
-          h: actualRowHeight,
-        })
-        currentX += widthPct
-      }
-      
-      currentY += actualRowHeight
-      rowItems = []
-      rowWeight = 0
+    const rowItems = items.slice(itemIndex, itemIndex + row.count)
+    if (rowItems.length === 0) break
+    
+    // Calculate row weight for proportional widths
+    const rowTotalWeight = rowItems.reduce((sum, item) => sum + item.weight, 0)
+    
+    // Layout items in this row
+    let currentX = 0
+    for (const item of rowItems) {
+      const widthPct = (item.weight / rowTotalWeight) * 100
+      layout.push({
+        ...item,
+        x: currentX,
+        y: currentY,
+        w: Math.max(widthPct, 8), // Min 8% width for readability
+        h: row.height,
+      })
+      currentX += widthPct
     }
+    
+    currentY += row.height
+    itemIndex += rowItems.length
   }
   
   return layout
