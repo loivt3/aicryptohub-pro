@@ -64,7 +64,33 @@ export function useSocket() {
         connecting.value = true
         error.value = null
 
-        const wsUrl = config.public.wsUrl || config.public.apiBase?.replace('/api/v1', '') || 'http://localhost:8000'
+        // Determine WebSocket URL based on environment
+        let wsUrl = config.public.wsUrl
+
+        // If wsUrl not set, derive from apiBase or window.location
+        if (!wsUrl) {
+            const apiBase = config.public.apiBase || ''
+
+            // If apiBase is relative (starts with /), use current origin
+            if (apiBase.startsWith('/') || !apiBase) {
+                // Browser environment - use current page origin
+                if (typeof window !== 'undefined') {
+                    wsUrl = window.location.origin
+                } else {
+                    // SSR - use placeholder, will reconnect on client
+                    wsUrl = ''
+                }
+            } else {
+                // apiBase is absolute URL, extract base
+                wsUrl = apiBase.replace('/api/v1', '')
+            }
+        }
+
+        // Skip connection if no valid URL (SSR)
+        if (!wsUrl) {
+            connecting.value = false
+            return
+        }
 
         try {
             socket.value = io(wsUrl, {
