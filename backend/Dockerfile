@@ -18,5 +18,5 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Run with uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run with uvicorn - use socketio_app for WebSocket support
+CMD ["uvicorn", "app.main:socketio_app", "--host", "0.0.0.0", "--port", "8000"]

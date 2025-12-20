@@ -95,12 +95,12 @@ export function useSocket() {
         try {
             socket.value = io(wsUrl, {
                 path: '/socket.io',
-                transports: ['polling', 'websocket'],  // Try polling first (Cloudflare-friendly)
+                transports: ['websocket', 'polling'],  // WebSocket first, polling fallback
                 reconnection: true,
                 reconnectionAttempts: 10,
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 5000,
-                timeout: 20000,  // Longer timeout for polling
+                timeout: 10000,
             })
 
             // Connection events
