@@ -991,7 +991,13 @@ const fetchData = async () => {
     
     // Fetch sentiment data
     const sentimentRes = await api.getSentiment(100)
-    if (Array.isArray(sentimentRes)) {
+    if (sentimentRes?.success && Array.isArray(sentimentRes.data)) {
+      sentimentMap.value = {}
+      sentimentRes.data.forEach((s: SentimentData) => {
+        sentimentMap.value[s.coin_id] = s
+      })
+    } else if (Array.isArray(sentimentRes)) {
+      // Fallback for old format
       sentimentMap.value = {}
       sentimentRes.forEach((s: SentimentData) => {
         sentimentMap.value[s.coin_id] = s

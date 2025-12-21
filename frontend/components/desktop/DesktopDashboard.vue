@@ -573,9 +573,13 @@ const fetchData = async () => {
 
     // Fetch sentiment data
     const sentimentRes = await api.getSentiment(50)
-    if (Array.isArray(sentimentRes)) {
+    const sentimentData = sentimentRes?.success && Array.isArray(sentimentRes.data) 
+      ? sentimentRes.data 
+      : (Array.isArray(sentimentRes) ? sentimentRes : [])
+    
+    if (sentimentData.length > 0) {
       sentimentMap.value = {}
-      sentimentRes.forEach((s: any) => {
+      sentimentData.forEach((s: any) => {
         sentimentMap.value[s.coin_id] = s
       })
       
@@ -591,6 +595,7 @@ const fetchData = async () => {
                      Math.max(1, Object.keys(sentimentMap.value).length)
       fearGreedValue.value = Math.round(avgAsi) || 50
     }
+
     
     // Fetch multi-horizon ASI for top coins (using batch API to reduce load)
     try {
