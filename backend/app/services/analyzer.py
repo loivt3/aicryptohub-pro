@@ -632,13 +632,51 @@ class AnalyzerService:
         # Calculate ASI with enhanced scoring
         asi_score, signal = self.calculate_enhanced_asi_score(indicators)
         
+        # === NEW: Candlestick Pattern Recognition ===
+        pattern_result = {}
+        pattern_adjustment = 0
+        try:
+            from app.services.pattern_recognizer import get_pattern_recognizer
+            pattern_recognizer = get_pattern_recognizer()
+            
+            # Need lowercase columns for pattern recognizer
+            df_lower = df.rename(columns={
+                "Open": "open", "High": "high", "Low": "low",
+                "Close": "close", "Volume": "volume",
+            })
+            
+            pattern_result = pattern_recognizer.recognize_patterns(df_lower)
+            
+            if pattern_result.get("pattern"):
+                # Get ASI adjustment from pattern
+                pattern_adjustment = pattern_recognizer.get_pattern_score_adjustment(pattern_result)
+                
+                # Apply pattern adjustment to ASI score
+                asi_score = max(0, min(100, asi_score + pattern_adjustment))
+                
+                # Update signal if pattern is strong
+                if pattern_adjustment >= 10:
+                    signal = "STRONG_BUY" if asi_score >= 65 else "BUY"
+                elif pattern_adjustment <= -10:
+                    signal = "STRONG_SELL" if asi_score <= 35 else "SELL"
+                
+                logger.debug(f"{coin_id} [{timeframe}]: Pattern {pattern_result['pattern']} ({pattern_result['reliability']}) -> ASI adjustment {pattern_adjustment:+d}")
+        except Exception as e:
+            logger.debug(f"Pattern recognition failed for {coin_id}: {e}")
+        
         return {
             "timeframe": timeframe,
             "asi_score": asi_score,
             "signal": signal,
             "indicators": indicators,
             "data_available": True,
+            # Pattern info
+            "pattern": pattern_result.get("pattern"),
+            "pattern_direction": pattern_result.get("direction"),
+            "pattern_reliability": pattern_result.get("reliability"),
+            "pattern_adjustment": pattern_adjustment,
         }
+
     
     def calculate_enhanced_asi_score(self, indicators: Dict[str, Any]) -> tuple[int, str]:
         """
