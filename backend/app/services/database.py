@@ -1059,6 +1059,180 @@ class DatabaseService:
         
         return None
 
+    # ===================================================
+    # Multi-Horizon ASI Cache Methods
+    # ===================================================
+    
+    def ensure_multi_horizon_table(self) -> bool:
+        """
+        Ensure aihub_multi_horizon_cache table exists.
+        Called once on startup.
+        """
+        create_query = text("""
+            CREATE TABLE IF NOT EXISTS aihub_multi_horizon_cache (
+                coin_id VARCHAR(100) PRIMARY KEY,
+                asi_short INTEGER,
+                asi_medium INTEGER,
+                asi_long INTEGER,
+                asi_combined INTEGER,
+                signal_short VARCHAR(20),
+                signal_medium VARCHAR(20),
+                signal_long VARCHAR(20),
+                signal_combined VARCHAR(20),
+                data_json JSONB,
+                computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        try:
+            with self.engine.begin() as conn:
+                conn.execute(create_query)
+            logger.info("Multi-horizon cache table ensured")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to create multi-horizon cache table: {e}")
+            return False
+    
+    def save_multi_horizon_cache(
+        self,
+        coin_id: str,
+        data: Dict[str, Any]
+    ) -> bool:
+        """
+        Save pre-computed multi-horizon ASI to cache table.
+        
+        Args:
+            coin_id: Coin identifier (e.g., 'bitcoin')
+            data: Multi-horizon result dict from calculate_multi_horizon_asi()
+            
+        Returns:
+            True if saved successfully
+        """
+        import json
+        
+        query = text("""
+            INSERT INTO aihub_multi_horizon_cache 
+            (coin_id, asi_short, asi_medium, asi_long, asi_combined,
+             signal_short, signal_medium, signal_long, signal_combined,
+             data_json, computed_at)
+            VALUES 
+            (:coin_id, :asi_short, :asi_medium, :asi_long, :asi_combined,
+             :signal_short, :signal_medium, :signal_long, :signal_combined,
+             :data_json, :computed_at)
+            ON CONFLICT (coin_id) DO UPDATE SET
+                asi_short = EXCLUDED.asi_short,
+                asi_medium = EXCLUDED.asi_medium,
+                asi_long = EXCLUDED.asi_long,
+                asi_combined = EXCLUDED.asi_combined,
+                signal_short = EXCLUDED.signal_short,
+                signal_medium = EXCLUDED.signal_medium,
+                signal_long = EXCLUDED.signal_long,
+                signal_combined = EXCLUDED.signal_combined,
+                data_json = EXCLUDED.data_json,
+                computed_at = EXCLUDED.computed_at
+        """)
+        
+        try:
+            with self.engine.begin() as conn:
+                conn.execute(query, {
+                    "coin_id": coin_id,
+                    "asi_short": data.get("asi_short"),
+                    "asi_medium": data.get("asi_medium"),
+                    "asi_long": data.get("asi_long"),
+                    "asi_combined": data.get("asi_combined"),
+                    "signal_short": data.get("signal_short"),
+                    "signal_medium": data.get("signal_medium"),
+                    "signal_long": data.get("signal_long"),
+                    "signal_combined": data.get("signal_combined"),
+                    "data_json": json.dumps(data, default=str),
+                    "computed_at": datetime.now(),
+                })
+            logger.debug(f"Saved multi-horizon cache for {coin_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save multi-horizon cache for {coin_id}: {e}")
+            return False
+    
+    def get_multi_horizon_cache(
+        self,
+        coin_ids: List[str],
+        max_age_minutes: int = 5
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Get cached multi-horizon data for multiple coins.
+        Only returns data that is fresher than max_age_minutes.
+        
+        Args:
+            coin_ids: List of coin IDs to fetch
+            max_age_minutes: Maximum age of cache in minutes (default 5)
+            
+        Returns:
+            Dict mapping coin_id to cached data, empty dict for missing/stale coins
+        """
+        import json
+        
+        if not coin_ids:
+            return {}
+        
+        query = text("""
+            SELECT 
+                coin_id,
+                asi_short,
+                asi_medium,
+                asi_long,
+                asi_combined,
+                signal_short,
+                signal_medium,
+                signal_long,
+                signal_combined,
+                data_json,
+                computed_at
+            FROM aihub_multi_horizon_cache
+            WHERE coin_id = ANY(:coin_ids)
+              AND computed_at > NOW() - INTERVAL ':max_age minutes'
+        """.replace(":max_age", str(max_age_minutes)))
+        
+        results = {}
+        
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(query, {"coin_ids": coin_ids})
+                rows = result.fetchall()
+                
+                for row in rows:
+                    coin_id = row[0]
+                    # Try to parse full JSON data first
+                    data_json = row[9]
+                    if data_json:
+                        try:
+                            if isinstance(data_json, str):
+                                results[coin_id] = json.loads(data_json)
+                            else:
+                                results[coin_id] = data_json
+                            continue
+                        except:
+                            pass
+                    
+                    # Fallback to individual columns
+                    results[coin_id] = {
+                        "coin_id": coin_id,
+                        "asi_short": row[1],
+                        "asi_medium": row[2],
+                        "asi_long": row[3],
+                        "asi_combined": row[4],
+                        "signal_short": row[5],
+                        "signal_medium": row[6],
+                        "signal_long": row[7],
+                        "signal_combined": row[8],
+                    }
+                
+                logger.debug(f"Got {len(results)}/{len(coin_ids)} coins from multi-horizon cache")
+                
+        except Exception as e:
+            logger.error(f"Failed to get multi-horizon cache: {e}")
+        
+        return results
+
 
 # Dependency injection
 _db_service: Optional[DatabaseService] = None

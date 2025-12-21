@@ -1003,33 +1003,24 @@ const fetchData = async () => {
       console.warn('Failed to fetch multi-horizon ASI:', e)
     }
     
-    // Fetch multi-horizon ASI for top 10 coins
+    // Fetch multi-horizon ASI for top 10 coins (using batch API to reduce load)
     try {
       const config = useRuntimeConfig()
       const topCoinIds = allCoins.value.slice(0, 10).map(c => c.coin_id)
       
-      // Fetch multi-horizon data for each coin in parallel
-      const mhPromises = topCoinIds.map(async (coinId) => {
-        try {
-          const res = await $fetch<any>(`${config.public.apiBase}/sentiment/${coinId}/multi-horizon`)
-          if (res?.success && res.data) {
-            return { coinId, data: res.data }
-          }
-          return null
-        } catch {
-          return null
-        }
+      // Use batch endpoint instead of parallel calls
+      const mhRes = await $fetch<any>(`${config.public.apiBase}/sentiment/multi-horizon/batch`, {
+        method: 'POST',
+        body: { coin_ids: topCoinIds }
       })
       
-      const mhResults = await Promise.all(mhPromises)
-      mhResults.forEach(result => {
-        if (result) {
-          multiHorizonData.value[result.coinId] = result.data
-        }
-      })
+      if (mhRes?.success && mhRes.data) {
+        multiHorizonData.value = mhRes.data
+      }
     } catch (e) {
       console.warn('Failed to fetch multi-horizon data for coins:', e)
     }
+
   } catch (error) {
     console.error('Failed to fetch data:', error)
   } finally {

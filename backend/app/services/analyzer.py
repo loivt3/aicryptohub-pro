@@ -594,22 +594,16 @@ class AnalyzerService:
         # Fetch OHLCV for specific timeframe
         ohlcv_data = self.db.get_ohlcv_data(coin_id, timeframe=timeframe, limit=limit)
         
-        # On-demand fetch if insufficient data (for coins outside scheduled top 1000)
+        # Skip on-demand fetch to avoid blocking - return defaults instead
+        # Background scheduler will populate data over time
         if len(ohlcv_data) < 30:
-            logger.info(f"Insufficient {timeframe} data for {coin_id} ({len(ohlcv_data)} candles). Trying on-demand fetch...")
-            fetched = await self._fetch_ohlcv_for_coin(coin_id, timeframe=timeframe)
-            if fetched:
-                # Re-read from database after fetch
-                ohlcv_data = self.db.get_ohlcv_data(coin_id, timeframe=timeframe, limit=limit)
-        
-        # Still insufficient after on-demand fetch
-        if len(ohlcv_data) < 30:
+            logger.debug(f"Insufficient {timeframe} data for {coin_id} ({len(ohlcv_data)} candles). Returning defaults.")
             return {
                 "timeframe": timeframe,
-                "asi_score": None,
-                "signal": None,
+                "asi_score": 50,  # Neutral default
+                "signal": "HOLD",
                 "data_available": False,
-                "data_status": "Insufficient data",
+                "data_status": "Awaiting data",
                 "candles_found": len(ohlcv_data),
                 "candles_required": 30,
             }
@@ -756,7 +750,12 @@ class AnalyzerService:
         
         return int(score), signal
     
-    async def calculate_multi_horizon_asi(self, coin_id: str) -> Dict[str, Any]:
+    async def calculate_multi_horizon_asi(
+        self, 
+        coin_id: str,
+        use_cache: bool = True,
+        cache_max_age: int = 5
+    ) -> Dict[str, Any]:
         """
         Calculate ASI for all horizons: Short, Medium, Long-term.
         
@@ -765,10 +764,23 @@ class AnalyzerService:
         - Medium: 4h * 0.4 + 1d * 0.6 (Swing trade)
         - Long: 1w * 0.4 + 1M * 0.6 (Position/HODL) - 1M = 1 month
         
+        Args:
+            coin_id: Coin identifier
+            use_cache: Whether to check cache first (default True)
+            cache_max_age: Maximum cache age in minutes (default 5)
+        
         Returns:
             Dict with asi_short, asi_medium, asi_long, asi_combined
         """
         import asyncio
+        
+        # Check cache first (if enabled)
+        if use_cache:
+            cached = self.db.get_multi_horizon_cache([coin_id], cache_max_age)
+            if coin_id in cached and cached[coin_id]:
+                logger.debug(f"Using cached multi-horizon for {coin_id}")
+                return cached[coin_id]
+        
         
         # Fetch ASI for ALL timeframes in PARALLEL (much faster!)
         tf_results = await asyncio.gather(
@@ -857,7 +869,7 @@ class AnalyzerService:
             elif score >= 25: return "SELL"
             else: return "STRONG_SELL"
         
-        return {
+        result = {
             "coin_id": coin_id,
             "asi_short": round(asi_short) if asi_short is not None else None,
             "asi_medium": round(asi_medium) if asi_medium is not None else None,
@@ -883,6 +895,11 @@ class AnalyzerService:
             },
             "analyzed_at": datetime.now().isoformat(),
         }
+        
+        # Save to cache for future requests
+        self.db.save_multi_horizon_cache(coin_id, result)
+        
+        return result
     
     async def _get_onchain_score(self, coin_id: str) -> Dict[str, Any]:
         """

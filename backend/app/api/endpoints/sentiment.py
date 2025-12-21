@@ -88,6 +88,86 @@ async def get_coin_sentiment(
     return SentimentData(**data)
 
 
+class MultiHorizonBatchRequest(BaseModel):
+    coin_ids: List[str]
+
+
+@router.post("/multi-horizon/batch")
+async def get_multi_horizon_batch(
+    request: MultiHorizonBatchRequest,
+    db: DatabaseService = Depends(get_db_service),
+):
+    """
+    Batch fetch multi-horizon ASI for multiple coins.
+    
+    Returns cached data if available (< 5 min old).
+    Only computes on-demand for missing coins (max 5 to prevent overload).
+    
+    This endpoint replaces multiple parallel calls to /{coin_id}/multi-horizon
+    and significantly reduces server load.
+    """
+    import asyncio
+    import logging
+    from app.core.config import get_settings
+    
+    logger = logging.getLogger(__name__)
+    coin_ids = request.coin_ids[:50]  # Limit to 50 coins max
+    
+    if not coin_ids:
+        return {"success": True, "data": {}, "from_cache": 0, "computed": 0}
+    
+    # Check cache first
+    cached = db.get_multi_horizon_cache(coin_ids, max_age_minutes=5)
+    
+    results = {}
+    missing = []
+    
+    for coin_id in coin_ids:
+        if coin_id in cached and cached[coin_id]:
+            results[coin_id] = cached[coin_id]
+        else:
+            missing.append(coin_id)
+    
+    computed_count = 0
+    
+    # Compute missing coins (limit to 5 to prevent overload)
+    if missing:
+        settings = get_settings()
+        analyzer = AnalyzerService(db, settings)
+        
+        # Only compute up to 5 missing coins per request
+        for coin_id in missing[:5]:
+            try:
+                result = await asyncio.wait_for(
+                    analyzer.calculate_multi_horizon_asi(coin_id, use_cache=False),
+                    timeout=10.0  # Short timeout per coin
+                )
+                results[coin_id] = result
+                computed_count += 1
+            except Exception as e:
+                logger.warning(f"Failed to compute multi-horizon for {coin_id}: {e}")
+                # Return default values for failed coins
+                results[coin_id] = {
+                    "coin_id": coin_id,
+                    "asi_short": 50,
+                    "asi_medium": 50,
+                    "asi_long": 50,
+                    "asi_combined": 50,
+                    "signal_short": "NEUTRAL",
+                    "signal_medium": "NEUTRAL",
+                    "signal_long": "NEUTRAL",
+                    "signal_combined": "NEUTRAL",
+                }
+    
+    return {
+        "success": True,
+        "data": results,
+        "from_cache": len(cached),
+        "computed": computed_count,
+        "total": len(coin_ids),
+    }
+
+
 @router.get("/{coin_id}/multi-horizon")
 async def get_multi_horizon_asi(
     coin_id: str,

@@ -77,6 +77,24 @@ SCHEDULER_STATE = {
         "is_running": False,
         "last_result": None,
     },
+    # Multi-Horizon ASI Pre-compute Job - Tier 1 (Top 50, frequent)
+    "multi_horizon": {
+        "enabled": True,
+        "interval_minutes": 5,  # Every 5 minutes
+        "last_run": None,
+        "next_run": None,
+        "is_running": False,
+        "last_result": None,
+    },
+    # Multi-Horizon ASI Pre-compute Job - Tier 2 (Coins 51-200, less frequent)
+    "multi_horizon_tier2": {
+        "enabled": True,
+        "interval_minutes": 15,  # Every 15 minutes
+        "last_run": None,
+        "next_run": None,
+        "is_running": False,
+        "last_result": None,
+    },
 }
 
 _scheduler: Optional[AsyncIOScheduler] = None
@@ -325,6 +343,146 @@ async def run_ohlcv_1M_job():
     await run_ohlcv_job("ohlcv_1M", "1M")
 
 
+async def run_multi_horizon_job():
+    """
+    Pre-compute multi-horizon ASI for top 50 coins.
+    This populates the cache so batch API calls are instant.
+    """
+    state = SCHEDULER_STATE["multi_horizon"]
+    if state["is_running"]:
+        logger.warning("Multi-horizon job already running, skipping")
+        return
+    
+    state["is_running"] = True
+    state["last_run"] = datetime.now().isoformat()
+    
+    try:
+        from app.services.database import get_database_service
+        from app.services.analyzer import AnalyzerService
+        from app.core.config import get_settings
+        
+        logger.info("Scheduler: Starting Multi-Horizon pre-compute job...")
+        
+        db = get_database_service()
+        settings = get_settings()
+        
+        # Ensure cache table exists
+        db.ensure_multi_horizon_table()
+        
+        analyzer = AnalyzerService(db, settings)
+        
+        # Get top 50 coins by market cap
+        coins = db.get_market_data(limit=50, orderby="market_cap")
+        coin_ids = [c["coin_id"] for c in coins if c.get("coin_id")]
+        
+        computed = 0
+        failed = 0
+        
+        for coin_id in coin_ids:
+            try:
+                # Force fresh calculation (skip cache)
+                result = await asyncio.wait_for(
+                    analyzer.calculate_multi_horizon_asi(coin_id, use_cache=False),
+                    timeout=30.0
+                )
+                if result:
+                    computed += 1
+            except asyncio.TimeoutError:
+                logger.warning(f"Multi-horizon timeout for {coin_id}")
+                failed += 1
+            except Exception as e:
+                logger.warning(f"Multi-horizon failed for {coin_id}: {e}")
+                failed += 1
+            
+            # Small delay to prevent overwhelming
+            await asyncio.sleep(0.1)
+        
+        state["last_result"] = {
+            "computed": computed,
+            "failed": failed,
+            "total": len(coin_ids),
+        }
+        
+        logger.info(f"Scheduler: Multi-Horizon job complete - computed {computed}/{len(coin_ids)}, failed {failed}")
+        
+    except Exception as e:
+        logger.error(f"Scheduler: Multi-Horizon job failed - {e}")
+        state["last_result"] = {"error": str(e)}
+    finally:
+        state["is_running"] = False
+
+
+async def run_multi_horizon_tier2_job():
+    """
+    Pre-compute multi-horizon ASI for coins ranked 51-200.
+    Runs less frequently (every 15 min) for extended coverage.
+    """
+    state = SCHEDULER_STATE["multi_horizon_tier2"]
+    if state["is_running"]:
+        logger.warning("Multi-horizon tier2 job already running, skipping")
+        return
+    
+    state["is_running"] = True
+    state["last_run"] = datetime.now().isoformat()
+    
+    try:
+        from app.services.database import get_database_service
+        from app.services.analyzer import AnalyzerService
+        from app.core.config import get_settings
+        
+        logger.info("Scheduler: Starting Multi-Horizon Tier 2 (coins 51-200) job...")
+        
+        db = get_database_service()
+        settings = get_settings()
+        
+        # Ensure cache table exists
+        db.ensure_multi_horizon_table()
+        
+        analyzer = AnalyzerService(db, settings)
+        
+        # Get coins 51-200 by market cap (skip first 50, take next 150)
+        all_coins = db.get_market_data(limit=200, orderby="market_cap")
+        tier2_coins = all_coins[50:]  # Skip top 50
+        coin_ids = [c["coin_id"] for c in tier2_coins if c.get("coin_id")]
+        
+        computed = 0
+        failed = 0
+        
+        for coin_id in coin_ids:
+            try:
+                # Force fresh calculation (skip cache)
+                result = await asyncio.wait_for(
+                    analyzer.calculate_multi_horizon_asi(coin_id, use_cache=False),
+                    timeout=30.0
+                )
+                if result:
+                    computed += 1
+            except asyncio.TimeoutError:
+                logger.warning(f"Multi-horizon tier2 timeout for {coin_id}")
+                failed += 1
+            except Exception as e:
+                logger.debug(f"Multi-horizon tier2 failed for {coin_id}: {e}")
+                failed += 1
+            
+            # Small delay to prevent overwhelming
+            await asyncio.sleep(0.15)
+        
+        state["last_result"] = {
+            "computed": computed,
+            "failed": failed,
+            "total": len(coin_ids),
+            "tier": "51-200",
+        }
+        
+        logger.info(f"Scheduler: Multi-Horizon Tier 2 complete - computed {computed}/{len(coin_ids)}, failed {failed}")
+        
+    except Exception as e:
+        logger.error(f"Scheduler: Multi-Horizon Tier 2 job failed - {e}")
+        state["last_result"] = {"error": str(e)}
+    finally:
+        state["is_running"] = False
+
+
 # ==================== Scheduler Management ====================
 
 def get_scheduler() -> Optional[AsyncIOScheduler]:
@@ -418,6 +576,28 @@ def start_scheduler():
             replace_existing=True,
         )
         logger.info(f"Scheduled OHLCV 1M (monthly) job: every {SCHEDULER_STATE['ohlcv_1M']['interval_minutes']} minutes")
+    
+    # Add Multi-Horizon pre-compute job - Tier 1: Top 50, every 5 minutes
+    if SCHEDULER_STATE["multi_horizon"]["enabled"]:
+        _scheduler.add_job(
+            run_multi_horizon_job,
+            trigger=IntervalTrigger(minutes=SCHEDULER_STATE["multi_horizon"]["interval_minutes"]),
+            id="multi_horizon_job",
+            name="Multi-Horizon ASI Pre-compute (Top 50)",
+            replace_existing=True,
+        )
+        logger.info(f"Scheduled Multi-Horizon Tier 1 job: every {SCHEDULER_STATE['multi_horizon']['interval_minutes']} minutes (Top 50)")
+    
+    # Add Multi-Horizon pre-compute job - Tier 2: Coins 51-200, every 15 minutes
+    if SCHEDULER_STATE["multi_horizon_tier2"]["enabled"]:
+        _scheduler.add_job(
+            run_multi_horizon_tier2_job,
+            trigger=IntervalTrigger(minutes=SCHEDULER_STATE["multi_horizon_tier2"]["interval_minutes"]),
+            id="multi_horizon_tier2_job",
+            name="Multi-Horizon ASI Pre-compute (51-200)",
+            replace_existing=True,
+        )
+        logger.info(f"Scheduled Multi-Horizon Tier 2 job: every {SCHEDULER_STATE['multi_horizon_tier2']['interval_minutes']} minutes (51-200)")
     
     _scheduler.start()
     logger.info("Background scheduler started")
