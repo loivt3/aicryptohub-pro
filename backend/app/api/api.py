@@ -7,7 +7,7 @@ from fastapi import APIRouter
 
 from app.api.endpoints import market, portfolio, sentiment, auth, onchain, admin
 from app.api.endpoints import admin_data, admin_users, admin_fetcher, admin_ai_workers
-from app.api.endpoints import triggers, realtime, intent_divergence
+from app.api.endpoints import triggers, realtime, intent_divergence, discovery
 
 api_router = APIRouter()
 
