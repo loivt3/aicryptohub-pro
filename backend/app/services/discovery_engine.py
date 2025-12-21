@@ -83,19 +83,22 @@ class DiscoveryEngine:
             df = self._calculate_relative_strength(df)
             df = self._detect_anomalies(df)
             
-            # Step 5: Detect candlestick patterns (NEW)
+            # Step 5: Detect candlestick patterns
             df = await self._detect_candlestick_patterns(df)
             
-            # Step 6: Detect RSI divergence (NEW)
+            # Step 6: Detect RSI divergence
             df = await self._detect_rsi_divergence(df)
             
-            # Step 7: Detect sudden pumps/dumps
+            # Step 7: Calculate confirmation scores (NEW - for accuracy)
+            df = await self._calculate_confirmation_score(df)
+            
+            # Step 8: Detect sudden pumps/dumps
             df = self._detect_pumps_dumps_advanced(df)
             
-            # Step 8: Merge with sentiment data
+            # Step 9: Merge with sentiment data
             df = self._merge_sentiment(df)
             
-            # Step 9: Calculate discovery score (includes pattern bonus)
+            # Step 10: Calculate discovery score (includes pattern + confirmation bonus)
             df = self._calculate_discovery_score(df)
             
             # Step 10: Upsert to snapshot table
@@ -658,8 +661,158 @@ class DiscoveryEngine:
             logger.warning(f"RSI divergence detection failed: {e}")
         
         return df
+    
+    async def _calculate_confirmation_score(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Calculate multi-factor confirmation score for pattern accuracy.
+        
+        Confirmations (each adds points if met):
+        1. Volume Confirmation: Volume > 1.5x average during pattern
+        2. MA Trend Context: Pattern direction aligned with 20-MA trend
+        3. RSI Extremes: RSI in oversold (<30) or overbought (>70) zone
+        4. Support/Resistance: Pattern near key S/R level
+        5. Multi-TF Alignment: Same direction on multiple timeframes
+        """
+        # Initialize confirmation columns
+        df['volume_confirmed'] = False
+        df['ma_confirmed'] = False
+        df['rsi_extreme'] = False
+        df['near_sr'] = False
+        df['confirmation_count'] = 0
+        df['confirmation_score'] = 0
+        
+        # 1. Volume Confirmation
+        df['volume_confirmed'] = df['volume_ratio'].fillna(1) > 1.5
+        
+        # 2. RSI Extremes (from _detect_rsi_divergence we have rsi_14)
+        rsi = df['rsi_14'].fillna(50)
+        df['rsi_extreme'] = (rsi < 30) | (rsi > 70)
+        
+        # 3. MA Trend and S/R levels from OHLCV
+        coin_ids = df['coin_id'].tolist()[:100]  # Limit for performance
+        
+        query = text("""
+            WITH recent_prices AS (
+                SELECT 
+                    coin_id,
+                    close,
+                    high,
+                    low,
+                    timestamp,
+                    AVG(close) OVER (PARTITION BY coin_id ORDER BY timestamp ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) as ma_20,
+                    MAX(high) OVER (PARTITION BY coin_id ORDER BY timestamp ROWS BETWEEN 23 PRECEDING AND CURRENT ROW) as resistance_24h,
+                    MIN(low) OVER (PARTITION BY coin_id ORDER BY timestamp ROWS BETWEEN 23 PRECEDING AND CURRENT ROW) as support_24h,
+                    ROW_NUMBER() OVER (PARTITION BY coin_id ORDER BY timestamp DESC) as rn
+                FROM aihub_ohlcv
+                WHERE interval = '1h'
+                  AND timestamp > NOW() - INTERVAL '48 hours'
+            )
+            SELECT 
+                coin_id,
+                close as current_price,
+                ma_20,
+                resistance_24h,
+                support_24h,
+                CASE WHEN close > ma_20 THEN 'ABOVE' ELSE 'BELOW' END as price_vs_ma
+            FROM recent_prices
+            WHERE rn = 1
+        """)
+        
+        try:
+            with self.db.engine.connect() as conn:
+                result = conn.execute(query)
+                rows = result.fetchall()
+                
+                if rows:
+                    ma_df = pd.DataFrame(rows, columns=[
+                        'coin_id', 'current_price', 'ma_20', 'resistance_24h', 'support_24h', 'price_vs_ma'
+                    ])
+                    
+                    # Merge with main df
+                    df = df.merge(ma_df, on='coin_id', how='left', suffixes=('', '_ma'))
+                    
+                    # MA Confirmation: Bullish pattern + price above MA, or Bearish pattern + price below MA
+                    df['ma_confirmed'] = (
+                        ((df['pattern_direction'] == 'BULLISH') & (df['price_vs_ma'] == 'ABOVE')) |
+                        ((df['pattern_direction'] == 'BEARISH') & (df['price_vs_ma'] == 'BELOW')) |
+                        ((df['divergence_type'] == 'BULLISH_DIV') & (df['price_vs_ma'] == 'ABOVE')) |
+                        ((df['divergence_type'] == 'BEARISH_DIV') & (df['price_vs_ma'] == 'BELOW'))
+                    ).fillna(False)
+                    
+                    # Near S/R level (within 2% of support or resistance)
+                    price = df['price'].fillna(0)
+                    support = df['support_24h'].fillna(0)
+                    resistance = df['resistance_24h'].fillna(0)
+                    
+                    df['near_support'] = (price > 0) & (support > 0) & (abs(price - support) / support < 0.02)
+                    df['near_resistance'] = (price > 0) & (resistance > 0) & (abs(price - resistance) / resistance < 0.02)
+                    
+                    # Bullish pattern near support = strong, Bearish near resistance = strong
+                    df['near_sr'] = (
+                        ((df['pattern_direction'] == 'BULLISH') & df['near_support']) |
+                        ((df['pattern_direction'] == 'BEARISH') & df['near_resistance']) |
+                        ((df['divergence_type'] == 'BULLISH_DIV') & df['near_support']) |
+                        ((df['divergence_type'] == 'BEARISH_DIV') & df['near_resistance'])
+                    ).fillna(False)
+                    
+                    # Cleanup merge columns
+                    df.drop(columns=[c for c in df.columns if c.endswith('_ma')], errors='ignore', inplace=True)
+                    
+        except Exception as e:
+            logger.warning(f"MA/SR calculation failed: {e}")
+        
+        # 4. Multi-timeframe alignment (already have this in trend consistency)
+        df['mtf_aligned'] = df['trend_consistency_score'].fillna(50) >= 80
+        
+        # Count confirmations
+        df['confirmation_count'] = (
+            df['volume_confirmed'].astype(int) +
+            df['ma_confirmed'].astype(int) +
+            df['rsi_extreme'].astype(int) +
+            df['near_sr'].astype(int) +
+            df['mtf_aligned'].astype(int)
+        )
+        
+        # Confirmation score: Each confirmation adds bonus points
+        # 0 = no bonus, 1 = +3, 2 = +6, 3 = +10, 4 = +15, 5 = +20
+        confirmation_bonuses = {0: 0, 1: 3, 2: 6, 3: 10, 4: 15, 5: 20}
+        df['confirmation_score'] = df['confirmation_count'].map(
+            lambda x: confirmation_bonuses.get(min(x, 5), 0)
+        )
+        
+        # Upgrade pattern reliability based on confirmations
+        # 3+ confirmations = HIGH, 2 = MEDIUM stays, 1 or 0 = LOW
+        df['pattern_reliability_adj'] = np.where(
+            df['confirmation_count'] >= 3,
+            'HIGH',
+            np.where(
+                df['confirmation_count'] >= 2,
+                df['pattern_reliability'],
+                np.where(
+                    df['pattern_reliability'].notna(),
+                    'LOW',
+                    None
+                )
+            )
+        )
+        
+        # Recalculate pattern score with adjusted reliability
+        df['pattern_score'] = np.where(
+            df['pattern_direction'] == 'BULLISH',
+            np.where(df['pattern_reliability_adj'] == 'HIGH', 15, 
+                     np.where(df['pattern_reliability_adj'] == 'MEDIUM', 10, 5)),
+            np.where(
+                df['pattern_direction'] == 'BEARISH',
+                np.where(df['pattern_reliability_adj'] == 'HIGH', -15, 
+                         np.where(df['pattern_reliability_adj'] == 'MEDIUM', -10, -5)),
+                0
+            )
+        )
+        
+        return df
 
     def _detect_pumps_dumps_advanced(self, df: pd.DataFrame) -> pd.DataFrame:
+
 
         """Advanced pump/dump detection."""
         is_pump = (
@@ -720,6 +873,7 @@ class DiscoveryEngine:
         - Relative Strength Score (30%)
         - Pattern Bonus (candlestick patterns)
         - Divergence Bonus (RSI divergence)
+        - Confirmation Bonus (multi-factor validation)
         - Trend/Outperformer bonuses
         """
         # Base score from momentum and RS
@@ -731,6 +885,9 @@ class DiscoveryEngine:
         # Divergence bonus (from RSI divergence: -15 to +15)
         divergence_bonus = df['divergence_score'].fillna(0)
         
+        # Confirmation bonus (0 to +20 based on confirmation count)
+        confirmation_bonus = df['confirmation_score'].fillna(0)
+        
         # Other bonuses
         rank_bonus = np.where(df['market_cap_rank'] > 100, 10, 0)  # Small cap bonus
         outperformer_bonus = np.where(df['is_outperformer'], 10, 0)
@@ -741,6 +898,7 @@ class DiscoveryEngine:
             base_score + 
             pattern_bonus + 
             divergence_bonus + 
+            confirmation_bonus +
             rank_bonus + 
             outperformer_bonus + 
             trend_bonus
@@ -748,19 +906,31 @@ class DiscoveryEngine:
         
         df['discovery_score'] = np.clip(df['discovery_score'], 0, 100)
         
-        # Create signal strength label based on technical signals
+        # Create signal strength label based on technical signals + confirmations
+        high_confirmation = df['confirmation_count'].fillna(0) >= 3
+        
         df['signal_strength'] = np.select(
             [
+                # VERY_STRONG: Pattern + Divergence + 3+ confirmations
+                (df['pattern_direction'] == 'BULLISH') & (df['divergence_type'] == 'BULLISH_DIV') & high_confirmation,
+                (df['pattern_direction'] == 'BEARISH') & (df['divergence_type'] == 'BEARISH_DIV') & high_confirmation,
+                # STRONG: Pattern + Divergence (without high confirmation)
                 (df['pattern_direction'] == 'BULLISH') & (df['divergence_type'] == 'BULLISH_DIV'),
                 (df['pattern_direction'] == 'BEARISH') & (df['divergence_type'] == 'BEARISH_DIV'),
+                # CONFIRMED: Pattern or Divergence + 3+ confirmations
+                ((df['pattern_direction'] == 'BULLISH') | (df['divergence_type'] == 'BULLISH_DIV')) & high_confirmation,
+                ((df['pattern_direction'] == 'BEARISH') | (df['divergence_type'] == 'BEARISH_DIV')) & high_confirmation,
+                # MODERATE: Pattern or Divergence only
                 (df['pattern_direction'] == 'BULLISH') | (df['divergence_type'] == 'BULLISH_DIV'),
                 (df['pattern_direction'] == 'BEARISH') | (df['divergence_type'] == 'BEARISH_DIV'),
             ],
-            ['STRONG_BULLISH', 'STRONG_BEARISH', 'BULLISH', 'BEARISH'],
+            ['VERY_STRONG_BULL', 'VERY_STRONG_BEAR', 'STRONG_BULLISH', 'STRONG_BEARISH', 
+             'CONFIRMED_BULL', 'CONFIRMED_BEAR', 'BULLISH', 'BEARISH'],
             default=None
         )
         
         return df
+
 
     
     def _upsert_snapshot(self, df: pd.DataFrame) -> int:
