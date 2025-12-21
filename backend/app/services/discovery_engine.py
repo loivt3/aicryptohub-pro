@@ -83,16 +83,22 @@ class DiscoveryEngine:
             df = self._calculate_relative_strength(df)
             df = self._detect_anomalies(df)
             
-            # Step 5: Detect sudden pumps/dumps
+            # Step 5: Detect candlestick patterns (NEW)
+            df = await self._detect_candlestick_patterns(df)
+            
+            # Step 6: Detect RSI divergence (NEW)
+            df = await self._detect_rsi_divergence(df)
+            
+            # Step 7: Detect sudden pumps/dumps
             df = self._detect_pumps_dumps_advanced(df)
             
-            # Step 6: Merge with sentiment data
+            # Step 8: Merge with sentiment data
             df = self._merge_sentiment(df)
             
-            # Step 7: Calculate discovery score
+            # Step 9: Calculate discovery score (includes pattern bonus)
             df = self._calculate_discovery_score(df)
             
-            # Step 8: Upsert to snapshot table
+            # Step 10: Upsert to snapshot table
             upsert_count = self._upsert_snapshot(df)
             
             elapsed = (datetime.now() - start_time).total_seconds()
@@ -100,6 +106,9 @@ class DiscoveryEngine:
             high_momentum = int((df['momentum_score'] >= 70).sum()) if 'momentum_score' in df.columns else 0
             strong_trends = int((df['trend_score'].abs() >= 3).sum()) if 'trend_score' in df.columns else 0
             anomalies = int((df['is_anomaly'] == True).sum()) if 'is_anomaly' in df.columns else 0
+            bullish_patterns = int((df['pattern_direction'] == 'BULLISH').sum()) if 'pattern_direction' in df.columns else 0
+            bearish_patterns = int((df['pattern_direction'] == 'BEARISH').sum()) if 'pattern_direction' in df.columns else 0
+            divergences = int((df['has_divergence'] == True).sum()) if 'has_divergence' in df.columns else 0
             
             stats = {
                 "success": True,
@@ -110,6 +119,9 @@ class DiscoveryEngine:
                 "high_momentum_coins": high_momentum,
                 "strong_trends": strong_trends,
                 "anomalies_detected": anomalies,
+                "bullish_patterns": bullish_patterns,
+                "bearish_patterns": bearish_patterns,
+                "divergences_detected": divergences,
                 "elapsed_seconds": round(elapsed, 2),
                 "updated_at": datetime.now().isoformat(),
             }
@@ -118,6 +130,7 @@ class DiscoveryEngine:
             return stats
             
         except Exception as e:
+
             logger.error(f"Discovery update failed: {e}")
             return {"success": False, "error": str(e)}
     
@@ -337,7 +350,317 @@ class DiscoveryEngine:
         
         return df
     
+    async def _detect_candlestick_patterns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Detect candlestick reversal patterns from OHLCV data.
+        
+        Patterns detected:
+        - Bullish Engulfing, Hammer, Morning Star, Piercing Line
+        - Bearish Engulfing, Shooting Star, Evening Star, Dark Cloud
+        - Doji (indecision)
+        """
+        # Initialize pattern columns
+        df['pattern_name'] = None
+        df['pattern_direction'] = None  # BULLISH, BEARISH, NEUTRAL
+        df['pattern_reliability'] = None  # HIGH, MEDIUM, LOW
+        df['pattern_score'] = 0  # Impact on discovery score
+        
+        # Try to get patterns from aihub_patterns table (cached)
+        query = text("""
+            SELECT DISTINCT ON (coin_id) coin_id, pattern, direction, reliability
+            FROM aihub_patterns
+            WHERE detected_at > NOW() - INTERVAL '2 hours'
+            ORDER BY coin_id, detected_at DESC
+        """)
+        
+        try:
+            with self.db.engine.connect() as conn:
+                result = conn.execute(query)
+                rows = result.fetchall()
+                
+                if rows:
+                    pattern_df = pd.DataFrame(rows, columns=['coin_id', 'pattern_name', 'pattern_direction', 'pattern_reliability'])
+                    
+                    df = df.merge(pattern_df, on='coin_id', how='left', suffixes=('', '_db'))
+                    df['pattern_name'] = df['pattern_name_db'].fillna(df['pattern_name'])
+                    df['pattern_direction'] = df['pattern_direction_db'].fillna(df['pattern_direction'])
+                    df['pattern_reliability'] = df['pattern_reliability_db'].fillna(df['pattern_reliability'])
+                    df.drop(columns=[c for c in df.columns if c.endswith('_db')], errors='ignore', inplace=True)
+                    
+                    logger.debug(f"Merged {len(rows)} patterns from database")
+                    
+        except Exception as e:
+            logger.debug(f"Pattern table query failed (table may not exist): {e}")
+        
+        # Fallback: Calculate patterns from OHLCV for coins without patterns
+        no_pattern_coins = df[df['pattern_name'].isna()]['coin_id'].tolist()[:50]  # Limit to 50
+        
+        if no_pattern_coins:
+            ohlcv_patterns = await self._calculate_patterns_from_ohlcv(no_pattern_coins)
+            
+            for pattern_data in ohlcv_patterns:
+                idx = df[df['coin_id'] == pattern_data['coin_id']].index
+                if len(idx) > 0:
+                    df.loc[idx[0], 'pattern_name'] = pattern_data['pattern']
+                    df.loc[idx[0], 'pattern_direction'] = pattern_data['direction']
+                    df.loc[idx[0], 'pattern_reliability'] = pattern_data['reliability']
+        
+        # Calculate pattern score
+        # Bullish patterns with HIGH reliability = +15, MEDIUM = +10, LOW = +5
+        # Bearish patterns = -15, -10, -5
+        df['pattern_score'] = np.where(
+            df['pattern_direction'] == 'BULLISH',
+            np.where(df['pattern_reliability'] == 'HIGH', 15, np.where(df['pattern_reliability'] == 'MEDIUM', 10, 5)),
+            np.where(
+                df['pattern_direction'] == 'BEARISH',
+                np.where(df['pattern_reliability'] == 'HIGH', -15, np.where(df['pattern_reliability'] == 'MEDIUM', -10, -5)),
+                0
+            )
+        )
+        
+        return df
+    
+    async def _calculate_patterns_from_ohlcv(self, coin_ids: List[str]) -> List[Dict]:
+        """Calculate candlestick patterns from OHLCV data for specific coins."""
+        patterns = []
+        
+        query = text("""
+            SELECT coin_id, open, high, low, close, volume, timestamp
+            FROM aihub_ohlcv
+            WHERE interval = '1h'
+              AND coin_id = ANY(:coin_ids)
+              AND timestamp > NOW() - INTERVAL '24 hours'
+            ORDER BY coin_id, timestamp DESC
+        """)
+        
+        try:
+            with self.db.engine.connect() as conn:
+                result = conn.execute(query, {"coin_ids": coin_ids})
+                rows = result.fetchall()
+                
+                if not rows:
+                    return patterns
+                
+                ohlcv_df = pd.DataFrame(rows, columns=['coin_id', 'open', 'high', 'low', 'close', 'volume', 'timestamp'])
+                
+                for coin_id in coin_ids:
+                    coin_data = ohlcv_df[ohlcv_df['coin_id'] == coin_id].sort_values('timestamp', ascending=False)
+                    
+                    if len(coin_data) < 3:
+                        continue
+                    
+                    # Get last 3 candles
+                    c1 = coin_data.iloc[0]  # Most recent
+                    c2 = coin_data.iloc[1]  # Previous
+                    c3 = coin_data.iloc[2] if len(coin_data) >= 3 else None  # 2 candles ago
+                    
+                    # Calculate candle properties
+                    body_1 = float(c1['close'] - c1['open'])
+                    body_2 = float(c2['close'] - c2['open'])
+                    range_1 = float(c1['high'] - c1['low'])
+                    range_2 = float(c2['high'] - c2['low'])
+                    
+                    pattern = None
+                    direction = None
+                    reliability = "MEDIUM"
+                    
+                    # === BULLISH PATTERNS ===
+                    
+                    # Bullish Engulfing: Big green candle engulfs previous red
+                    if body_1 > 0 and body_2 < 0 and abs(body_1) > abs(body_2) * 1.5:
+                        pattern = "Bullish Engulfing"
+                        direction = "BULLISH"
+                        reliability = "HIGH"
+                    
+                    # Hammer: Small body at top, long lower wick (at bottom of trend)
+                    elif range_1 > 0:
+                        lower_wick_1 = float(min(c1['open'], c1['close']) - c1['low'])
+                        upper_wick_1 = float(c1['high'] - max(c1['open'], c1['close']))
+                        
+                        if lower_wick_1 > abs(body_1) * 2 and upper_wick_1 < abs(body_1) * 0.5:
+                            # Confirm downtrend before hammer
+                            if body_2 < 0:
+                                pattern = "Hammer"
+                                direction = "BULLISH"
+                                reliability = "MEDIUM"
+                    
+                    # Piercing Line: Red followed by green that closes above 50% of red
+                    if not pattern and body_1 > 0 and body_2 < 0:
+                        midpoint = float(c2['close']) + abs(body_2) / 2
+                        if float(c1['close']) > midpoint and float(c1['open']) < float(c2['close']):
+                            pattern = "Piercing Line"
+                            direction = "BULLISH"
+                            reliability = "MEDIUM"
+                    
+                    # === BEARISH PATTERNS ===
+                    
+                    # Bearish Engulfing: Big red candle engulfs previous green
+                    if not pattern and body_1 < 0 and body_2 > 0 and abs(body_1) > abs(body_2) * 1.5:
+                        pattern = "Bearish Engulfing"
+                        direction = "BEARISH"
+                        reliability = "HIGH"
+                    
+                    # Shooting Star: Small body at bottom, long upper wick (at top of trend)
+                    elif not pattern and range_1 > 0:
+                        lower_wick_1 = float(min(c1['open'], c1['close']) - c1['low'])
+                        upper_wick_1 = float(c1['high'] - max(c1['open'], c1['close']))
+                        
+                        if upper_wick_1 > abs(body_1) * 2 and lower_wick_1 < abs(body_1) * 0.5:
+                            if body_2 > 0:  # Confirm uptrend
+                                pattern = "Shooting Star"
+                                direction = "BEARISH"
+                                reliability = "MEDIUM"
+                    
+                    # Dark Cloud Cover: Green followed by red that closes below 50%
+                    if not pattern and body_1 < 0 and body_2 > 0:
+                        midpoint = float(c2['open']) + body_2 / 2
+                        if float(c1['close']) < midpoint and float(c1['open']) > float(c2['close']):
+                            pattern = "Dark Cloud Cover"
+                            direction = "BEARISH"
+                            reliability = "MEDIUM"
+                    
+                    # === NEUTRAL ===
+                    
+                    # Doji: Very small body (indecision)
+                    if not pattern and range_1 > 0 and abs(body_1) / range_1 < 0.1:
+                        pattern = "Doji"
+                        direction = "NEUTRAL"
+                        reliability = "LOW"
+                    
+                    if pattern:
+                        patterns.append({
+                            "coin_id": coin_id,
+                            "pattern": pattern,
+                            "direction": direction,
+                            "reliability": reliability,
+                        })
+                        
+        except Exception as e:
+            logger.warning(f"OHLCV pattern calculation failed: {e}")
+        
+        return patterns
+    
+    async def _detect_rsi_divergence(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Detect RSI divergence from OHLCV data.
+        
+        Bullish Divergence: Price makes lower low, RSI makes higher low
+        Bearish Divergence: Price makes higher high, RSI makes lower high
+        """
+        # Initialize divergence columns
+        df['has_divergence'] = False
+        df['divergence_type'] = None  # BULLISH_DIV, BEARISH_DIV
+        df['rsi_14'] = None
+        df['divergence_score'] = 0
+        
+        # Get RSI data from OHLCV calculations
+        query = text("""
+            WITH price_data AS (
+                SELECT 
+                    coin_id,
+                    close,
+                    high,
+                    low,
+                    timestamp,
+                    LAG(close) OVER (PARTITION BY coin_id ORDER BY timestamp) as prev_close,
+                    ROW_NUMBER() OVER (PARTITION BY coin_id ORDER BY timestamp DESC) as rn
+                FROM aihub_ohlcv
+                WHERE interval = '1h'
+                  AND timestamp > NOW() - INTERVAL '48 hours'
+            ),
+            gains_losses AS (
+                SELECT 
+                    coin_id,
+                    timestamp,
+                    close,
+                    high,
+                    low,
+                    rn,
+                    CASE WHEN close > prev_close THEN close - prev_close ELSE 0 END as gain,
+                    CASE WHEN close < prev_close THEN prev_close - close ELSE 0 END as loss
+                FROM price_data
+                WHERE prev_close IS NOT NULL
+            ),
+            rsi_calc AS (
+                SELECT 
+                    coin_id,
+                    timestamp,
+                    close,
+                    high,
+                    low,
+                    rn,
+                    AVG(gain) OVER (PARTITION BY coin_id ORDER BY timestamp ROWS BETWEEN 13 PRECEDING AND CURRENT ROW) as avg_gain,
+                    AVG(loss) OVER (PARTITION BY coin_id ORDER BY timestamp ROWS BETWEEN 13 PRECEDING AND CURRENT ROW) as avg_loss
+                FROM gains_losses
+            )
+            SELECT 
+                coin_id,
+                rn,
+                close,
+                high,
+                low,
+                CASE WHEN avg_loss = 0 THEN 100 
+                     ELSE 100 - (100 / (1 + avg_gain / NULLIF(avg_loss, 0))) 
+                END as rsi_14
+            FROM rsi_calc
+            WHERE rn <= 10  -- Last 10 hourly candles
+            ORDER BY coin_id, rn
+        """)
+        
+        try:
+            with self.db.engine.connect() as conn:
+                result = conn.execute(query)
+                rows = result.fetchall()
+                
+                if not rows:
+                    return df
+                
+                rsi_df = pd.DataFrame(rows, columns=['coin_id', 'rn', 'close', 'high', 'low', 'rsi_14'])
+                
+                # For each coin, detect divergence
+                for coin_id in rsi_df['coin_id'].unique():
+                    coin_rsi = rsi_df[rsi_df['coin_id'] == coin_id].sort_values('rn')
+                    
+                    if len(coin_rsi) < 6:
+                        continue
+                    
+                    # Get current (rn=1) and previous period (rn=4-6)
+                    current = coin_rsi.iloc[0]
+                    previous = coin_rsi.iloc[4:6].mean() if len(coin_rsi) >= 6 else None
+                    
+                    if previous is None:
+                        continue
+                    
+                    idx = df[df['coin_id'] == coin_id].index
+                    if len(idx) == 0:
+                        continue
+                    
+                    # Store current RSI
+                    df.loc[idx[0], 'rsi_14'] = round(float(current['rsi_14']), 1)
+                    
+                    # Detect Bullish Divergence: Lower low in price, higher low in RSI
+                    if float(current['low']) < float(previous['low']) and float(current['rsi_14']) > float(previous['rsi_14']):
+                        # Also check RSI is oversold (<40)
+                        if float(current['rsi_14']) < 40:
+                            df.loc[idx[0], 'has_divergence'] = True
+                            df.loc[idx[0], 'divergence_type'] = 'BULLISH_DIV'
+                            df.loc[idx[0], 'divergence_score'] = 15
+                            
+                    # Detect Bearish Divergence: Higher high in price, lower high in RSI
+                    elif float(current['high']) > float(previous['high']) and float(current['rsi_14']) < float(previous['rsi_14']):
+                        # Also check RSI is overbought (>60)
+                        if float(current['rsi_14']) > 60:
+                            df.loc[idx[0], 'has_divergence'] = True
+                            df.loc[idx[0], 'divergence_type'] = 'BEARISH_DIV'
+                            df.loc[idx[0], 'divergence_score'] = -15
+                            
+        except Exception as e:
+            logger.warning(f"RSI divergence detection failed: {e}")
+        
+        return df
+
     def _detect_pumps_dumps_advanced(self, df: pd.DataFrame) -> pd.DataFrame:
+
         """Advanced pump/dump detection."""
         is_pump = (
             (df['change_1h'] > self.PUMP_THRESHOLD_1H) &
@@ -389,17 +712,56 @@ class DiscoveryEngine:
         return df
     
     def _calculate_discovery_score(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Calculate Discovery Score for hidden gem detection."""
+        """
+        Calculate Discovery Score for hidden gem detection.
+        
+        Includes:
+        - Momentum Score (40%)
+        - Relative Strength Score (30%)
+        - Pattern Bonus (candlestick patterns)
+        - Divergence Bonus (RSI divergence)
+        - Trend/Outperformer bonuses
+        """
+        # Base score from momentum and RS
+        base_score = df['momentum_score'] * 0.4 + df['rs_score'] * 0.3
+        
+        # Pattern bonus (from candlestick patterns: -15 to +15)
+        pattern_bonus = df['pattern_score'].fillna(0)
+        
+        # Divergence bonus (from RSI divergence: -15 to +15)
+        divergence_bonus = df['divergence_score'].fillna(0)
+        
+        # Other bonuses
+        rank_bonus = np.where(df['market_cap_rank'] > 100, 10, 0)  # Small cap bonus
+        outperformer_bonus = np.where(df['is_outperformer'], 10, 0)
+        trend_bonus = np.where(df['trend_score'] > 2, 10, 0)
+        
+        # Combined score
         df['discovery_score'] = (
-            df['momentum_score'] * 0.4 +
-            df['rs_score'] * 0.3 +
-            np.where(df['market_cap_rank'] > 100, 10, 0) +
-            np.where(df['is_outperformer'], 10, 0) +
-            np.where(df['trend_score'] > 2, 10, 0)
+            base_score + 
+            pattern_bonus + 
+            divergence_bonus + 
+            rank_bonus + 
+            outperformer_bonus + 
+            trend_bonus
         ).round(0).astype(int)
+        
         df['discovery_score'] = np.clip(df['discovery_score'], 0, 100)
         
+        # Create signal strength label based on technical signals
+        df['signal_strength'] = np.select(
+            [
+                (df['pattern_direction'] == 'BULLISH') & (df['divergence_type'] == 'BULLISH_DIV'),
+                (df['pattern_direction'] == 'BEARISH') & (df['divergence_type'] == 'BEARISH_DIV'),
+                (df['pattern_direction'] == 'BULLISH') | (df['divergence_type'] == 'BULLISH_DIV'),
+                (df['pattern_direction'] == 'BEARISH') | (df['divergence_type'] == 'BEARISH_DIV'),
+            ],
+            ['STRONG_BULLISH', 'STRONG_BEARISH', 'BULLISH', 'BEARISH'],
+            default=None
+        )
+        
         return df
+
     
     def _upsert_snapshot(self, df: pd.DataFrame) -> int:
         """Upsert data into market_discovery_snapshot table."""
