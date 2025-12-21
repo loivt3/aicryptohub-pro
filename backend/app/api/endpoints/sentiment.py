@@ -130,6 +130,7 @@ async def get_multi_horizon_batch(
             missing.append(coin_id)
     
     computed_count = 0
+    fallback_count = 0
     
     # Compute missing coins (limit to 5 to prevent overload)
     if missing:
@@ -147,18 +148,59 @@ async def get_multi_horizon_batch(
                 computed_count += 1
             except Exception as e:
                 logger.warning(f"Failed to compute multi-horizon for {coin_id}: {e}")
-                # Return default values for failed coins
+                # Fallback: use basic ASI from aihub_sentiment
+                basic_sentiment = db.get_coin_sentiment(coin_id)
+                if basic_sentiment and basic_sentiment.get("asi_score"):
+                    basic_asi = int(basic_sentiment["asi_score"])
+                    basic_signal = basic_sentiment.get("signal", "NEUTRAL")
+                    results[coin_id] = {
+                        "coin_id": coin_id,
+                        "asi_short": basic_asi,
+                        "asi_medium": basic_asi,
+                        "asi_long": basic_asi,
+                        "asi_combined": basic_asi,
+                        "signal_short": basic_signal,
+                        "signal_medium": basic_signal,
+                        "signal_long": basic_signal,
+                        "signal_combined": basic_signal,
+                        "fallback": True,
+                    }
+                    fallback_count += 1
+                else:
+                    # Return default neutral values
+                    results[coin_id] = {
+                        "coin_id": coin_id,
+                        "asi_short": 50,
+                        "asi_medium": 50,
+                        "asi_long": 50,
+                        "asi_combined": 50,
+                        "signal_short": "NEUTRAL",
+                        "signal_medium": "NEUTRAL",
+                        "signal_long": "NEUTRAL",
+                        "signal_combined": "NEUTRAL",
+                        "fallback": True,
+                    }
+        
+        # For remaining missing coins beyond the 5 limit, use basic ASI fallback
+        for coin_id in missing[5:]:
+            basic_sentiment = db.get_coin_sentiment(coin_id)
+            if basic_sentiment and basic_sentiment.get("asi_score"):
+                basic_asi = int(basic_sentiment["asi_score"])
+                basic_signal = basic_sentiment.get("signal", "NEUTRAL")
                 results[coin_id] = {
                     "coin_id": coin_id,
-                    "asi_short": 50,
-                    "asi_medium": 50,
-                    "asi_long": 50,
-                    "asi_combined": 50,
-                    "signal_short": "NEUTRAL",
-                    "signal_medium": "NEUTRAL",
-                    "signal_long": "NEUTRAL",
-                    "signal_combined": "NEUTRAL",
+                    "asi_short": basic_asi,
+                    "asi_medium": basic_asi,
+                    "asi_long": basic_asi,
+                    "asi_combined": basic_asi,
+                    "signal_short": basic_signal,
+                    "signal_medium": basic_signal,
+                    "signal_long": basic_signal,
+                    "signal_combined": basic_signal,
+                    "fallback": True,
                 }
+                fallback_count += 1
+
     
     return {
         "success": True,

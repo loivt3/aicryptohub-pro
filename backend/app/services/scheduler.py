@@ -345,7 +345,7 @@ async def run_ohlcv_1M_job():
 
 async def run_multi_horizon_job():
     """
-    Pre-compute multi-horizon ASI for top 50 coins.
+    Pre-compute multi-horizon ASI for top 100 coins.
     This populates the cache so batch API calls are instant.
     """
     state = SCHEDULER_STATE["multi_horizon"]
@@ -371,8 +371,8 @@ async def run_multi_horizon_job():
         
         analyzer = AnalyzerService(db, settings)
         
-        # Get top 50 coins by market cap
-        coins = db.get_market_data(limit=50, orderby="market_cap")
+        # Get top 100 coins by market cap (Tier 1)
+        coins = db.get_market_data(limit=100, orderby="market_cap")
         coin_ids = [c["coin_id"] for c in coins if c.get("coin_id")]
         
         computed = 0
@@ -414,7 +414,7 @@ async def run_multi_horizon_job():
 
 async def run_multi_horizon_tier2_job():
     """
-    Pre-compute multi-horizon ASI for coins ranked 51-200.
+    Pre-compute multi-horizon ASI for coins ranked 101-500.
     Runs less frequently (every 15 min) for extended coverage.
     """
     state = SCHEDULER_STATE["multi_horizon_tier2"]
@@ -430,7 +430,7 @@ async def run_multi_horizon_tier2_job():
         from app.services.analyzer import AnalyzerService
         from app.core.config import get_settings
         
-        logger.info("Scheduler: Starting Multi-Horizon Tier 2 (coins 51-200) job...")
+        logger.info("Scheduler: Starting Multi-Horizon Tier 2 (coins 101-500) job...")
         
         db = get_database_service()
         settings = get_settings()
@@ -440,9 +440,9 @@ async def run_multi_horizon_tier2_job():
         
         analyzer = AnalyzerService(db, settings)
         
-        # Get coins 51-200 by market cap (skip first 50, take next 150)
-        all_coins = db.get_market_data(limit=200, orderby="market_cap")
-        tier2_coins = all_coins[50:]  # Skip top 50
+        # Get coins 101-500 by market cap (skip first 100, take next 400)
+        all_coins = db.get_market_data(limit=500, orderby="market_cap")
+        tier2_coins = all_coins[100:]  # Skip top 100 (handled by Tier 1)
         coin_ids = [c["coin_id"] for c in tier2_coins if c.get("coin_id")]
         
         computed = 0
@@ -471,7 +471,7 @@ async def run_multi_horizon_tier2_job():
             "computed": computed,
             "failed": failed,
             "total": len(coin_ids),
-            "tier": "51-200",
+            "tier": "101-500",
         }
         
         logger.info(f"Scheduler: Multi-Horizon Tier 2 complete - computed {computed}/{len(coin_ids)}, failed {failed}")
