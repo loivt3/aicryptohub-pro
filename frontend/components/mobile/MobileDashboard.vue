@@ -561,7 +561,7 @@
           <NuxtLink to="/analysis" class="m-section-link">View All</NuxtLink>
         </div>
         
-        <!-- Treemap Container - Sorted by ASI -->
+        <!-- Treemap Container - Sorted by ASI (5x4 grid) -->
         <div class="m-treemap-container" ref="treemapContainer">
           <div 
             v-for="(tile, idx) in treemapLayout" 
@@ -572,17 +572,15 @@
               top: tile.y + '%',
               width: tile.w + '%',
               height: tile.h + '%',
-              ...getTreemapTileStyle(tile.asi_score, tile.change_24h),
             }"
           >
-            <span class="treemap-symbol" :class="{ 'treemap-symbol-small': tile.w < 15 }">
-              {{ tile.symbol?.toUpperCase() }}
-            </span>
-            <span v-if="tile.w >= 12" class="treemap-asi" :class="getAsiClass(tile.asi_score)">
-              {{ tile.asi_score || '--' }}
-            </span>
+            <div class="m-treemap-tile-inner" :style="getTreemapTileStyle(tile.asi_score, tile.change_24h)">
+              <span class="treemap-symbol">{{ tile.symbol?.toUpperCase() }}</span>
+              <span class="treemap-asi">{{ tile.asi_score || '--' }}</span>
+            </div>
           </div>
         </div>
+
         
         <!-- Legend - ASI based -->
         <div class="m-heatmap-legend">
@@ -840,75 +838,33 @@ const aiSignals = computed(() => {
       signal: sentimentMap.value[c.coin_id]?.signal || 'HOLD',
     }))
     .sort((a, b) => (b.asi_score || 50) - (a.asi_score || 50))  // Sort by ASI score descending
-    .slice(0, 20)  // Top 20 coins for treemap
+    .slice(0, 20)  // Top 20 coins for heatmap
 })
 
-// Treemap layout calculator - improved row-based algorithm
+// Uniform grid layout - 5 columns x 4 rows
 const treemapLayout = computed(() => {
   const coins = aiSignals.value
   if (!coins.length) return []
   
-  // Use logarithmic scale to prevent BTC from dominating
-  const items = coins.map(c => ({
-    ...c,
-    weight: Math.log10((c.market_cap || 1) + 1),
-  }))
+  const COLS = 5
+  const ROWS = 4
+  const tileWidth = 100 / COLS  // 20%
+  const tileHeight = 100 / ROWS  // 25%
   
-  const totalWeight = items.reduce((sum, c) => sum + c.weight, 0)
-  if (totalWeight === 0) return []
-  
-  // Normalize weights
-  items.forEach(item => {
-    item.weight = item.weight / totalWeight
-  })
-  
-  // Define rows based on number of items
-  // Row 1: Top 2 (biggest)
-  // Row 2: Next 3
-  // Row 3: Next 5
-  // Row 4: Next 5
-  // Row 5: Remaining
-  const rowConfig = [
-    { count: 2, height: 30 },   // 30% height for top 2
-    { count: 3, height: 25 },   // 25% for next 3
-    { count: 5, height: 20 },   // 20% for next 5
-    { count: 5, height: 15 },   // 15% for next 5
-    { count: 5, height: 10 },   // 10% for remaining
-  ]
-  
-  const layout: any[] = []
-  let currentY = 0
-  let itemIndex = 0
-  
-  for (const row of rowConfig) {
-    if (itemIndex >= items.length) break
+  return coins.slice(0, COLS * ROWS).map((coin, idx) => {
+    const row = Math.floor(idx / COLS)
+    const col = idx % COLS
     
-    const rowItems = items.slice(itemIndex, itemIndex + row.count)
-    if (rowItems.length === 0) break
-    
-    // Calculate row weight for proportional widths
-    const rowTotalWeight = rowItems.reduce((sum, item) => sum + item.weight, 0)
-    
-    // Layout items in this row
-    let currentX = 0
-    for (const item of rowItems) {
-      const widthPct = (item.weight / rowTotalWeight) * 100
-      layout.push({
-        ...item,
-        x: currentX,
-        y: currentY,
-        w: Math.max(widthPct, 8), // Min 8% width for readability
-        h: row.height,
-      })
-      currentX += widthPct
+    return {
+      ...coin,
+      x: col * tileWidth,
+      y: row * tileHeight,
+      w: tileWidth,
+      h: tileHeight,
     }
-    
-    currentY += row.height
-    itemIndex += rowItems.length
-  }
-  
-  return layout
+  })
 })
+
 
 // Treemap tile style based on ASI score (bullish/bearish indicator)
 const getTreemapTileStyle = (asiScore: number, change24h: number) => {
@@ -1629,41 +1585,63 @@ const toggleFavorite = (coinId: string) => {
 /* ==================== TREEMAP STYLES ==================== */
 .m-treemap-container {
   position: relative;
-  width: 100%;
-  height: 220px;
+  width: calc(100% - 24px);
+  height: 200px;
   margin: 0 12px;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
-  background: #1a1a2e;
+  background: #0d1117;
+  padding: 4px;
 }
 
 .m-treemap-tile {
   position: absolute;
   display: flex;
+  box-sizing: border-box;
+  padding: 2px;
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.m-treemap-tile-inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(0,0,0,0.3);
-  transition: all 0.2s ease;
-  cursor: pointer;
-  overflow: hidden;
+  border-radius: 6px;
+  transition: filter 0.2s ease;
 }
 
 .m-treemap-tile:hover {
-  filter: brightness(1.2);
+  transform: scale(1.03);
   z-index: 10;
 }
 
+.m-treemap-tile:hover .m-treemap-tile-inner {
+  filter: brightness(1.15);
+}
+
 .treemap-symbol {
-  font-size: 14px;
-  font-weight: 800;
+
+  font-size: 11px;
+  font-weight: 700;
   color: #fff;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-  letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  letter-spacing: 0.3px;
 }
 
 .treemap-symbol-small {
-  font-size: 10px;
+  font-size: 9px;
+}
+
+.treemap-asi {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.95);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  margin-top: 1px;
 }
 
 .treemap-change {
@@ -1682,3 +1660,4 @@ const toggleFavorite = (coinId: string) => {
   color: #ffcdd2;
 }
 </style>
+
