@@ -184,23 +184,29 @@ class DiscoveryEngine:
         """Calculate % changes from OHLCV data."""
         now = datetime.now()
         
+        # Fixed query using correct OHLCV schema:
+        # - symbol (not coin_id)
+        # - open_time (not timestamp)
+        # - timeframe = 1 for 1h (not interval = '1h')
         query = text("""
             WITH latest_prices AS (
-                SELECT DISTINCT ON (coin_id) 
-                    coin_id, close as current_close
-                FROM aihub_ohlcv
-                WHERE interval = '1h'
-                  AND timestamp > :recent_time
-                ORDER BY coin_id, timestamp DESC
+                SELECT DISTINCT ON (o.symbol) 
+                    c.coin_id, o.close as current_close
+                FROM aihub_ohlcv o
+                JOIN aihub_coins c ON UPPER(o.symbol) = UPPER(c.symbol)
+                WHERE o.timeframe = 1
+                  AND o.open_time > :recent_time
+                ORDER BY o.symbol, o.open_time DESC
             ),
             prices_4h AS (
-                SELECT DISTINCT ON (coin_id)
-                    coin_id, close as close_4h
-                FROM aihub_ohlcv
-                WHERE interval = '1h'
-                  AND timestamp <= :time_4h
-                  AND timestamp > :time_4h - INTERVAL '2 hours'
-                ORDER BY coin_id, timestamp DESC
+                SELECT DISTINCT ON (o.symbol)
+                    c.coin_id, o.close as close_4h
+                FROM aihub_ohlcv o
+                JOIN aihub_coins c ON UPPER(o.symbol) = UPPER(c.symbol)
+                WHERE o.timeframe = 1
+                  AND o.open_time <= :time_4h
+                  AND o.open_time > :time_4h - INTERVAL '2 hours'
+                ORDER BY o.symbol, o.open_time DESC
             )
             SELECT 
                 lp.coin_id,
@@ -231,19 +237,22 @@ class DiscoveryEngine:
             df['change_4h'] = df['change_24h'] * 4 / 24
         
         return df
+
     
     async def _calculate_volume_metrics(self, df: pd.DataFrame) -> pd.DataFrame:
         """Calculate advanced volume metrics."""
+        # Fixed query using correct OHLCV schema:
         query = text("""
             WITH volume_stats AS (
                 SELECT 
-                    coin_id,
-                    SUM(CASE WHEN timestamp > NOW() - INTERVAL '1 hour' THEN volume ELSE 0 END) as volume_1h,
-                    AVG(volume) as avg_volume_1h
-                FROM aihub_ohlcv
-                WHERE interval = '1h'
-                  AND timestamp > NOW() - INTERVAL '24 hours'
-                GROUP BY coin_id
+                    c.coin_id,
+                    SUM(CASE WHEN o.open_time > NOW() - INTERVAL '1 hour' THEN o.volume ELSE 0 END) as volume_1h,
+                    AVG(o.volume) as avg_volume_1h
+                FROM aihub_ohlcv o
+                JOIN aihub_coins c ON UPPER(o.symbol) = UPPER(c.symbol)
+                WHERE o.timeframe = 1
+                  AND o.open_time > NOW() - INTERVAL '24 hours'
+                GROUP BY c.coin_id
             )
             SELECT 
                 coin_id,
@@ -557,25 +566,26 @@ class DiscoveryEngine:
         df['rsi_14'] = None
         df['divergence_score'] = 0
         
-        # Get RSI data from OHLCV calculations
+        # Fixed query using correct OHLCV schema
         query = text("""
             WITH price_data AS (
                 SELECT 
-                    coin_id,
-                    close,
-                    high,
-                    low,
-                    timestamp,
-                    LAG(close) OVER (PARTITION BY coin_id ORDER BY timestamp) as prev_close,
-                    ROW_NUMBER() OVER (PARTITION BY coin_id ORDER BY timestamp DESC) as rn
-                FROM aihub_ohlcv
-                WHERE interval = '1h'
-                  AND timestamp > NOW() - INTERVAL '48 hours'
+                    c.coin_id,
+                    o.close,
+                    o.high,
+                    o.low,
+                    o.open_time,
+                    LAG(o.close) OVER (PARTITION BY o.symbol ORDER BY o.open_time) as prev_close,
+                    ROW_NUMBER() OVER (PARTITION BY o.symbol ORDER BY o.open_time DESC) as rn
+                FROM aihub_ohlcv o
+                JOIN aihub_coins c ON UPPER(o.symbol) = UPPER(c.symbol)
+                WHERE o.timeframe = 1
+                  AND o.open_time > NOW() - INTERVAL '48 hours'
             ),
             gains_losses AS (
                 SELECT 
                     coin_id,
-                    timestamp,
+                    open_time,
                     close,
                     high,
                     low,
@@ -588,15 +598,16 @@ class DiscoveryEngine:
             rsi_calc AS (
                 SELECT 
                     coin_id,
-                    timestamp,
+                    open_time,
                     close,
                     high,
                     low,
                     rn,
-                    AVG(gain) OVER (PARTITION BY coin_id ORDER BY timestamp ROWS BETWEEN 13 PRECEDING AND CURRENT ROW) as avg_gain,
-                    AVG(loss) OVER (PARTITION BY coin_id ORDER BY timestamp ROWS BETWEEN 13 PRECEDING AND CURRENT ROW) as avg_loss
+                    AVG(gain) OVER (PARTITION BY coin_id ORDER BY open_time ROWS BETWEEN 13 PRECEDING AND CURRENT ROW) as avg_gain,
+                    AVG(loss) OVER (PARTITION BY coin_id ORDER BY open_time ROWS BETWEEN 13 PRECEDING AND CURRENT ROW) as avg_loss
                 FROM gains_losses
             )
+
             SELECT 
                 coin_id,
                 rn,
@@ -845,16 +856,18 @@ class DiscoveryEngine:
         df['macd_histogram'] = None
         df['macd_signal_type'] = None
         
+        # Fixed query using correct OHLCV schema
         query = text("""
             WITH price_series AS (
                 SELECT 
-                    coin_id,
-                    close,
-                    timestamp,
-                    ROW_NUMBER() OVER (PARTITION BY coin_id ORDER BY timestamp DESC) as rn
-                FROM aihub_ohlcv
-                WHERE interval = '1h'
-                  AND timestamp > NOW() - INTERVAL '48 hours'
+                    c.coin_id,
+                    o.close,
+                    o.open_time,
+                    ROW_NUMBER() OVER (PARTITION BY o.symbol ORDER BY o.open_time DESC) as rn
+                FROM aihub_ohlcv o
+                JOIN aihub_coins c ON UPPER(o.symbol) = UPPER(c.symbol)
+                WHERE o.timeframe = 1
+                  AND o.open_time > NOW() - INTERVAL '48 hours'
             ),
             ema_calc AS (
                 SELECT 
@@ -874,6 +887,7 @@ class DiscoveryEngine:
                     LAG(ema_12 - ema_26) OVER (PARTITION BY coin_id ORDER BY rn DESC) as prev_macd
                 FROM ema_calc
             )
+
             SELECT 
                 coin_id,
                 macd,
@@ -942,18 +956,20 @@ class DiscoveryEngine:
         df['bb_squeeze'] = False
         df['bb_width'] = None
         
+        # Fixed query using correct OHLCV schema
         query = text("""
             WITH price_series AS (
                 SELECT 
-                    coin_id,
-                    close,
-                    high,
-                    low,
-                    timestamp,
-                    ROW_NUMBER() OVER (PARTITION BY coin_id ORDER BY timestamp DESC) as rn
-                FROM aihub_ohlcv
-                WHERE interval = '1h'
-                  AND timestamp > NOW() - INTERVAL '48 hours'
+                    c.coin_id,
+                    o.close,
+                    o.high,
+                    o.low,
+                    o.open_time,
+                    ROW_NUMBER() OVER (PARTITION BY o.symbol ORDER BY o.open_time DESC) as rn
+                FROM aihub_ohlcv o
+                JOIN aihub_coins c ON UPPER(o.symbol) = UPPER(c.symbol)
+                WHERE o.timeframe = 1
+                  AND o.open_time > NOW() - INTERVAL '48 hours'
             ),
             bb_calc AS (
                 SELECT 
@@ -964,6 +980,7 @@ class DiscoveryEngine:
                 FROM price_series
                 WHERE rn <= 25
             )
+
             SELECT 
                 coin_id,
                 close as current_price,
