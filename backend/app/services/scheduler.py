@@ -95,6 +95,15 @@ SCHEDULER_STATE = {
         "is_running": False,
         "last_result": None,
     },
+    # Market Discovery Engine - Top Gainers/Losers snapshot
+    "discovery_engine": {
+        "enabled": True,
+        "interval_minutes": 5,  # Every 5 minutes
+        "last_run": None,
+        "next_run": None,
+        "is_running": False,
+        "last_result": None,
+    },
 }
 
 _scheduler: Optional[AsyncIOScheduler] = None
@@ -483,6 +492,39 @@ async def run_multi_horizon_tier2_job():
         state["is_running"] = False
 
 
+async def run_discovery_engine_job():
+    """Background job to update market discovery snapshot."""
+    state = SCHEDULER_STATE["discovery_engine"]
+    
+    if state["is_running"]:
+        logger.warning("Discovery engine job already running, skipping")
+        return
+    
+    state["is_running"] = True
+    state["last_run"] = datetime.now().isoformat()
+    
+    try:
+        from app.services.database import get_database_service
+        from app.services.discovery_engine import DiscoveryEngine
+        
+        logger.info("Scheduler: Starting Discovery Engine job...")
+        
+        db = get_database_service()
+        engine = DiscoveryEngine(db)
+        
+        result = await engine.update_snapshot()
+        
+        state["last_result"] = result
+        
+        logger.info(f"Scheduler: Discovery Engine complete - {result}")
+        
+    except Exception as e:
+        logger.error(f"Scheduler: Discovery Engine job failed - {e}")
+        state["last_result"] = {"error": str(e)}
+    finally:
+        state["is_running"] = False
+
+
 # ==================== Scheduler Management ====================
 
 def get_scheduler() -> Optional[AsyncIOScheduler]:
@@ -598,6 +640,17 @@ def start_scheduler():
             replace_existing=True,
         )
         logger.info(f"Scheduled Multi-Horizon Tier 2 job: every {SCHEDULER_STATE['multi_horizon_tier2']['interval_minutes']} minutes (51-200)")
+    
+    # Add Discovery Engine job - Market Gainers/Losers snapshot
+    if SCHEDULER_STATE["discovery_engine"]["enabled"]:
+        _scheduler.add_job(
+            run_discovery_engine_job,
+            trigger=IntervalTrigger(minutes=SCHEDULER_STATE["discovery_engine"]["interval_minutes"]),
+            id="discovery_engine_job",
+            name="Market Discovery Snapshot Update",
+            replace_existing=True,
+        )
+        logger.info(f"Scheduled Discovery Engine job: every {SCHEDULER_STATE['discovery_engine']['interval_minutes']} minutes")
     
     _scheduler.start()
     logger.info("Background scheduler started")

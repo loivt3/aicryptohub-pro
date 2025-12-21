@@ -96,3 +96,14 @@ api_router.include_router(
     prefix="/admin",
     tags=["Admin AI Workers"]
 )
+
+# Market Discovery Engine
+try:
+    from app.api.endpoints import discovery
+    api_router.include_router(
+        discovery.router,
+        prefix="/discovery",
+        tags=["Market Discovery"]
+    )
+except ImportError:
+    pass  # Discovery module not yet available
