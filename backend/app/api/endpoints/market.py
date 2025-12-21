@@ -198,7 +198,12 @@ async def get_single_coin(
 
 async def fetch_fear_greed_index():
     """Fetch Fear & Greed Index from alternative.me API"""
+    import asyncio
     import aiohttp
+    import logging
+    
+    logger = logging.getLogger(__name__)
+
     
     try:
         async with aiohttp.ClientSession() as session:
@@ -209,11 +214,19 @@ async def fetch_fear_greed_index():
                 if response.status == 200:
                     data = await response.json()
                     if data.get("data") and len(data["data"]) > 0:
+                        value = int(data["data"][0].get("value", 50))
+                        classification = data["data"][0].get("value_classification", "Neutral")
+                        logger.info(f"Fear & Greed fetched: {value} ({classification})")
                         return {
-                            "value": int(data["data"][0].get("value", 50)),
-                            "classification": data["data"][0].get("value_classification", "Neutral")
+                            "value": value,
+                            "classification": classification
                         }
+                else:
+                    logger.warning(f"Fear & Greed API returned status {response.status}")
+    except asyncio.TimeoutError:
+        logger.warning("Fear & Greed API timeout")
     except Exception as e:
-        print(f"Failed to fetch Fear & Greed: {e}")
+        logger.error(f"Failed to fetch Fear & Greed: {e}")
     
     return {"value": 50, "classification": "Neutral"}
+
