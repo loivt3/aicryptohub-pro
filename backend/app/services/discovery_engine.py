@@ -406,17 +406,16 @@ class DiscoveryEngine:
         except Exception as e:
             logger.debug(f"Pattern table query failed (table may not exist): {e}")
         
-        # DISABLED: OHLCV patterns fallback - schema mismatch (symbol vs coin_id)
-        # TODO: Fix OHLCV queries to use symbol and join with coins table
-        # no_pattern_coins = df[df['pattern_name'].isna()]['coin_id'].tolist()[:50]
-        # if no_pattern_coins:
-        #     ohlcv_patterns = await self._calculate_patterns_from_ohlcv(no_pattern_coins)
-        #     for pattern_data in ohlcv_patterns:
-        #         idx = df[df['coin_id'] == pattern_data['coin_id']].index
-        #         if len(idx) > 0:
-        #             df.loc[idx[0], 'pattern_name'] = pattern_data['pattern']
-        #             df.loc[idx[0], 'pattern_direction'] = pattern_data['direction']
-        #             df.loc[idx[0], 'pattern_reliability'] = pattern_data['reliability']
+        # Fallback: Calculate patterns from OHLCV for coins without patterns
+        no_pattern_coins = df[df['pattern_name'].isna()]['coin_id'].tolist()[:50]
+        if no_pattern_coins:
+            ohlcv_patterns = await self._calculate_patterns_from_ohlcv(no_pattern_coins)
+            for pattern_data in ohlcv_patterns:
+                idx = df[df['coin_id'] == pattern_data['coin_id']].index
+                if len(idx) > 0:
+                    df.loc[idx[0], 'pattern_name'] = pattern_data['pattern']
+                    df.loc[idx[0], 'pattern_direction'] = pattern_data['direction']
+                    df.loc[idx[0], 'pattern_reliability'] = pattern_data['reliability']
         
         # Calculate pattern score
         # Bullish patterns with HIGH reliability = +15, MEDIUM = +10, LOW = +5
@@ -437,13 +436,15 @@ class DiscoveryEngine:
         """Calculate candlestick patterns from OHLCV data for specific coins."""
         patterns = []
         
+        # Fixed query using correct OHLCV schema
         query = text("""
-            SELECT coin_id, open, high, low, close, volume, timestamp
-            FROM aihub_ohlcv
-            WHERE interval = '1h'
-              AND coin_id = ANY(:coin_ids)
-              AND timestamp > NOW() - INTERVAL '24 hours'
-            ORDER BY coin_id, timestamp DESC
+            SELECT c.coin_id, o.open, o.high, o.low, o.close, o.volume, o.open_time
+            FROM aihub_ohlcv o
+            JOIN aihub_coins c ON UPPER(o.symbol) = UPPER(c.symbol)
+            WHERE o.timeframe = 1
+              AND c.coin_id = ANY(:coin_ids)
+              AND o.open_time > NOW() - INTERVAL '24 hours'
+            ORDER BY c.coin_id, o.open_time DESC
         """)
         
         try:
@@ -454,10 +455,11 @@ class DiscoveryEngine:
                 if not rows:
                     return patterns
                 
-                ohlcv_df = pd.DataFrame(rows, columns=['coin_id', 'open', 'high', 'low', 'close', 'volume', 'timestamp'])
+                ohlcv_df = pd.DataFrame(rows, columns=['coin_id', 'open', 'high', 'low', 'close', 'volume', 'open_time'])
+
                 
                 for coin_id in coin_ids:
-                    coin_data = ohlcv_df[ohlcv_df['coin_id'] == coin_id].sort_values('timestamp', ascending=False)
+                    coin_data = ohlcv_df[ohlcv_df['coin_id'] == coin_id].sort_values('open_time', ascending=False)
                     
                     if len(coin_data) < 3:
                         continue
