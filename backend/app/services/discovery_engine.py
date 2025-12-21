@@ -298,6 +298,11 @@ class DiscoveryEngine:
     
     def _calculate_momentum_score(self, df: pd.DataFrame) -> pd.DataFrame:
         """Calculate Momentum Score (0-100)."""
+        # Ensure all numeric columns are float to avoid Decimal issues
+        for col in ['change_1h', 'change_4h', 'change_24h', 'volume_ratio']:
+            if col in df.columns:
+                df[col] = df[col].apply(lambda x: float(x) if x is not None else 0.0)
+        
         # Price action score
         df['price_action_raw'] = (
             df['change_1h'].fillna(0) * 0.5 +
@@ -308,6 +313,7 @@ class DiscoveryEngine:
         
         # Volume score
         volume_ratio = df['volume_ratio'].fillna(1)
+
         df['volume_score'] = np.clip(50 + (volume_ratio - 1) * 25, 0, 100)
         
         # Trend consistency
