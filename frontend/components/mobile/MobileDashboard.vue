@@ -838,31 +838,81 @@ const aiSignals = computed(() => {
       signal: sentimentMap.value[c.coin_id]?.signal || 'HOLD',
     }))
     .sort((a, b) => (b.asi_score || 50) - (a.asi_score || 50))  // Sort by ASI score descending
-    .slice(0, 20)  // Top 20 coins for heatmap
 })
 
-// Uniform grid layout - 5 columns x 4 rows
+// Squarified Treemap Layout - size based on ASI score
 const treemapLayout = computed(() => {
   const coins = aiSignals.value
   if (!coins.length) return []
   
-  const COLS = 5
-  const ROWS = 4
-  const tileWidth = 100 / COLS  // 20%
-  const tileHeight = 100 / ROWS  // 25%
+  // Use all coins with ASI weight (higher ASI = larger tile)
+  const items = coins.map(c => ({
+    ...c,
+    // Weight based on ASI - higher ASI gets more area
+    weight: Math.max(c.asi_score || 50, 20), // Min 20 to ensure visibility
+  }))
   
-  return coins.slice(0, COLS * ROWS).map((coin, idx) => {
-    const row = Math.floor(idx / COLS)
-    const col = idx % COLS
-    
-    return {
-      ...coin,
-      x: col * tileWidth,
-      y: row * tileHeight,
-      w: tileWidth,
-      h: tileHeight,
+  const totalWeight = items.reduce((sum, c) => sum + c.weight, 0)
+  if (totalWeight === 0) return []
+  
+  // Squarified treemap algorithm (simplified)
+  const layout: any[] = []
+  
+  // Container dimensions (100%)
+  const container = { x: 0, y: 0, w: 100, h: 100 }
+  
+  // Recursive squarify function
+  const squarify = (items: any[], rect: { x: number, y: number, w: number, h: number }) => {
+    if (items.length === 0) return
+    if (items.length === 1) {
+      layout.push({ ...items[0], x: rect.x, y: rect.y, w: rect.w, h: rect.h })
+      return
     }
-  })
+    
+    // Calculate total weight for this rectangle
+    const rectWeight = items.reduce((sum, i) => sum + i.weight, 0)
+    
+    // Decide split direction (horizontal if wider, vertical if taller)
+    const isHorizontal = rect.w >= rect.h
+    
+    // Find optimal split point (aim for roughly half)
+    let cumWeight = 0
+    let splitIdx = 0
+    const halfWeight = rectWeight / 2
+    
+    for (let i = 0; i < items.length; i++) {
+      cumWeight += items[i].weight
+      if (cumWeight >= halfWeight) {
+        splitIdx = i + 1
+        break
+      }
+    }
+    
+    // Ensure at least 1 item on each side
+    splitIdx = Math.max(1, Math.min(splitIdx, items.length - 1))
+    
+    const firstHalf = items.slice(0, splitIdx)
+    const secondHalf = items.slice(splitIdx)
+    
+    const firstWeight = firstHalf.reduce((sum, i) => sum + i.weight, 0)
+    const ratio = firstWeight / rectWeight
+    
+    if (isHorizontal) {
+      // Split horizontally
+      const splitX = rect.w * ratio
+      squarify(firstHalf, { x: rect.x, y: rect.y, w: splitX, h: rect.h })
+      squarify(secondHalf, { x: rect.x + splitX, y: rect.y, w: rect.w - splitX, h: rect.h })
+    } else {
+      // Split vertically
+      const splitY = rect.h * ratio
+      squarify(firstHalf, { x: rect.x, y: rect.y, w: rect.w, h: splitY })
+      squarify(secondHalf, { x: rect.x, y: rect.y + splitY, w: rect.w, h: rect.h - splitY })
+    }
+  }
+  
+  squarify(items, container)
+  
+  return layout
 })
 
 
