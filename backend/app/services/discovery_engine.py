@@ -225,18 +225,26 @@ class DiscoveryEngine:
                 })
                 rows = result.fetchall()
                 
+                # Ensure change_24h is float for arithmetic
+                if 'change_24h' in df.columns:
+                    df['change_24h'] = pd.to_numeric(df['change_24h'], errors='coerce').astype(float)
+                
                 if rows:
                     ohlcv_df = pd.DataFrame(rows, columns=['coin_id', 'calc_change_4h'])
+                    ohlcv_df['calc_change_4h'] = pd.to_numeric(ohlcv_df['calc_change_4h'], errors='coerce').astype(float)
                     df = df.merge(ohlcv_df, on='coin_id', how='left')
-                    df['change_4h'] = df['calc_change_4h'].fillna(df['change_24h'] * 4 / 24)
+                    df['change_4h'] = df['calc_change_4h'].fillna(df['change_24h'] * 4.0 / 24.0)
                 else:
-                    df['change_4h'] = df['change_24h'] * 4 / 24
+                    df['change_4h'] = df['change_24h'] * 4.0 / 24.0
                     
         except Exception as e:
             logger.warning(f"OHLCV change calculation failed: {e}")
-            df['change_4h'] = df['change_24h'] * 4 / 24
+            if 'change_24h' in df.columns:
+                df['change_24h'] = pd.to_numeric(df['change_24h'], errors='coerce').astype(float)
+            df['change_4h'] = df['change_24h'] * 4.0 / 24.0
         
         return df
+
 
     
     async def _calculate_volume_metrics(self, df: pd.DataFrame) -> pd.DataFrame:
