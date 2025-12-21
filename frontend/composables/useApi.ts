@@ -68,8 +68,14 @@ export const useApi = () => {
         getSentiment: (limit = 100) =>
             apiFetch<{ success: boolean; data: any[] }>('/sentiment', { query: { limit } }),
 
+        // Alias for getSentiment - returns batch sentiment data
+        getSentimentBatch: (limit = 100) =>
+            apiFetch<{ success: boolean; data: any[] }>('/sentiment', { query: { limit } }),
+
         getCoinSentiment: (coinId: string) =>
             apiFetch<any>(`/sentiment/${coinId}`),
+
+
 
         // Portfolio endpoints (auth required)
         getPortfolio: () =>

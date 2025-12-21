@@ -25,14 +25,15 @@ class SentimentData(BaseModel):
     analyzed_at: Optional[datetime] = None
 
 
-@router.get("", response_model=List[SentimentData])
+@router.get("")
 async def get_sentiment_data(
     limit: int = Query(default=100, le=500),
     db: DatabaseService = Depends(get_db_service),
 ):
     """Get sentiment data for all coins"""
     data = db.get_sentiment_data(limit=limit)
-    return data
+    return {"success": True, "data": data}
+
 
 
 @router.get("/status")
