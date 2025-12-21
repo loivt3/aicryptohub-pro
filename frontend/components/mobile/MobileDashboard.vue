@@ -838,79 +838,53 @@ const aiSignals = computed(() => {
       signal: sentimentMap.value[c.coin_id]?.signal || 'HOLD',
     }))
     .sort((a, b) => (b.asi_score || 50) - (a.asi_score || 50))  // Sort by ASI score descending
+    .slice(0, 20)  // Top 20 coins for heatmap
 })
 
-// Squarified Treemap Layout - size based on ASI score
+// Row-based Treemap Layout (like the original design)
+// Row 1: 2 items (biggest), Row 2: 3 items, Row 3-5: 5 items each
 const treemapLayout = computed(() => {
   const coins = aiSignals.value
   if (!coins.length) return []
   
-  // Use all coins with ASI weight (higher ASI = larger tile)
-  const items = coins.map(c => ({
-    ...c,
-    // Weight based on ASI - higher ASI gets more area
-    weight: Math.max(c.asi_score || 50, 20), // Min 20 to ensure visibility
-  }))
+  // Row configuration: count per row and height percentage
+  const rowConfig = [
+    { count: 2, height: 30 },   // Row 1: Top 2 biggest (30% height)
+    { count: 3, height: 25 },   // Row 2: Next 3 (25% height)
+    { count: 5, height: 20 },   // Row 3: Next 5 (20% height)
+    { count: 5, height: 15 },   // Row 4: Next 5 (15% height)
+    { count: 5, height: 10 },   // Row 5: Remaining (10% height)
+  ]
   
-  const totalWeight = items.reduce((sum, c) => sum + c.weight, 0)
-  if (totalWeight === 0) return []
-  
-  // Squarified treemap algorithm (simplified)
   const layout: any[] = []
+  let currentY = 0
+  let itemIndex = 0
   
-  // Container dimensions (100%)
-  const container = { x: 0, y: 0, w: 100, h: 100 }
-  
-  // Recursive squarify function
-  const squarify = (items: any[], rect: { x: number, y: number, w: number, h: number }) => {
-    if (items.length === 0) return
-    if (items.length === 1) {
-      layout.push({ ...items[0], x: rect.x, y: rect.y, w: rect.w, h: rect.h })
-      return
+  for (const row of rowConfig) {
+    if (itemIndex >= coins.length) break
+    
+    const rowItems = coins.slice(itemIndex, itemIndex + row.count)
+    if (rowItems.length === 0) break
+    
+    // Equal width for items in each row
+    const itemWidth = 100 / rowItems.length
+    
+    // Layout items in this row
+    let currentX = 0
+    for (const item of rowItems) {
+      layout.push({
+        ...item,
+        x: currentX,
+        y: currentY,
+        w: itemWidth,
+        h: row.height,
+      })
+      currentX += itemWidth
     }
     
-    // Calculate total weight for this rectangle
-    const rectWeight = items.reduce((sum, i) => sum + i.weight, 0)
-    
-    // Decide split direction (horizontal if wider, vertical if taller)
-    const isHorizontal = rect.w >= rect.h
-    
-    // Find optimal split point (aim for roughly half)
-    let cumWeight = 0
-    let splitIdx = 0
-    const halfWeight = rectWeight / 2
-    
-    for (let i = 0; i < items.length; i++) {
-      cumWeight += items[i].weight
-      if (cumWeight >= halfWeight) {
-        splitIdx = i + 1
-        break
-      }
-    }
-    
-    // Ensure at least 1 item on each side
-    splitIdx = Math.max(1, Math.min(splitIdx, items.length - 1))
-    
-    const firstHalf = items.slice(0, splitIdx)
-    const secondHalf = items.slice(splitIdx)
-    
-    const firstWeight = firstHalf.reduce((sum, i) => sum + i.weight, 0)
-    const ratio = firstWeight / rectWeight
-    
-    if (isHorizontal) {
-      // Split horizontally
-      const splitX = rect.w * ratio
-      squarify(firstHalf, { x: rect.x, y: rect.y, w: splitX, h: rect.h })
-      squarify(secondHalf, { x: rect.x + splitX, y: rect.y, w: rect.w - splitX, h: rect.h })
-    } else {
-      // Split vertically
-      const splitY = rect.h * ratio
-      squarify(firstHalf, { x: rect.x, y: rect.y, w: rect.w, h: splitY })
-      squarify(secondHalf, { x: rect.x, y: rect.y + splitY, w: rect.w, h: rect.h - splitY })
-    }
+    currentY += row.height
+    itemIndex += rowItems.length
   }
-  
-  squarify(items, container)
   
   return layout
 })
