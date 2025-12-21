@@ -133,9 +133,10 @@ class DiscoveryEngine:
             return stats
             
         except Exception as e:
-
-            logger.error(f"Discovery update failed: {e}")
+            import traceback
+            logger.error(f"Discovery update failed: {e}\n{traceback.format_exc()}")
             return {"success": False, "error": str(e)}
+
     
     def _get_market_data(self) -> pd.DataFrame:
         """Get current market data from aihub_coins table."""
