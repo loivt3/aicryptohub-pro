@@ -893,9 +893,10 @@ const fetchTechnicalSignals = async () => {
   try {
     // Fetch technical signals
     const [signalsRes, gemsRes] = await Promise.all([
-      $fetch(`${apiUrl}/api/discovery/technical-signals?limit=15`),
-      $fetch(`${apiUrl}/api/discovery/hidden-gems?limit=8`)
+      $fetch(`${apiUrl}/api/v1/discovery/technical-signals?limit=15`),
+      $fetch(`${apiUrl}/api/v1/discovery/hidden-gems?limit=8`)
     ])
+
     
     if (signalsRes?.success && signalsRes.data) {
       technicalSignalsRaw.value = signalsRes.data
