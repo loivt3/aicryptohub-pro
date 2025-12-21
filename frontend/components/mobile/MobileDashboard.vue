@@ -838,7 +838,7 @@ const aiSignals = computed(() => {
       signal: sentimentMap.value[c.coin_id]?.signal || 'HOLD',
     }))
     .sort((a, b) => (b.asi_score || 50) - (a.asi_score || 50))  // Sort by ASI score descending
-    .slice(0, 20)  // Top 20 coins for heatmap
+    .slice(0, 15)  // Top 15 coins for heatmap (4 rows: 2+3+5+5)
 })
 
 // Row-based Treemap Layout (like the original design)
@@ -847,14 +847,14 @@ const treemapLayout = computed(() => {
   const coins = aiSignals.value
   if (!coins.length) return []
   
-  // Row configuration: count per row and height percentage
+  // Row configuration: count per row and height percentage (4 rows only)
   const rowConfig = [
-    { count: 2, height: 30 },   // Row 1: Top 2 biggest (30% height)
-    { count: 3, height: 25 },   // Row 2: Next 3 (25% height)
+    { count: 2, height: 35 },   // Row 1: Top 2 biggest (35% height)
+    { count: 3, height: 30 },   // Row 2: Next 3 (30% height)
     { count: 5, height: 20 },   // Row 3: Next 5 (20% height)
     { count: 5, height: 15 },   // Row 4: Next 5 (15% height)
-    { count: 5, height: 10 },   // Row 5: Remaining (10% height)
   ]
+
   
   const layout: any[] = []
   let currentY = 0
