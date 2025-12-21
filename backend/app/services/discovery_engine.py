@@ -138,16 +138,17 @@ class DiscoveryEngine:
             return {"success": False, "error": str(e)}
     
     def _get_market_data(self) -> pd.DataFrame:
-        """Get current market data from coins table."""
+        """Get current market data from aihub_coins table."""
         query = text("""
             SELECT coin_id, symbol, name, image, price, 
                    change_1h, change_24h, change_7d,
                    volume_24h, market_cap, market_cap_rank
-            FROM coins
+            FROM aihub_coins
             WHERE price IS NOT NULL AND price > 0
             ORDER BY market_cap DESC NULLS LAST
             LIMIT 1000
         """)
+
         
         try:
             with self.db.engine.connect() as conn:
