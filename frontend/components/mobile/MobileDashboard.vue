@@ -199,6 +199,10 @@
                     <path d="M0,20 C5,18 10,14 15,12 C20,10 25,16 30,11 C35,6 40,10 45,8" fill="none" :stroke="coin.change_24h >= 0 ? '#22c55e' : '#ef4444'" stroke-width="1.5"/>
                   </svg>
                 </div>
+                <!-- Signal Badge on main row -->
+                <span class="m-signal-badge m-signal-badge--compact" :class="'m-signal-' + (coin.signal || 'hold').toLowerCase().replace('_', '-')">
+                  {{ formatSignal(coin.signal) }}
+                </span>
                 <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" />
               </div>
               <!-- ASI Meta Row - inside list-item -->
@@ -211,10 +215,8 @@
                   </div>
                   <span class="m-meta-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score ?? '--' }}</span>
                 </div>
-                <span class="m-signal-badge" :class="'m-signal-' + (coin.signal || 'hold').toLowerCase().replace('_', '-')">
-                  {{ formatSignal(coin.signal) }}
-                </span>
               </div>
+
             </div>
           </template>
           
@@ -1403,6 +1405,19 @@ const toggleFavorite = (coinId: string) => {
   letter-spacing: 0.3px;
   margin-left: auto;
 }
+
+/* Compact signal badge for main row */
+.m-signal-badge--compact {
+  font-size: 8px;
+  font-weight: 700;
+  padding: 3px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
 
 .m-signal-s-buy,
 .m-signal-strong-buy {
