@@ -192,13 +192,14 @@
                     {{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(2) }}%
                   </span>
                 </div>
-                <!-- Mini Sparkline -->
+                <!-- Mini Sparkline (Real Data) -->
                 <div class="m-mini-sparkline" style="width: 50px; height: 24px;">
                   <svg viewBox="0 0 50 24" preserveAspectRatio="none" style="width: 100%; height: 100%;">
-                    <path d="M0,20 C5,18 10,14 15,12 C20,10 25,16 30,11 C35,6 40,10 45,8 L50,24 L0,24 Z" :fill="coin.change_24h >= 0 ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'"/>
-                    <path d="M0,20 C5,18 10,14 15,12 C20,10 25,16 30,11 C35,6 40,10 45,8" fill="none" :stroke="coin.change_24h >= 0 ? '#22c55e' : '#ef4444'" stroke-width="1.5"/>
+                    <path :d="generateSparklineFill(coin, 50, 24)" :fill="coin.change_24h >= 0 ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'"/>
+                    <path :d="generateSparkline(coin, 50, 24)" fill="none" :stroke="coin.change_24h >= 0 ? '#22c55e' : '#ef4444'" stroke-width="1.5"/>
                   </svg>
                 </div>
+
                 <!-- Signal Badge on main row -->
                 <span class="m-signal-badge m-signal-badge--compact" :class="'m-signal-' + (coin.signal || 'hold').toLowerCase().replace('_', '-')">
                   {{ formatSignal(coin.signal) }}
@@ -252,13 +253,14 @@
                   <span class="m-info-title" :class="getFlashClass(coin.symbol)">{{ formatCurrency(coin.price) }}</span>
                   <span class="m-info-subtitle m-text-success">+{{ coin.change_24h?.toFixed(2) }}%</span>
                 </div>
-                <!-- Mini Sparkline -->
+                <!-- Mini Sparkline (Real Data) -->
                 <div class="m-mini-sparkline" style="width: 50px; height: 24px;">
                   <svg viewBox="0 0 50 24" preserveAspectRatio="none" style="width: 100%; height: 100%;">
-                    <path d="M0,20 C5,18 10,14 15,12 C20,10 25,16 30,11 C35,6 40,10 45,8 L50,24 L0,24 Z" fill="rgba(34,197,94,0.3)"/>
-                    <path d="M0,20 C5,18 10,14 15,12 C20,10 25,16 30,11 C35,6 40,10 45,8" fill="none" stroke="#22c55e" stroke-width="1.5"/>
+                    <path :d="generateSparklineFill(coin, 50, 24)" fill="rgba(34,197,94,0.3)"/>
+                    <path :d="generateSparkline(coin, 50, 24)" fill="none" stroke="#22c55e" stroke-width="1.5"/>
                   </svg>
                 </div>
+
                 <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" :class="{ 'rotate-90': expandedCoin === coin.coin_id }" />
               </div>
               <!-- ASI Meta Row - inside list-item -->
@@ -365,10 +367,11 @@
                 </div>
                 <div class="m-mini-sparkline" style="width: 50px; height: 24px;">
                   <svg viewBox="0 0 50 24" preserveAspectRatio="none" style="width: 100%; height: 100%;">
-                    <path d="M0,8 C5,10 10,14 15,16 C20,18 25,12 30,17 C35,22 40,18 45,20 L50,24 L0,24 Z" fill="rgba(239,68,68,0.3)"/>
-                    <path d="M0,8 C5,10 10,14 15,16 C20,18 25,12 30,17 C35,22 40,18 45,20" fill="none" stroke="#ef4444" stroke-width="1.5"/>
+                    <path :d="generateSparklineFill(coin, 50, 24)" fill="rgba(239,68,68,0.3)"/>
+                    <path :d="generateSparkline(coin, 50, 24)" fill="none" stroke="#ef4444" stroke-width="1.5"/>
                   </svg>
                 </div>
+
                 <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" />
               </div>
               <div class="m-list-item-meta">
@@ -472,9 +475,11 @@
                 </div>
                 <div class="m-mini-sparkline" style="width: 50px; height: 24px;">
                   <svg viewBox="0 0 50 24" preserveAspectRatio="none" style="width: 100%; height: 100%;">
-                    <path d="M0,12 C5,10 10,16 15,14 C20,12 25,18 30,14 C35,10 40,14 45,12" fill="none" :stroke="coin.change_24h >= 0 ? '#22c55e' : '#ef4444'" stroke-width="1.5"/>
+                    <path :d="generateSparklineFill(coin, 50, 24)" :fill="coin.change_24h >= 0 ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'"/>
+                    <path :d="generateSparkline(coin, 50, 24)" fill="none" :stroke="coin.change_24h >= 0 ? '#22c55e' : '#ef4444'" stroke-width="1.5"/>
                   </svg>
                 </div>
+
                 <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" />
               </div>
               <div class="m-list-item-meta">
@@ -678,6 +683,8 @@ defineEmits<{
 
 const api = useApi()
 const { updatePrice, getFlashClass } = usePriceFlashRow()
+const { generateSparkline, generateSparklineFill, getSparklineColor } = useSparkline()
+
 
 // State
 const loading = ref(true)
