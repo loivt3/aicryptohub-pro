@@ -1229,32 +1229,46 @@ class DiscoveryEngine:
         try:
             with self.db.engine.begin() as conn:
                 for _, row in df.iterrows():
-                    conn.execute(query, {
-                        'coin_id': row['coin_id'],
-                        'symbol': row.get('symbol'),
-                        'name': row.get('name'),
-                        'image': row.get('image'),
-                        'price': row.get('price'),
-                        'change_1h': row.get('change_1h'),
-                        'change_4h': row.get('change_4h'),
-                        'change_24h': row.get('change_24h'),
-                        'change_7d': row.get('change_7d'),
-                        'volume_24h': row.get('volume_24h'),
-                        'volume_1h': row.get('volume_1h'),
-                        'avg_volume_1h': row.get('avg_volume_1h'),
-                        'volume_change_pct': row.get('volume_change_pct'),
-                        'market_cap': row.get('market_cap'),
-                        'market_cap_rank': row.get('market_cap_rank'),
-                        'is_sudden_pump': bool(row.get('is_sudden_pump', False)),
-                        'is_sudden_dump': bool(row.get('is_sudden_dump', False)),
-                        'asi_score': row.get('asi_score'),
-                        'signal': row.get('signal'),
-                    })
-                    count += 1
+                    try:
+                        # Truncate strings to fit column sizes
+                        coin_id = str(row['coin_id'])[:50] if row.get('coin_id') else None
+                        symbol = str(row.get('symbol', ''))[:20] if row.get('symbol') else None
+                        name = str(row.get('name', ''))[:100] if row.get('name') else None
+                        image = str(row.get('image', ''))[:500] if row.get('image') else None
+                        
+                        if not coin_id:
+                            continue
+                            
+                        conn.execute(query, {
+                            'coin_id': coin_id,
+                            'symbol': symbol,
+                            'name': name,
+                            'image': image,
+                            'price': row.get('price'),
+                            'change_1h': row.get('change_1h'),
+                            'change_4h': row.get('change_4h'),
+                            'change_24h': row.get('change_24h'),
+                            'change_7d': row.get('change_7d'),
+                            'volume_24h': row.get('volume_24h'),
+                            'volume_1h': row.get('volume_1h'),
+                            'avg_volume_1h': row.get('avg_volume_1h'),
+                            'volume_change_pct': row.get('volume_change_pct'),
+                            'market_cap': row.get('market_cap'),
+                            'market_cap_rank': row.get('market_cap_rank'),
+                            'is_sudden_pump': bool(row.get('is_sudden_pump', False)),
+                            'is_sudden_dump': bool(row.get('is_sudden_dump', False)),
+                            'asi_score': row.get('asi_score'),
+                            'signal': str(row.get('signal', ''))[:20] if row.get('signal') else None,
+                        })
+                        count += 1
+                    except Exception as e:
+                        logger.warning(f"Upsert row failed for {row.get('coin_id', 'unknown')}: {e}")
+                        continue
         except Exception as e:
-            logger.error(f"Upsert failed: {e}")
+            logger.error(f"Upsert transaction failed: {e}")
         
         return count
+
     
     # ============ Query Methods ============
     
