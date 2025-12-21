@@ -1203,6 +1203,14 @@ class DiscoveryEngine:
                 market_cap, market_cap_rank,
                 is_sudden_pump, is_sudden_dump,
                 asi_score, signal,
+                momentum_score, trend_score, trend_label,
+                rs_vs_btc, rs_vs_market, rs_score, is_outperformer, is_anomaly, anomaly_type,
+                pattern_name, pattern_direction, pattern_reliability, pattern_score,
+                rsi_14, has_divergence, divergence_type, divergence_score,
+                macd_histogram, macd_signal_type, macd_confirmed,
+                bb_position, bb_squeeze, bb_width, bb_signal,
+                volume_confirmed, ma_confirmed, rsi_extreme, near_sr, mtf_aligned,
+                confirmation_count, confirmation_score, discovery_score, signal_strength,
                 updated_at
             ) VALUES (
                 :coin_id, :symbol, :name, :image, :price,
@@ -1211,6 +1219,14 @@ class DiscoveryEngine:
                 :market_cap, :market_cap_rank,
                 :is_sudden_pump, :is_sudden_dump,
                 :asi_score, :signal,
+                :momentum_score, :trend_score, :trend_label,
+                :rs_vs_btc, :rs_vs_market, :rs_score, :is_outperformer, :is_anomaly, :anomaly_type,
+                :pattern_name, :pattern_direction, :pattern_reliability, :pattern_score,
+                :rsi_14, :has_divergence, :divergence_type, :divergence_score,
+                :macd_histogram, :macd_signal_type, :macd_confirmed,
+                :bb_position, :bb_squeeze, :bb_width, :bb_signal,
+                :volume_confirmed, :ma_confirmed, :rsi_extreme, :near_sr, :mtf_aligned,
+                :confirmation_count, :confirmation_score, :discovery_score, :signal_strength,
                 NOW()
             )
             ON CONFLICT (coin_id) DO UPDATE SET
@@ -1222,8 +1238,26 @@ class DiscoveryEngine:
                 market_cap = EXCLUDED.market_cap, market_cap_rank = EXCLUDED.market_cap_rank,
                 is_sudden_pump = EXCLUDED.is_sudden_pump, is_sudden_dump = EXCLUDED.is_sudden_dump,
                 asi_score = EXCLUDED.asi_score, signal = EXCLUDED.signal,
+                momentum_score = EXCLUDED.momentum_score, trend_score = EXCLUDED.trend_score, 
+                trend_label = EXCLUDED.trend_label,
+                rs_vs_btc = EXCLUDED.rs_vs_btc, rs_vs_market = EXCLUDED.rs_vs_market, 
+                rs_score = EXCLUDED.rs_score, is_outperformer = EXCLUDED.is_outperformer,
+                is_anomaly = EXCLUDED.is_anomaly, anomaly_type = EXCLUDED.anomaly_type,
+                pattern_name = EXCLUDED.pattern_name, pattern_direction = EXCLUDED.pattern_direction,
+                pattern_reliability = EXCLUDED.pattern_reliability, pattern_score = EXCLUDED.pattern_score,
+                rsi_14 = EXCLUDED.rsi_14, has_divergence = EXCLUDED.has_divergence,
+                divergence_type = EXCLUDED.divergence_type, divergence_score = EXCLUDED.divergence_score,
+                macd_histogram = EXCLUDED.macd_histogram, macd_signal_type = EXCLUDED.macd_signal_type,
+                macd_confirmed = EXCLUDED.macd_confirmed,
+                bb_position = EXCLUDED.bb_position, bb_squeeze = EXCLUDED.bb_squeeze,
+                bb_width = EXCLUDED.bb_width, bb_signal = EXCLUDED.bb_signal,
+                volume_confirmed = EXCLUDED.volume_confirmed, ma_confirmed = EXCLUDED.ma_confirmed,
+                rsi_extreme = EXCLUDED.rsi_extreme, near_sr = EXCLUDED.near_sr, mtf_aligned = EXCLUDED.mtf_aligned,
+                confirmation_count = EXCLUDED.confirmation_count, confirmation_score = EXCLUDED.confirmation_score,
+                discovery_score = EXCLUDED.discovery_score, signal_strength = EXCLUDED.signal_strength,
                 updated_at = NOW()
         """)
+
         
         count = 0
         try:
@@ -1259,7 +1293,49 @@ class DiscoveryEngine:
                             'is_sudden_dump': bool(row.get('is_sudden_dump', False)),
                             'asi_score': row.get('asi_score'),
                             'signal': str(row.get('signal', ''))[:20] if row.get('signal') else None,
+                            # Technical metrics
+                            'momentum_score': int(row.get('momentum_score', 0)) if row.get('momentum_score') is not None else None,
+                            'trend_score': float(row.get('trend_score', 0)) if row.get('trend_score') is not None else None,
+                            'trend_label': str(row.get('trend_label', ''))[:20] if row.get('trend_label') else None,
+                            # Relative strength
+                            'rs_vs_btc': float(row.get('rs_vs_btc', 0)) if row.get('rs_vs_btc') is not None else None,
+                            'rs_vs_market': float(row.get('rs_vs_market', 0)) if row.get('rs_vs_market') is not None else None,
+                            'rs_score': int(row.get('rs_score', 0)) if row.get('rs_score') is not None else None,
+                            'is_outperformer': bool(row.get('is_outperformer', False)),
+                            'is_anomaly': bool(row.get('is_anomaly', False)),
+                            'anomaly_type': str(row.get('anomaly_type', ''))[:50] if row.get('anomaly_type') else None,
+                            # Pattern detection
+                            'pattern_name': str(row.get('pattern_name', ''))[:50] if row.get('pattern_name') else None,
+                            'pattern_direction': str(row.get('pattern_direction', ''))[:20] if row.get('pattern_direction') else None,
+                            'pattern_reliability': str(row.get('pattern_reliability', ''))[:20] if row.get('pattern_reliability') else None,
+                            'pattern_score': int(row.get('pattern_score', 0)) if row.get('pattern_score') is not None else None,
+                            # RSI divergence
+                            'rsi_14': float(row.get('rsi_14', 0)) if row.get('rsi_14') is not None else None,
+                            'has_divergence': bool(row.get('has_divergence', False)),
+                            'divergence_type': str(row.get('divergence_type', ''))[:20] if row.get('divergence_type') else None,
+                            'divergence_score': int(row.get('divergence_score', 0)) if row.get('divergence_score') is not None else None,
+                            # MACD
+                            'macd_histogram': float(row.get('macd_histogram', 0)) if row.get('macd_histogram') is not None else None,
+                            'macd_signal_type': str(row.get('macd_signal_type', ''))[:20] if row.get('macd_signal_type') else None,
+                            'macd_confirmed': bool(row.get('macd_confirmed', False)),
+                            # Bollinger Bands
+                            'bb_position': str(row.get('bb_position', ''))[:20] if row.get('bb_position') else None,
+                            'bb_squeeze': bool(row.get('bb_squeeze', False)),
+                            'bb_width': float(row.get('bb_width', 0)) if row.get('bb_width') is not None else None,
+                            'bb_signal': str(row.get('bb_signal', ''))[:20] if row.get('bb_signal') else None,
+                            # Confirmations
+                            'volume_confirmed': bool(row.get('volume_confirmed', False)),
+                            'ma_confirmed': bool(row.get('ma_confirmed', False)),
+                            'rsi_extreme': bool(row.get('rsi_extreme', False)),
+                            'near_sr': bool(row.get('near_sr', False)),
+                            'mtf_aligned': bool(row.get('mtf_aligned', False)),
+                            'confirmation_count': int(row.get('confirmation_count', 0)) if row.get('confirmation_count') is not None else 0,
+                            'confirmation_score': int(row.get('confirmation_score', 0)) if row.get('confirmation_score') is not None else 0,
+                            # Final scores
+                            'discovery_score': int(row.get('discovery_score', 0)) if row.get('discovery_score') is not None else 0,
+                            'signal_strength': str(row.get('signal_strength', ''))[:20] if row.get('signal_strength') else None,
                         })
+
                         count += 1
                     except Exception as e:
                         logger.warning(f"Upsert row failed for {row.get('coin_id', 'unknown')}: {e}")
