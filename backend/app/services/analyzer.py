@@ -56,25 +56,27 @@ class AnalyzerService:
         
         for coin_id in coin_ids:
             try:
-                analysis = await self.analyze_single_coin(coin_id)
+                # Use composite ASI for better accuracy (multi-timeframe + sentiment + onchain)
+                analysis = await self.calculate_composite_asi(coin_id)
                 
                 if analysis:
-                    # Save to database
+                    # Save to database - use composite_asi as the main score
                     saved = self.db.save_ai_sentiment(
                         coin_id=coin_id,
-                        asi_score=analysis["asi_score"],
+                        asi_score=analysis["composite_asi"],
                         signal=analysis["signal"],
                         reasoning=analysis["reasoning"],
-                        indicators=analysis["indicators"],
-                        provider="python_ta",
+                        indicators=analysis.get("components", {}),
+                        provider="python_ta_composite",
                     )
                     
                     if saved:
                         results["success_count"] += 1
                         results["results"].append({
                             "coin_id": coin_id,
-                            "asi_score": analysis["asi_score"],
+                            "asi_score": analysis["composite_asi"],
                             "signal": analysis["signal"],
+                            "components": analysis.get("components"),
                         })
                     else:
                         results["failed_count"] += 1
@@ -84,6 +86,7 @@ class AnalyzerService:
             except Exception as e:
                 logger.error(f"Failed to analyze {coin_id}: {e}")
                 results["failed_count"] += 1
+
         
         # Record metrics
         duration = time.time() - start_time
@@ -958,6 +961,132 @@ class AnalyzerService:
             "whale_signal": whale_signal,
             "network_signal": network_signal,
         }
+    
+    async def calculate_composite_asi(
+        self,
+        coin_id: str,
+        use_multi_timeframe: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Calculate Composite ASI combining multiple data sources:
+        
+        Components:
+        - Multi-timeframe Technical Analysis: 60%
+        - Behavioral Sentiment (news/social): 25%
+        - On-chain Signals: 15%
+        
+        This provides a more robust sentiment score than single-source analysis.
+        
+        Args:
+            coin_id: Coin identifier
+            use_multi_timeframe: Use multi-horizon analysis vs simple 1h
+            
+        Returns:
+            Dict with composite_asi, tech_asi, sentiment_asi, onchain_asi, and components
+        """
+        # 1. Get Multi-Timeframe Technical ASI
+        tech_result = None
+        tech_asi = 50  # Default neutral
+        
+        if use_multi_timeframe:
+            try:
+                tech_result = await self.calculate_multi_horizon_asi(coin_id)
+                # Use combined score or fallback to short-term
+                tech_asi = tech_result.get("asi_combined") or tech_result.get("asi_short") or 50
+            except Exception as e:
+                logger.warning(f"Multi-horizon failed for {coin_id}: {e}")
+                # Fallback to simple analysis
+                simple = await self.analyze_single_coin(coin_id)
+                tech_asi = simple["asi_score"] if simple else 50
+        else:
+            simple = await self.analyze_single_coin(coin_id)
+            tech_asi = simple["asi_score"] if simple else 50
+        
+        # 2. Get Behavioral Sentiment (from AI news analysis)
+        sentiment_asi = 50  # Default neutral
+        sentiment_available = False
+        sentiment_tone = None
+        crowd_action = None
+        
+        behavior = self.db.get_latest_behavioral_sentiment(coin_id)
+        if behavior:
+            # sentiment_score is 0-100 in behavioral table
+            raw_score = behavior.get("sentiment_score", 50)
+            # Ensure it's in 0-100 range
+            sentiment_asi = int(raw_score) if raw_score else 50
+            sentiment_available = True
+            sentiment_tone = behavior.get("emotional_tone", "neutral")
+            crowd_action = behavior.get("expected_crowd_action", "hold")
+        
+        # 3. On-chain signals (already integrated in multi_horizon, but get separately for weighting)
+        onchain_result = await self._get_onchain_score(coin_id)
+        onchain_asi = onchain_result.get("score") or 50
+        onchain_available = onchain_result.get("available", False)
+        
+        # Calculate Composite ASI
+        # Weights: Technical 60%, Sentiment 25%, On-chain 15%
+        if sentiment_available and onchain_available:
+            composite_asi = (
+                tech_asi * 0.60 +
+                sentiment_asi * 0.25 +
+                onchain_asi * 0.15
+            )
+        elif sentiment_available:
+            # No on-chain, use: Technical 70%, Sentiment 30%
+            composite_asi = tech_asi * 0.70 + sentiment_asi * 0.30
+        elif onchain_available:
+            # No sentiment, use: Technical 80%, On-chain 20%
+            composite_asi = tech_asi * 0.80 + onchain_asi * 0.20
+        else:
+            # Technical only
+            composite_asi = tech_asi
+        
+        # Clamp to 0-100
+        composite_asi = max(0, min(100, round(composite_asi)))
+        
+        # Determine signal
+        if composite_asi >= 75:
+            signal = "STRONG_BUY"
+        elif composite_asi >= 60:
+            signal = "BUY"
+        elif composite_asi >= 40:
+            signal = "NEUTRAL"
+        elif composite_asi >= 25:
+            signal = "SELL"
+        else:
+            signal = "STRONG_SELL"
+        
+        # Generate enhanced reasoning
+        reasons = []
+        if tech_result:
+            reasons.append(f"Multi-timeframe tech score: {tech_asi}")
+        if sentiment_available:
+            reasons.append(f"News sentiment: {sentiment_tone or 'neutral'} ({crowd_action or 'hold'})")
+        if onchain_available:
+            whale_signal = onchain_result.get("whale_signal", "neutral")
+            reasons.append(f"On-chain: whale {whale_signal}")
+        
+        reasoning = f"Composite ASI: {composite_asi}/100 ({signal}). " + ". ".join(reasons) + "."
+        
+        return {
+            "coin_id": coin_id,
+            "composite_asi": composite_asi,
+            "signal": signal,
+            "reasoning": reasoning,
+            "components": {
+                "tech_asi": round(tech_asi),
+                "tech_weight": 0.60 if (sentiment_available and onchain_available) else (0.70 if sentiment_available else 0.80),
+                "sentiment_asi": sentiment_asi if sentiment_available else None,
+                "sentiment_available": sentiment_available,
+                "sentiment_tone": sentiment_tone,
+                "crowd_action": crowd_action,
+                "onchain_asi": onchain_asi if onchain_available else None,
+                "onchain_available": onchain_available,
+            },
+            "multi_horizon": tech_result,
+            "analyzed_at": datetime.now().isoformat(),
+        }
+
 
     def calculate_intent_divergence(
         self,
