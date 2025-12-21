@@ -75,7 +75,26 @@ export const useMarketStore = defineStore('market', {
     },
 
     actions: {
-        async fetchMarketData(limit = 100) {
+        async fetchMarketData(limit = 100, skipCache = false) {
+            const { getCache, setCache } = useCache()
+            const CACHE_KEY = 'market_data'
+            const CACHE_TTL = 60 // 1 minute
+
+            // 1. Try to load from cache first (instant display)
+            if (!skipCache) {
+                const cached = getCache<Coin[]>(CACHE_KEY)
+                if (cached && cached.length > 0) {
+                    this.coins = cached
+                    this.lastUpdated = new Date()
+                    console.log('[Cache] Loaded market data from cache:', cached.length, 'coins')
+
+                    // Background refresh after showing cached data
+                    setTimeout(() => this.fetchMarketData(limit, true), 1000)
+                    return
+                }
+            }
+
+            // 2. Fetch from API
             this.loading = true
             this.error = null
 
@@ -86,9 +105,13 @@ export const useMarketStore = defineStore('market', {
                     { query: { limit } }
                 )
 
-                if (response.success) {
+                if (response.success && response.data) {
                     this.coins = response.data
                     this.lastUpdated = new Date()
+
+                    // Save to cache for next load
+                    setCache(CACHE_KEY, response.data, CACHE_TTL)
+                    console.log('[Cache] Saved market data to cache')
                 }
             } catch (err: any) {
                 this.error = err.message || 'Failed to fetch market data'
@@ -97,6 +120,7 @@ export const useMarketStore = defineStore('market', {
                 this.loading = false
             }
         },
+
 
         async fetchRealtimeData() {
             try {
