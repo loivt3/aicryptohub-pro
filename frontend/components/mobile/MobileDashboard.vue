@@ -842,11 +842,11 @@ const aiSignals = computed(() => {
   // Sort by ASI descending
   const sorted = allWithAsi.sort((a, b) => (b.asi_score || 50) - (a.asi_score || 50))
   
-  // Take top 8 highest ASI (bullish) + bottom 7 lowest ASI (bearish)
-  const topBullish = sorted.slice(0, 8)
-  const topBearish = sorted.slice(-7).reverse()  // Reverse to show lowest first in bearish section
+  // Take top 6 highest ASI (bullish) + bottom 6 lowest ASI (bearish)
+  const topBullish = sorted.slice(0, 6)
+  const topBearish = sorted.slice(-6).reverse()  // Reverse to show lowest first in bearish section
   
-  return [...topBullish, ...topBearish]  // 15 coins total
+  return [...topBullish, ...topBearish]  // 12 coins total
 })
 
 
@@ -856,12 +856,11 @@ const treemapLayout = computed(() => {
   const coins = aiSignals.value
   if (!coins.length) return []
   
-  // Row configuration: count per row and height percentage (4 rows only)
+  // Row configuration: 3 rows with larger tiles for better visibility
   const rowConfig = [
-    { count: 2, height: 35 },   // Row 1: Top 2 biggest (35% height)
-    { count: 3, height: 30 },   // Row 2: Next 3 (30% height)
-    { count: 5, height: 20 },   // Row 3: Next 5 (20% height)
-    { count: 5, height: 15 },   // Row 4: Next 5 (15% height)
+    { count: 3, height: 40 },   // Row 1: Top 3 bullish (40% height)
+    { count: 4, height: 35 },   // Row 2: Next 4 (35% height)
+    { count: 5, height: 25 },   // Row 3: Next 5 bearish (25% height)
   ]
 
   
@@ -1619,7 +1618,7 @@ const toggleFavorite = (coinId: string) => {
 .m-treemap-container {
   position: relative;
   width: calc(100% - 24px);
-  height: 200px;
+  height: 180px;
   margin: 0 12px;
   border-radius: 12px;
   overflow: hidden;
