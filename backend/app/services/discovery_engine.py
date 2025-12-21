@@ -773,17 +773,34 @@ class DiscoveryEngine:
             df['mtf_aligned'].astype(int)
         )
         
-        # Confirmation score: Each confirmation adds bonus points
-        # 0 = no bonus, 1 = +3, 2 = +6, 3 = +10, 4 = +15, 5 = +20
-        confirmation_bonuses = {0: 0, 1: 3, 2: 6, 3: 10, 4: 15, 5: 20}
+        # 6. MACD Confirmation
+        df = await self._calculate_macd_signals(df)
+        
+        # 7. Bollinger Bands Squeeze Detection
+        df = await self._calculate_bollinger_signals(df)
+        
+        # Update confirmation count with new factors
+        df['confirmation_count'] = (
+            df['volume_confirmed'].astype(int) +
+            df['ma_confirmed'].astype(int) +
+            df['rsi_extreme'].astype(int) +
+            df['near_sr'].astype(int) +
+            df['mtf_aligned'].astype(int) +
+            df['macd_confirmed'].fillna(False).astype(int) +
+            df['bb_signal'].fillna(False).astype(int)
+        )
+        
+        # Confirmation score: Extended bonus table (now 7 factors)
+        # 0=0, 1=+2, 2=+4, 3=+7, 4=+10, 5=+14, 6=+18, 7=+22
+        confirmation_bonuses = {0: 0, 1: 2, 2: 4, 3: 7, 4: 10, 5: 14, 6: 18, 7: 22}
         df['confirmation_score'] = df['confirmation_count'].map(
-            lambda x: confirmation_bonuses.get(min(x, 5), 0)
+            lambda x: confirmation_bonuses.get(min(x, 7), 22)
         )
         
         # Upgrade pattern reliability based on confirmations
-        # 3+ confirmations = HIGH, 2 = MEDIUM stays, 1 or 0 = LOW
+        # 4+ confirmations = HIGH, 2-3 = MEDIUM, 0-1 = LOW
         df['pattern_reliability_adj'] = np.where(
-            df['confirmation_count'] >= 3,
+            df['confirmation_count'] >= 4,
             'HIGH',
             np.where(
                 df['confirmation_count'] >= 2,
@@ -808,10 +825,205 @@ class DiscoveryEngine:
                 0
             )
         )
+
+        
+        return df
+    
+    async def _calculate_macd_signals(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Calculate MACD signals for confirmation.
+        
+        MACD = EMA(12) - EMA(26)
+        Signal = EMA(9) of MACD
+        Histogram = MACD - Signal
+        
+        Bullish: MACD crosses above Signal (histogram turns positive)
+        Bearish: MACD crosses below Signal (histogram turns negative)
+        """
+        df['macd_confirmed'] = False
+        df['macd_histogram'] = None
+        df['macd_signal_type'] = None
+        
+        query = text("""
+            WITH price_series AS (
+                SELECT 
+                    coin_id,
+                    close,
+                    timestamp,
+                    ROW_NUMBER() OVER (PARTITION BY coin_id ORDER BY timestamp DESC) as rn
+                FROM aihub_ohlcv
+                WHERE interval = '1h'
+                  AND timestamp > NOW() - INTERVAL '48 hours'
+            ),
+            ema_calc AS (
+                SELECT 
+                    coin_id,
+                    close,
+                    rn,
+                    AVG(close) OVER (PARTITION BY coin_id ORDER BY rn DESC ROWS BETWEEN CURRENT ROW AND 11 FOLLOWING) as ema_12,
+                    AVG(close) OVER (PARTITION BY coin_id ORDER BY rn DESC ROWS BETWEEN CURRENT ROW AND 25 FOLLOWING) as ema_26
+                FROM price_series
+                WHERE rn <= 30
+            ),
+            macd_line AS (
+                SELECT 
+                    coin_id,
+                    rn,
+                    (ema_12 - ema_26) as macd,
+                    LAG(ema_12 - ema_26) OVER (PARTITION BY coin_id ORDER BY rn DESC) as prev_macd
+                FROM ema_calc
+            )
+            SELECT 
+                coin_id,
+                macd,
+                prev_macd,
+                AVG(macd) OVER (PARTITION BY coin_id ORDER BY rn DESC ROWS BETWEEN CURRENT ROW AND 8 FOLLOWING) as signal_line,
+                CASE 
+                    WHEN macd > prev_macd AND macd > 0 THEN 'BULLISH_CROSS'
+                    WHEN macd < prev_macd AND macd < 0 THEN 'BEARISH_CROSS'
+                    WHEN macd > 0 THEN 'BULLISH'
+                    ELSE 'BEARISH'
+                END as macd_signal
+            FROM macd_line
+            WHERE rn = 1
+        """)
+        
+        try:
+            with self.db.engine.connect() as conn:
+                result = conn.execute(query)
+                rows = result.fetchall()
+                
+                if rows:
+                    macd_df = pd.DataFrame(rows, columns=[
+                        'coin_id', 'macd', 'prev_macd', 'signal_line', 'macd_signal'
+                    ])
+                    
+                    macd_df['macd_histogram'] = macd_df['macd'] - macd_df['signal_line']
+                    
+                    df = df.merge(
+                        macd_df[['coin_id', 'macd_histogram', 'macd_signal']], 
+                        on='coin_id', 
+                        how='left', 
+                        suffixes=('', '_macd')
+                    )
+                    
+                    df['macd_signal_type'] = df['macd_signal']
+                    
+                    # MACD confirms pattern if directions align
+                    df['macd_confirmed'] = (
+                        ((df['pattern_direction'] == 'BULLISH') & (df['macd_signal'].isin(['BULLISH', 'BULLISH_CROSS']))) |
+                        ((df['pattern_direction'] == 'BEARISH') & (df['macd_signal'].isin(['BEARISH', 'BEARISH_CROSS']))) |
+                        ((df['divergence_type'] == 'BULLISH_DIV') & (df['macd_signal'].isin(['BULLISH', 'BULLISH_CROSS']))) |
+                        ((df['divergence_type'] == 'BEARISH_DIV') & (df['macd_signal'].isin(['BEARISH', 'BEARISH_CROSS'])))
+                    ).fillna(False)
+                    
+                    df.drop(columns=['macd_signal'], errors='ignore', inplace=True)
+                    
+        except Exception as e:
+            logger.warning(f"MACD calculation failed: {e}")
+        
+        return df
+    
+    async def _calculate_bollinger_signals(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Calculate Bollinger Bands signals.
+        
+        BB Middle = SMA(20)
+        BB Upper = SMA(20) + 2 * StdDev(20)
+        BB Lower = SMA(20) - 2 * StdDev(20)
+        
+        Squeeze: Bands are narrow (low volatility, breakout imminent)
+        Price at Lower + Bullish pattern = Strong buy
+        Price at Upper + Bearish pattern = Strong sell
+        """
+        df['bb_signal'] = False
+        df['bb_position'] = None  # UPPER, MIDDLE, LOWER
+        df['bb_squeeze'] = False
+        df['bb_width'] = None
+        
+        query = text("""
+            WITH price_series AS (
+                SELECT 
+                    coin_id,
+                    close,
+                    high,
+                    low,
+                    timestamp,
+                    ROW_NUMBER() OVER (PARTITION BY coin_id ORDER BY timestamp DESC) as rn
+                FROM aihub_ohlcv
+                WHERE interval = '1h'
+                  AND timestamp > NOW() - INTERVAL '48 hours'
+            ),
+            bb_calc AS (
+                SELECT 
+                    coin_id,
+                    close,
+                    AVG(close) OVER (PARTITION BY coin_id ORDER BY rn DESC ROWS BETWEEN CURRENT ROW AND 19 FOLLOWING) as sma_20,
+                    STDDEV(close) OVER (PARTITION BY coin_id ORDER BY rn DESC ROWS BETWEEN CURRENT ROW AND 19 FOLLOWING) as stddev_20
+                FROM price_series
+                WHERE rn <= 25
+            )
+            SELECT 
+                coin_id,
+                close as current_price,
+                sma_20,
+                sma_20 + 2 * stddev_20 as bb_upper,
+                sma_20 - 2 * stddev_20 as bb_lower,
+                CASE WHEN sma_20 > 0 THEN (4 * stddev_20) / sma_20 * 100 ELSE 0 END as bb_width_pct,
+                CASE 
+                    WHEN close >= sma_20 + 1.5 * stddev_20 THEN 'UPPER'
+                    WHEN close <= sma_20 - 1.5 * stddev_20 THEN 'LOWER'
+                    ELSE 'MIDDLE'
+                END as bb_position
+            FROM bb_calc
+            WHERE sma_20 IS NOT NULL
+            ORDER BY coin_id
+            LIMIT 1000
+        """)
+        
+        try:
+            with self.db.engine.connect() as conn:
+                result = conn.execute(query)
+                rows = result.fetchall()
+                
+                if rows:
+                    bb_df = pd.DataFrame(rows, columns=[
+                        'coin_id', 'current_price', 'sma_20', 'bb_upper', 'bb_lower', 'bb_width_pct', 'bb_position'
+                    ])
+                    
+                    # BB Squeeze: Width < 4% (low volatility)
+                    bb_df['bb_squeeze'] = bb_df['bb_width_pct'] < 4
+                    
+                    df = df.merge(
+                        bb_df[['coin_id', 'bb_position', 'bb_squeeze', 'bb_width_pct']], 
+                        on='coin_id', 
+                        how='left',
+                        suffixes=('', '_bb')
+                    )
+                    
+                    df['bb_width'] = df['bb_width_pct']
+                    
+                    # BB confirms pattern:
+                    # - Bullish pattern + price at LOWER band = strong buy signal
+                    # - Bearish pattern + price at UPPER band = strong sell signal
+                    # - BB Squeeze + any pattern = potential breakout
+                    df['bb_signal'] = (
+                        ((df['pattern_direction'] == 'BULLISH') & (df['bb_position'] == 'LOWER')) |
+                        ((df['pattern_direction'] == 'BEARISH') & (df['bb_position'] == 'UPPER')) |
+                        ((df['divergence_type'] == 'BULLISH_DIV') & (df['bb_position'] == 'LOWER')) |
+                        ((df['divergence_type'] == 'BEARISH_DIV') & (df['bb_position'] == 'UPPER')) |
+                        (df['bb_squeeze'].fillna(False) & df['pattern_direction'].notna())
+                    ).fillna(False)
+                    
+                    df.drop(columns=['bb_width_pct'], errors='ignore', inplace=True)
+                    
+        except Exception as e:
+            logger.warning(f"Bollinger Bands calculation failed: {e}")
         
         return df
 
     def _detect_pumps_dumps_advanced(self, df: pd.DataFrame) -> pd.DataFrame:
+
 
 
         """Advanced pump/dump detection."""
