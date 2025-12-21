@@ -165,16 +165,18 @@ class DiscoveryEngine:
                 
                 df = pd.DataFrame(rows, columns=columns)
                 
+                # Force convert all numeric columns from Decimal to float
                 numeric_cols = ['price', 'change_1h', 'change_24h', 'change_7d', 
                                'volume_24h', 'market_cap', 'market_cap_rank']
                 for col in numeric_cols:
-                    df[col] = pd.to_numeric(df[col], errors='coerce')
+                    df[col] = df[col].apply(lambda x: float(x) if x is not None else 0.0)
                 
                 btc_row = df[df['coin_id'] == 'bitcoin']
                 if not btc_row.empty:
-                    self._btc_change_24h = btc_row['change_24h'].values[0] or 0.0
+                    self._btc_change_24h = float(btc_row['change_24h'].values[0] or 0.0)
                 
                 return df
+
                 
         except Exception as e:
             logger.error(f"Failed to get market data: {e}")
