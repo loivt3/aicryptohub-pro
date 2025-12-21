@@ -831,15 +831,24 @@ const mostTraded = computed(() => {
 })
 
 const aiSignals = computed(() => {
-  return [...allCoins.value]
+  const allWithAsi = [...allCoins.value]
     .map(c => ({
       ...c,
       asi_score: sentimentMap.value[c.coin_id]?.asi_score || 50,
       signal: sentimentMap.value[c.coin_id]?.signal || 'HOLD',
     }))
-    .sort((a, b) => (b.asi_score || 50) - (a.asi_score || 50))  // Sort by ASI score descending
-    .slice(0, 15)  // Top 15 coins for heatmap (4 rows: 2+3+5+5)
+    .filter(c => c.asi_score !== null && c.asi_score !== undefined)
+  
+  // Sort by ASI descending
+  const sorted = allWithAsi.sort((a, b) => (b.asi_score || 50) - (a.asi_score || 50))
+  
+  // Take top 8 highest ASI (bullish) + bottom 7 lowest ASI (bearish)
+  const topBullish = sorted.slice(0, 8)
+  const topBearish = sorted.slice(-7).reverse()  // Reverse to show lowest first in bearish section
+  
+  return [...topBullish, ...topBearish]  // 15 coins total
 })
+
 
 // Row-based Treemap Layout (like the original design)
 // Row 1: 2 items (biggest), Row 2: 3 items, Row 3-5: 5 items each
