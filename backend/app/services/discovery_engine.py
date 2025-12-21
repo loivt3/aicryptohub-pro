@@ -140,15 +140,15 @@ class DiscoveryEngine:
     def _get_market_data(self) -> pd.DataFrame:
         """Get current market data from aihub_coins table."""
         query = text("""
-            SELECT coin_id, symbol, name, image, price, 
-                   change_1h, change_24h, change_7d,
-                   volume_24h, market_cap, market_cap_rank
+            SELECT coin_id, symbol, name, image_url as image, price, 
+                   price_change_1h as change_1h, change_24h, price_change_7d as change_7d,
+                   volume_24h, market_cap, rank as market_cap_rank
             FROM aihub_coins
             WHERE price IS NOT NULL AND price > 0
+              AND coin_id IS NOT NULL
             ORDER BY market_cap DESC NULLS LAST
             LIMIT 1000
         """)
-
         
         try:
             with self.db.engine.connect() as conn:
@@ -156,6 +156,7 @@ class DiscoveryEngine:
                 rows = result.fetchall()
                 
                 if not rows:
+                    logger.warning("No coins found in aihub_coins table")
                     return pd.DataFrame()
                 
                 columns = ['coin_id', 'symbol', 'name', 'image', 'price',
