@@ -395,18 +395,17 @@ class DiscoveryEngine:
         except Exception as e:
             logger.debug(f"Pattern table query failed (table may not exist): {e}")
         
-        # Fallback: Calculate patterns from OHLCV for coins without patterns
-        no_pattern_coins = df[df['pattern_name'].isna()]['coin_id'].tolist()[:50]  # Limit to 50
-        
-        if no_pattern_coins:
-            ohlcv_patterns = await self._calculate_patterns_from_ohlcv(no_pattern_coins)
-            
-            for pattern_data in ohlcv_patterns:
-                idx = df[df['coin_id'] == pattern_data['coin_id']].index
-                if len(idx) > 0:
-                    df.loc[idx[0], 'pattern_name'] = pattern_data['pattern']
-                    df.loc[idx[0], 'pattern_direction'] = pattern_data['direction']
-                    df.loc[idx[0], 'pattern_reliability'] = pattern_data['reliability']
+        # DISABLED: OHLCV patterns fallback - schema mismatch (symbol vs coin_id)
+        # TODO: Fix OHLCV queries to use symbol and join with coins table
+        # no_pattern_coins = df[df['pattern_name'].isna()]['coin_id'].tolist()[:50]
+        # if no_pattern_coins:
+        #     ohlcv_patterns = await self._calculate_patterns_from_ohlcv(no_pattern_coins)
+        #     for pattern_data in ohlcv_patterns:
+        #         idx = df[df['coin_id'] == pattern_data['coin_id']].index
+        #         if len(idx) > 0:
+        #             df.loc[idx[0], 'pattern_name'] = pattern_data['pattern']
+        #             df.loc[idx[0], 'pattern_direction'] = pattern_data['direction']
+        #             df.loc[idx[0], 'pattern_reliability'] = pattern_data['reliability']
         
         # Calculate pattern score
         # Bullish patterns with HIGH reliability = +15, MEDIUM = +10, LOW = +5
