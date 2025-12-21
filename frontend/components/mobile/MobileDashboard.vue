@@ -1645,7 +1645,11 @@ const toggleFavorite = (coinId: string) => {
   justify-content: center;
   border-radius: 6px;
   transition: filter 0.2s ease;
+  overflow: hidden;
+  padding: 2px;
+  box-sizing: border-box;
 }
+
 
 .m-treemap-tile:hover {
   transform: scale(1.03);
@@ -1657,12 +1661,15 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .treemap-symbol {
-
   font-size: 11px;
   font-weight: 700;
   color: #fff;
   text-shadow: 0 1px 2px rgba(0,0,0,0.6);
   letter-spacing: 0.3px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .treemap-symbol-small {
@@ -1675,7 +1682,10 @@ const toggleFavorite = (coinId: string) => {
   color: rgba(255,255,255,0.95);
   text-shadow: 0 1px 2px rgba(0,0,0,0.6);
   margin-top: 1px;
+  max-width: 100%;
+  overflow: hidden;
 }
+
 
 .treemap-change {
   font-size: 10px;
