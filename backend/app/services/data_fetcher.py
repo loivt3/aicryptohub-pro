@@ -134,6 +134,8 @@ class CoinGeckoFetcher:
         Returns:
             Stats dict with updated count
         """
+        from sqlalchemy import text
+        
         # Chain slug to chain_id mapping for Etherscan V2
         CHAIN_MAPPING = {
             "ethereum": 1,
@@ -149,21 +151,31 @@ class CoinGeckoFetcher:
         updated = 0
         errors = 0
         
-        # Get coins to update
+        # Get coins to update using DatabaseService
         if not coin_ids:
-            query = """
+            query = text("""
                 SELECT coin_id FROM aihub_coins 
-                WHERE contract_address IS NULL OR contract_address = ''
+                WHERE (contract_address IS NULL OR contract_address = '')
+                  AND coin_id IS NOT NULL
                 ORDER BY market_cap DESC NULLS LAST
-                LIMIT $1
-            """
-            rows = await db.fetch_all(query, limit)
-            coin_ids = [row["coin_id"] for row in rows]
+                LIMIT :limit
+            """)
+            try:
+                with db.engine.connect() as conn:
+                    result = conn.execute(query, {"limit": limit})
+                    rows = result.fetchall()
+                    coin_ids = [row[0] for row in rows if row[0]]
+            except Exception as e:
+                logger.error(f"Failed to get coins for contract population: {e}")
+                return {"updated": 0, "errors": 1, "total_processed": 0}
         
         logger.info(f"Populating contract addresses for {len(coin_ids)} coins")
         
         for coin_id in coin_ids:
             try:
+                # Rate limit - 30 calls/min for CoinGecko free tier
+                await asyncio.sleep(2.5)
+                
                 details = await self.fetch_coin_details(coin_id)
                 
                 if not details or not details.get("platforms"):
@@ -191,22 +203,32 @@ class CoinGeckoFetcher:
                             break
                 
                 if contract_address:
-                    # Update database
-                    update_query = """
+                    # Update database using DatabaseService
+                    update_query = text("""
                         UPDATE aihub_coins 
-                        SET contract_address = $2, 
-                            chain_slug = $3,
-                            chain_id = $4,
-                            updated_at = CURRENT_TIMESTAMP
-                        WHERE coin_id = $1
-                    """
-                    await db.execute(update_query, coin_id, contract_address, chain_slug, chain_id)
-                    updated += 1
-                    logger.debug(f"Updated {coin_id}: {chain_slug} -> {contract_address[:20]}...")
+                        SET contract_address = :contract_address, 
+                            chain_slug = :chain_slug,
+                            chain_id = :chain_id,
+                            last_updated = CURRENT_TIMESTAMP
+                        WHERE coin_id = :coin_id
+                    """)
+                    try:
+                        with db.engine.begin() as conn:
+                            conn.execute(update_query, {
+                                "coin_id": coin_id,
+                                "contract_address": contract_address,
+                                "chain_slug": chain_slug,
+                                "chain_id": chain_id,
+                            })
+                        updated += 1
+                        logger.info(f"Updated {coin_id}: {chain_slug} -> {contract_address[:20]}...")
+                    except Exception as e:
+                        errors += 1
+                        logger.error(f"Failed to update DB for {coin_id}: {e}")
                     
             except Exception as e:
                 errors += 1
-                logger.error(f"Failed to update {coin_id}: {e}")
+                logger.error(f"Failed to fetch details for {coin_id}: {e}")
         
         logger.info(f"Contract address population complete: {updated} updated, {errors} errors")
         
@@ -215,6 +237,7 @@ class CoinGeckoFetcher:
             "errors": errors,
             "total_processed": len(coin_ids),
         }
+
 
 
 class BinanceFetcher:

@@ -50,10 +50,12 @@ class Settings(BaseSettings):
     COINGECKO_API_KEY: str = ""
     ETHERSCAN_API_KEY: str = ""
     COINMARKETCAP_API_KEY: str = ""
+    CRYPTOPANIC_TOKEN: str = ""
     
     # Alias for legacy services (lowercase)
     coingecko_api_key: str = ""
     etherscan_api_key: str = ""
+    cryptopanic_token: str = ""
     
     # JWT
     JWT_SECRET_KEY: str = ""
@@ -74,6 +76,8 @@ class Settings(BaseSettings):
             object.__setattr__(self, 'coingecko_api_key', self.COINGECKO_API_KEY)
         if not self.etherscan_api_key and self.ETHERSCAN_API_KEY:
             object.__setattr__(self, 'etherscan_api_key', self.ETHERSCAN_API_KEY)
+        if not self.cryptopanic_token and self.CRYPTOPANIC_TOKEN:
+            object.__setattr__(self, 'cryptopanic_token', self.CRYPTOPANIC_TOKEN)
         if not self.database_url and self.DATABASE_URL:
             object.__setattr__(self, 'database_url', self.DATABASE_URL)
         if not self.redis_url and self.REDIS_URL:
