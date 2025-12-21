@@ -487,14 +487,93 @@
         </div>
       </section>
 
-      <!-- Empty State -->
+      <!-- Empty State - Enhanced -->
       <section v-if="!analysisCoin && !loading" class="m-section">
-        <div class="m-card m-card--dark" style="text-align: center; padding: 60px 16px;">
-          <span style="font-size: 56px; display: block; margin-bottom: 16px;">📈</span>
-          <h3 style="margin-bottom: 8px;">Start Your Analysis</h3>
-          <p class="m-text-muted">Search and select a coin to analyze</p>
+        <!-- Market Mood Indicator -->
+        <div class="analysis-mood-card">
+          <div class="mood-header">
+            <Icon name="ph:pulse" class="w-4 h-4" style="color: #00d4ff;" />
+            <span>Market Mood</span>
+          </div>
+          <div class="mood-content">
+            <div class="mood-gauge">
+              <svg viewBox="0 0 100 50" class="mood-arc">
+                <defs>
+                  <linearGradient id="moodGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#ef4444" />
+                    <stop offset="50%" stop-color="#eab308" />
+                    <stop offset="100%" stop-color="#22c55e" />
+                  </linearGradient>
+                </defs>
+                <path d="M 10 45 A 40 40 0 0 1 90 45" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6" stroke-linecap="round"/>
+                <path d="M 10 45 A 40 40 0 0 1 90 45" fill="none" stroke="url(#moodGrad)" stroke-width="6" stroke-linecap="round" :stroke-dasharray="126" :stroke-dashoffset="126 - (126 * marketMood / 100)"/>
+              </svg>
+              <div class="mood-value" :style="{ color: marketMood >= 60 ? '#22c55e' : marketMood <= 40 ? '#ef4444' : '#eab308' }">
+                {{ marketMood }}
+              </div>
+            </div>
+            <div class="mood-label" :style="{ color: marketMood >= 60 ? '#22c55e' : marketMood <= 40 ? '#ef4444' : '#eab308' }">
+              {{ marketMood >= 70 ? 'Strongly Bullish' : marketMood >= 55 ? 'Bullish' : marketMood <= 30 ? 'Strongly Bearish' : marketMood <= 45 ? 'Bearish' : 'Neutral' }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Analyze Section -->
+        <div class="analysis-quick-section">
+          <div class="quick-header">
+            <Icon name="ph:lightning" class="w-4 h-4" style="color: #eab308;" />
+            <span>Quick Analyze</span>
+          </div>
+          <div class="quick-chips">
+            <button v-for="coin in quickCoins" :key="coin.id" class="quick-chip" @click="analyzeQuick(coin.id)">
+              <img :src="coin.image" class="quick-chip-img" />
+              <span>{{ coin.symbol }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Trending Analysis Section -->
+        <div class="analysis-trending-section">
+          <div class="trending-header">
+            <div class="trending-title">
+              <Icon name="ph:fire" class="w-4 h-4" style="color: #f97316;" />
+              <span>Trending Analysis</span>
+            </div>
+            <span class="trending-subtitle">Top ASI Scores</span>
+          </div>
+          <div class="trending-list">
+            <div v-for="coin in trendingCoins" :key="coin.coin_id" class="trending-item" @click="analyzeQuick(coin.coin_id)">
+              <img :src="coin.image" class="trending-img" />
+              <div class="trending-info">
+                <span class="trending-symbol">{{ coin.symbol?.toUpperCase() }}</span>
+                <span class="trending-name">{{ coin.name }}</span>
+              </div>
+              <div class="trending-asi">
+                <div class="asi-bar-mini">
+                  <div class="asi-fill-mini" :class="coin.asi_score >= 60 ? 'bullish' : coin.asi_score <= 40 ? 'bearish' : 'neutral'" :style="{ width: coin.asi_score + '%' }"></div>
+                </div>
+                <span class="asi-value-mini" :class="coin.asi_score >= 60 ? 'bullish' : coin.asi_score <= 40 ? 'bearish' : 'neutral'">{{ coin.asi_score }}</span>
+              </div>
+              <span class="trending-signal" :class="'signal-' + (coin.signal || 'hold').toLowerCase()">
+                {{ coin.signal || 'HOLD' }}
+              </span>
+              <Icon name="ph:caret-right" class="w-4 h-4 opacity-40" />
+            </div>
+          </div>
+        </div>
+
+        <!-- CTA Card -->
+        <div class="analysis-cta-card">
+          <div class="cta-icon">
+            <Icon name="ph:chart-line-up" class="w-8 h-8" />
+          </div>
+          <div class="cta-content">
+            <h4>Deep Analysis</h4>
+            <p>Search for any coin to get comprehensive AI-powered technical analysis</p>
+          </div>
         </div>
       </section>
+
 
       <div class="m-bottom-spacer"></div>
     </main>
@@ -581,6 +660,75 @@ const loading = ref(false)
 const dataSource = ref<string | null>(null)
 const analysisCoin = ref<AnalysisCoin | null>(null)
 const allCoins = ref<Suggestion[]>([])
+
+// New: Enhanced empty state data
+const marketMood = ref(55)
+const quickCoins = ref([
+  { id: 'bitcoin', symbol: 'BTC', image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png' },
+  { id: 'ethereum', symbol: 'ETH', image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png' },
+  { id: 'solana', symbol: 'SOL', image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png' },
+  { id: 'ripple', symbol: 'XRP', image: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png' },
+  { id: 'dogecoin', symbol: 'DOGE', image: 'https://assets.coingecko.com/coins/images/5/small/dogecoin.png' },
+])
+
+interface TrendingCoin {
+  coin_id: string
+  symbol: string
+  name: string
+  image: string
+  asi_score: number
+  signal: string
+}
+const trendingCoins = ref<TrendingCoin[]>([])
+
+// New: Quick analyze function
+const analyzeQuick = (coinId: string) => {
+  searchQuery.value = coinId
+  executeSearch(coinId)
+}
+
+// New: Fetch trending coins with ASI data
+const fetchTrendingCoins = async () => {
+  try {
+    const [marketRes, sentimentRes] = await Promise.all([
+      api.getMarketData(50),
+      api.getSentimentBatch()
+    ])
+    
+    if (marketRes.success && marketRes.data) {
+      const sentimentMap = new Map()
+      if (sentimentRes.success && sentimentRes.data) {
+        sentimentRes.data.forEach((s: any) => {
+          sentimentMap.set(s.coin_id, { asi_score: s.asi_score, signal: s.signal })
+        })
+      }
+      
+      // Get coins with ASI and sort by ASI score
+      const withAsi = marketRes.data
+        .map((c: any) => ({
+          coin_id: c.coin_id,
+          symbol: c.symbol,
+          name: c.name,
+          image: c.image,
+          asi_score: sentimentMap.get(c.coin_id)?.asi_score || 50,
+          signal: sentimentMap.get(c.coin_id)?.signal || 'HOLD'
+        }))
+        .sort((a: TrendingCoin, b: TrendingCoin) => b.asi_score - a.asi_score)
+        .slice(0, 5)
+      
+      trendingCoins.value = withAsi
+      
+      // Calculate market mood from average ASI
+      if (withAsi.length > 0) {
+        const avgAsi = withAsi.reduce((sum: number, c: TrendingCoin) => sum + c.asi_score, 0) / withAsi.length
+        marketMood.value = Math.round(avgAsi)
+      }
+    }
+  } catch (e) {
+    console.error('Failed to fetch trending:', e)
+  }
+}
+
 
 // Sentiment data from API
 const asiScore = ref(50)
@@ -879,7 +1027,9 @@ const executeSearch = async (coinId?: string) => {
 // Fetch coins on mount for search suggestions
 onMounted(() => {
   fetchAllCoins()
+  fetchTrendingCoins()
 })
+
 
 const formatCurrency = (n: number) => {
   if (!n) return '$--'
@@ -920,4 +1070,296 @@ const getSparklinePath = (width: number, height: number, fill: boolean) => {
 .m-bottom-spacer {
   height: 80px;
 }
+
+/* Market Mood Card */
+.analysis-mood-card {
+  background: linear-gradient(160deg, rgba(30, 35, 55, 0.95), rgba(15, 20, 35, 0.95));
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.mood-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.mood-header span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.5px;
+}
+
+.mood-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.mood-gauge {
+  position: relative;
+  width: 120px;
+  height: 60px;
+}
+
+.mood-arc {
+  width: 100%;
+  height: 100%;
+}
+
+.mood-value {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.mood-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Quick Analyze Section */
+.analysis-quick-section {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.quick-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.quick-header span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.quick-chips {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.quick-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: linear-gradient(145deg, rgba(40, 45, 60, 0.9), rgba(25, 30, 45, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.quick-chip:hover, .quick-chip:active {
+  background: linear-gradient(145deg, rgba(0, 212, 255, 0.15), rgba(0, 150, 200, 0.1));
+  border-color: rgba(0, 212, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.quick-chip-img {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+
+.quick-chip span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Trending Analysis Section */
+.analysis-trending-section {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.trending-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.trending-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trending-title span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.trending-subtitle {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.trending-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trending-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.trending-item:hover, .trending-item:active {
+  background: rgba(0, 212, 255, 0.08);
+}
+
+.trending-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.trending-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trending-symbol {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.trending-name {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.trending-asi {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.asi-bar-mini {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.asi-fill-mini {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.asi-fill-mini.bullish { background: #22c55e; }
+.asi-fill-mini.neutral { background: #eab308; }
+.asi-fill-mini.bearish { background: #ef4444; }
+
+.asi-value-mini {
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 24px;
+  text-align: right;
+}
+
+.asi-value-mini.bullish { color: #22c55e; }
+.asi-value-mini.neutral { color: #eab308; }
+.asi-value-mini.bearish { color: #ef4444; }
+
+.trending-signal {
+  font-size: 0.55rem;
+  font-weight: 700;
+  padding: 3px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.signal-buy, .signal-strong_buy {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.signal-sell, .signal-strong_sell {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.signal-hold {
+  background: rgba(234, 179, 8, 0.2);
+  color: #eab308;
+}
+
+/* CTA Card */
+.analysis-cta-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.08), rgba(168, 85, 247, 0.06));
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  border-radius: 14px;
+}
+
+.cta-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 150, 200, 0.15));
+  border-radius: 12px;
+  color: #00d4ff;
+}
+
+.cta-content h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 4px 0;
+}
+
+.cta-content p {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+  line-height: 1.4;
+}
 </style>
+
