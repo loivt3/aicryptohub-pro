@@ -661,6 +661,25 @@ class AnalyzerService:
                     signal = "STRONG_SELL" if asi_score <= 35 else "SELL"
                 
                 logger.debug(f"{coin_id} [{timeframe}]: Pattern {pattern_result['pattern']} ({pattern_result['reliability']}) -> ASI adjustment {pattern_adjustment:+d}")
+                
+                # Save pattern to database for backtesting
+                try:
+                    current_price = df['Close'].iloc[-1] if len(df) > 0 else None
+                    candle_time = df.index[-1] if len(df) > 0 else None
+                    
+                    self.db.save_pattern(
+                        coin_id=coin_id,
+                        timeframe=timeframe,
+                        pattern=pattern_result['pattern'],
+                        direction=pattern_result['direction'],
+                        reliability=pattern_result['reliability'],
+                        priority=pattern_recognizer.PATTERN_PRIORITY.get(pattern_result['pattern'], 5),
+                        volume_ratio=pattern_result.get('volume_ratio'),
+                        price_at_detection=float(current_price) if current_price else None,
+                        candle_timestamp=candle_time,
+                    )
+                except Exception as save_err:
+                    logger.debug(f"Failed to save pattern to DB: {save_err}")
         except Exception as e:
             logger.debug(f"Pattern recognition failed for {coin_id}: {e}")
         

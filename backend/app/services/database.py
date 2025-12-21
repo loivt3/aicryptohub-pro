@@ -1232,6 +1232,155 @@ class DatabaseService:
             logger.error(f"Failed to get multi-horizon cache: {e}")
         
         return results
+    
+    def save_pattern(
+        self,
+        coin_id: str,
+        timeframe: str,
+        pattern: str,
+        direction: str,
+        reliability: str,
+        priority: int = 5,
+        volume_ratio: float = None,
+        price_at_detection: float = None,
+        candle_timestamp: datetime = None,
+    ) -> bool:
+        """
+        Save detected candlestick pattern to aihub_patterns table.
+        
+        Args:
+            coin_id: Coin identifier (e.g., 'bitcoin')
+            timeframe: '1h', '4h', '1d', '1w'
+            pattern: Pattern name (e.g., 'Bullish Engulfing')
+            direction: 'BULLISH', 'BEARISH', 'NEUTRAL'
+            reliability: 'HIGH' or 'WEAK'
+            priority: Pattern priority 1-10
+            volume_ratio: Volume / SMA20 ratio
+            price_at_detection: Current price when pattern detected
+            candle_timestamp: Timestamp of the candle that formed pattern
+            
+        Returns:
+            True if saved successfully
+        """
+        symbol = self._get_symbol_for_coin(coin_id)
+        
+        query = text("""
+            INSERT INTO aihub_patterns (
+                coin_id, symbol, timeframe, pattern, direction, reliability,
+                priority, volume_ratio, price_at_detection, candle_timestamp, detected_at
+            )
+            VALUES (
+                :coin_id, :symbol, :timeframe, :pattern, :direction, :reliability,
+                :priority, :volume_ratio, :price_at_detection, :candle_timestamp, :detected_at
+            )
+            ON CONFLICT (coin_id, timeframe, pattern, candle_timestamp) DO UPDATE SET
+                reliability = EXCLUDED.reliability,
+                volume_ratio = EXCLUDED.volume_ratio,
+                price_at_detection = EXCLUDED.price_at_detection,
+                detected_at = EXCLUDED.detected_at
+        """)
+        
+        try:
+            with self.engine.begin() as conn:
+                conn.execute(query, {
+                    "coin_id": coin_id,
+                    "symbol": symbol,
+                    "timeframe": timeframe,
+                    "pattern": pattern,
+                    "direction": direction,
+                    "reliability": reliability,
+                    "priority": priority,
+                    "volume_ratio": volume_ratio,
+                    "price_at_detection": price_at_detection,
+                    "candle_timestamp": candle_timestamp or datetime.now(),
+                    "detected_at": datetime.now(),
+                })
+                
+            logger.debug(f"Saved pattern {pattern} for {coin_id} [{timeframe}]")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save pattern for {coin_id}: {e}")
+            return False
+    
+    def get_pattern_accuracy(self) -> List[Dict]:
+        """
+        Get pattern accuracy statistics from v_pattern_accuracy view.
+        
+        Returns:
+            List of accuracy stats by pattern type
+        """
+        query = text("""
+            SELECT pattern, direction, reliability, timeframe,
+                   total_detections, accurate_count, accuracy_pct,
+                   avg_profit_24h, avg_profit_72h
+            FROM v_pattern_accuracy
+            ORDER BY accuracy_pct DESC
+        """)
+        
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(query)
+                rows = result.fetchall()
+                
+                return [
+                    {
+                        "pattern": row[0],
+                        "direction": row[1],
+                        "reliability": row[2],
+                        "timeframe": row[3],
+                        "total_detections": row[4],
+                        "accurate_count": row[5],
+                        "accuracy_pct": float(row[6]) if row[6] else 0,
+                        "avg_profit_24h": float(row[7]) if row[7] else 0,
+                        "avg_profit_72h": float(row[8]) if row[8] else 0,
+                    }
+                    for row in rows
+                ]
+        except Exception as e:
+            logger.error(f"Failed to get pattern accuracy: {e}")
+            return []
+    
+    def get_recent_patterns(self, hours: int = 24) -> List[Dict]:
+        """
+        Get recently detected patterns.
+        
+        Args:
+            hours: Number of hours to look back
+            
+        Returns:
+            List of recent pattern detections
+        """
+        query = text("""
+            SELECT coin_id, symbol, timeframe, pattern, direction, reliability,
+                   volume_ratio, price_at_detection, detected_at
+            FROM aihub_patterns
+            WHERE detected_at > NOW() - INTERVAL ':hours hours'
+            ORDER BY detected_at DESC
+            LIMIT 100
+        """)
+        
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(query, {"hours": hours})
+                rows = result.fetchall()
+                
+                return [
+                    {
+                        "coin_id": row[0],
+                        "symbol": row[1],
+                        "timeframe": row[2],
+                        "pattern": row[3],
+                        "direction": row[4],
+                        "reliability": row[5],
+                        "volume_ratio": float(row[6]) if row[6] else None,
+                        "price_at_detection": float(row[7]) if row[7] else None,
+                        "detected_at": row[8].isoformat() if row[8] else None,
+                    }
+                    for row in rows
+                ]
+        except Exception as e:
+            logger.error(f"Failed to get recent patterns: {e}")
+            return []
 
 
 # Dependency injection
