@@ -561,7 +561,7 @@
           <NuxtLink to="/analysis" class="m-section-link">View All</NuxtLink>
         </div>
         
-        <!-- Treemap Container -->
+        <!-- Treemap Container - Sorted by ASI -->
         <div class="m-treemap-container" ref="treemapContainer">
           <div 
             v-for="(tile, idx) in treemapLayout" 
@@ -578,19 +578,29 @@
             <span class="treemap-symbol" :class="{ 'treemap-symbol-small': tile.w < 15 }">
               {{ tile.symbol?.toUpperCase() }}
             </span>
-            <span v-if="tile.w >= 12" class="treemap-change" :class="tile.change_24h >= 0 ? 'up' : 'down'">
-              {{ tile.change_24h >= 0 ? '+' : '' }}{{ tile.change_24h?.toFixed(1) }}%
+            <span v-if="tile.w >= 12" class="treemap-asi" :class="getAsiClass(tile.asi_score)">
+              {{ tile.asi_score || '--' }}
             </span>
           </div>
         </div>
         
-        <!-- Legend -->
+        <!-- Legend - ASI based -->
         <div class="m-heatmap-legend">
-          <span class="legend-label">Bearish</span>
-          <div class="legend-bar"></div>
-          <span class="legend-label">Bullish</span>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #b71c1c;"></span>
+            <span class="legend-text">Sell (&lt;40)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #546e7a;"></span>
+            <span class="legend-text">Neutral</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #00897b;"></span>
+            <span class="legend-text">Buy (&gt;60)</span>
+          </div>
         </div>
       </section>
+
 
       <div class="m-bottom-spacer"></div>
     </main>
@@ -829,7 +839,7 @@ const aiSignals = computed(() => {
       asi_score: sentimentMap.value[c.coin_id]?.asi_score || 50,
       signal: sentimentMap.value[c.coin_id]?.signal || 'HOLD',
     }))
-    .sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0))  // Sort by market cap for treemap
+    .sort((a, b) => (b.asi_score || 50) - (a.asi_score || 50))  // Sort by ASI score descending
     .slice(0, 20)  // Top 20 coins for treemap
 })
 
@@ -900,28 +910,31 @@ const treemapLayout = computed(() => {
   return layout
 })
 
-// Treemap tile style based on price change (like CoinGecko)
+// Treemap tile style based on ASI score (bullish/bearish indicator)
 const getTreemapTileStyle = (asiScore: number, change24h: number) => {
-  // Color based on change percentage (typical treemap style)
+  // Color based on ASI score for better sentiment visualization
   let bgColor: string
   
-  if (change24h >= 5) {
-    bgColor = '#00c853'  // Strong green
-  } else if (change24h >= 2) {
-    bgColor = '#26a69a'  // Teal green
-  } else if (change24h >= 0) {
-    bgColor = '#2e7d6f'  // Muted teal
-  } else if (change24h >= -2) {
-    bgColor = '#4a4a4a'  // Gray
-  } else if (change24h >= -5) {
-    bgColor = '#b71c1c'  // Red
+  // Use ASI score for color gradient (0-100)
+  if (asiScore >= 70) {
+    bgColor = '#00897b'  // Strong bullish - teal
+  } else if (asiScore >= 60) {
+    bgColor = '#26a69a'  // Bullish - light teal
+  } else if (asiScore >= 55) {
+    bgColor = '#4db6ac'  // Slightly bullish
+  } else if (asiScore >= 45) {
+    bgColor = '#546e7a'  // Neutral - blue gray
+  } else if (asiScore >= 40) {
+    bgColor = '#78909c'  // Slightly bearish
+  } else if (asiScore >= 30) {
+    bgColor = '#c62828'  // Bearish - red
   } else {
-    bgColor = '#d32f2f'  // Strong red
+    bgColor = '#b71c1c'  // Strong bearish - dark red
   }
   
   return {
     background: bgColor,
-    borderColor: 'rgba(0,0,0,0.3)',
+    borderColor: 'rgba(0,0,0,0.2)',
   }
 }
 
@@ -1548,32 +1561,53 @@ const toggleFavorite = (coinId: string) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 16px;
   margin: 12px 12px 0;
-  padding: 8px;
-  background: rgba(30, 30, 50, 0.5);
-  border-radius: 8px;
+  padding: 10px 16px;
+  background: rgba(30, 30, 50, 0.6);
+  border-radius: 10px;
 }
 
-.m-heatmap-legend .legend-label {
+.m-heatmap-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.m-heatmap-legend .legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.m-heatmap-legend .legend-text {
   font-size: 10px;
-  color: #888;
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
 }
 
-.m-heatmap-legend .legend-bar {
-  flex: 1;
-  max-width: 160px;
-  height: 6px;
-  border-radius: 3px;
-  background: linear-gradient(
-    90deg,
-    rgb(220, 38, 38) 0%,
-    rgb(245, 158, 11) 40%,
-    rgb(234, 179, 8) 50%,
-    rgb(132, 204, 22) 70%,
-    rgb(34, 197, 94) 100%
-  );
+/* Treemap ASI Score */
+.treemap-asi {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+  padding: 2px 6px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 4px;
+  margin-top: 2px;
+}
+
+.treemap-asi.bullish {
+  color: #b9f6ca;
+}
+
+.treemap-asi.bearish {
+  color: #ffcdd2;
+}
+
+.treemap-asi.neutral {
+  color: #cfd8dc;
 }
 
 /* Landscape/wider screens: show more columns */
@@ -1585,6 +1619,7 @@ const toggleFavorite = (coinId: string) => {
   .treemap-symbol {
     font-size: 16px;
   }
+
   
   .treemap-change {
     font-size: 12px;
