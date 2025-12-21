@@ -220,109 +220,123 @@
       </section>
 
       <!-- Candlestick Pattern Detection -->
-      <section v-if="analysisCoin && !loading && patternData.pattern" class="m-section">
+      <section v-if="analysisCoin && !loading" class="m-section">
         <div class="m-card m-card--dark" style="padding: 20px; background: linear-gradient(160deg, rgba(25,20,45,0.98), rgba(15,12,30,0.98));">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
             <Icon name="ph:chart-bar" class="w-5 h-5" style="color: #a855f7;" />
             <span style="font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.8); letter-spacing: 1px;">CANDLESTICK PATTERN</span>
           </div>
           
-          <!-- Pattern Display -->
-          <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-            <!-- Pattern Icon -->
-            <div :style="{ 
-              width: '60px', height: '60px', borderRadius: '14px', 
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: patternData.direction === 'BULLISH' ? 'rgba(34,197,94,0.15)' : 
-                          patternData.direction === 'BEARISH' ? 'rgba(239,68,68,0.15)' : 'rgba(234,179,8,0.15)',
-              border: '1px solid ' + (patternData.direction === 'BULLISH' ? 'rgba(34,197,94,0.3)' : 
-                          patternData.direction === 'BEARISH' ? 'rgba(239,68,68,0.3)' : 'rgba(234,179,8,0.3)')
-            }">
-              <span style="font-size: 1.8rem;">
-                {{ patternData.direction === 'BULLISH' ? '📈' : patternData.direction === 'BEARISH' ? '📉' : '📊' }}
-              </span>
+          <!-- Pattern Found -->
+          <template v-if="patternData.pattern">
+            <!-- Pattern Display -->
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+              <!-- Pattern Icon -->
+              <div :style="{ 
+                width: '60px', height: '60px', borderRadius: '14px', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: patternData.direction === 'BULLISH' ? 'rgba(34,197,94,0.15)' : 
+                            patternData.direction === 'BEARISH' ? 'rgba(239,68,68,0.15)' : 'rgba(234,179,8,0.15)',
+                border: '1px solid ' + (patternData.direction === 'BULLISH' ? 'rgba(34,197,94,0.3)' : 
+                            patternData.direction === 'BEARISH' ? 'rgba(239,68,68,0.3)' : 'rgba(234,179,8,0.3)')
+              }">
+                <span style="font-size: 1.8rem;">
+                  {{ patternData.direction === 'BULLISH' ? '📈' : patternData.direction === 'BEARISH' ? '📉' : '📊' }}
+                </span>
+              </div>
+              
+              <!-- Pattern Name + Direction -->
+              <div style="flex: 1;">
+                <div :style="{ 
+                  fontSize: '1.1rem', fontWeight: '700', 
+                  color: patternData.direction === 'BULLISH' ? '#22c55e' : 
+                         patternData.direction === 'BEARISH' ? '#ef4444' : '#eab308',
+                  marginBottom: '4px'
+                }">
+                  {{ patternData.pattern }}
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span :style="{ 
+                    fontSize: '0.7rem', padding: '3px 8px', borderRadius: '4px',
+                    background: patternData.direction === 'BULLISH' ? 'rgba(34,197,94,0.2)' : 
+                                patternData.direction === 'BEARISH' ? 'rgba(239,68,68,0.2)' : 'rgba(234,179,8,0.2)',
+                    color: patternData.direction === 'BULLISH' ? '#22c55e' : 
+                           patternData.direction === 'BEARISH' ? '#ef4444' : '#eab308'
+                  }">
+                    {{ patternData.direction }}
+                  </span>
+                  <span :style="{ 
+                    fontSize: '0.7rem', padding: '3px 8px', borderRadius: '4px',
+                    background: patternData.reliability === 'HIGH' ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.1)',
+                    color: patternData.reliability === 'HIGH' ? '#a855f7' : 'rgba(255,255,255,0.5)'
+                  }">
+                    {{ patternData.reliability }} CONFIDENCE
+                  </span>
+                </div>
+              </div>
             </div>
             
-            <!-- Pattern Name + Direction -->
-            <div style="flex: 1;">
-              <div :style="{ 
-                fontSize: '1.1rem', fontWeight: '700', 
-                color: patternData.direction === 'BULLISH' ? '#22c55e' : 
-                       patternData.direction === 'BEARISH' ? '#ef4444' : '#eab308',
-                marginBottom: '4px'
-              }">
-                {{ patternData.pattern }}
+            <!-- Pattern Details -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;">
+              <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center;">
+                <div style="font-size: 0.6rem; color: rgba(255,255,255,0.4); margin-bottom: 4px;">TIMEFRAME</div>
+                <div style="font-size: 0.9rem; font-weight: 600; color: #00d4ff;">{{ patternData.timeframe || '1h' }}</div>
               </div>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span :style="{ 
-                  fontSize: '0.7rem', padding: '3px 8px', borderRadius: '4px',
-                  background: patternData.direction === 'BULLISH' ? 'rgba(34,197,94,0.2)' : 
-                              patternData.direction === 'BEARISH' ? 'rgba(239,68,68,0.2)' : 'rgba(234,179,8,0.2)',
-                  color: patternData.direction === 'BULLISH' ? '#22c55e' : 
-                         patternData.direction === 'BEARISH' ? '#ef4444' : '#eab308'
-                }">
-                  {{ patternData.direction }}
-                </span>
-                <span :style="{ 
-                  fontSize: '0.7rem', padding: '3px 8px', borderRadius: '4px',
-                  background: patternData.reliability === 'HIGH' ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.1)',
-                  color: patternData.reliability === 'HIGH' ? '#a855f7' : 'rgba(255,255,255,0.5)'
-                }">
-                  {{ patternData.reliability }} CONFIDENCE
-                </span>
+              <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center;">
+                <div style="font-size: 0.6rem; color: rgba(255,255,255,0.4); margin-bottom: 4px;">VOLUME</div>
+                <div :style="{ fontSize: '0.9rem', fontWeight: '600', color: patternData.volume_ratio >= 1.2 ? '#22c55e' : 'rgba(255,255,255,0.7)' }">
+                  {{ patternData.volume_ratio ? patternData.volume_ratio.toFixed(1) + 'x' : '--' }}
+                </div>
+              </div>
+              <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center;">
+                <div style="font-size: 0.6rem; color: rgba(255,255,255,0.4); margin-bottom: 4px;">ASI IMPACT</div>
+                <div :style="{ fontSize: '0.9rem', fontWeight: '600', color: patternData.pattern_adjustment > 0 ? '#22c55e' : patternData.pattern_adjustment < 0 ? '#ef4444' : 'rgba(255,255,255,0.7)' }">
+                  {{ patternData.pattern_adjustment > 0 ? '+' : '' }}{{ patternData.pattern_adjustment || 0 }}
+                </div>
               </div>
             </div>
-          </div>
+            
+            <!-- Pattern Explanation -->
+            <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px; border-left: 3px solid #a855f7;">
+              <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7); line-height: 1.5;">
+                <template v-if="patternData.pattern === 'Bullish Engulfing'">
+                  A large bullish candle completely engulfs the previous bearish candle. Strong reversal signal indicating buyers are taking control.
+                </template>
+                <template v-else-if="patternData.pattern === 'Bearish Engulfing'">
+                  A large bearish candle completely engulfs the previous bullish candle. Strong reversal signal indicating sellers are taking control.
+                </template>
+                <template v-else-if="patternData.pattern === 'Morning Star'">
+                  Three-candle bullish reversal pattern. Indicates the end of a downtrend with a small-bodied candle followed by a strong bullish candle.
+                </template>
+                <template v-else-if="patternData.pattern === 'Evening Star'">
+                  Three-candle bearish reversal pattern. Indicates the end of an uptrend with a small-bodied candle followed by a strong bearish candle.
+                </template>
+                <template v-else-if="patternData.pattern === 'Hammer'">
+                  Bullish reversal pattern with a small body and long lower wick. Indicates buying pressure at the bottom.
+                </template>
+                <template v-else-if="patternData.pattern === 'Shooting Star'">
+                  Bearish reversal pattern with a small body and long upper wick. Indicates selling pressure at the top.
+                </template>
+                <template v-else-if="patternData.pattern === 'Doji'">
+                  Indecision pattern where open and close are nearly equal. Market is uncertain about direction.
+                </template>
+                <template v-else>
+                  {{ patternData.pattern }} detected. {{ patternData.reliability === 'HIGH' ? 'High volume confirms the signal.' : 'Low volume - wait for confirmation.' }}
+                </template>
+              </div>
+            </div>
+          </template>
           
-          <!-- Pattern Details -->
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;">
-            <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center;">
-              <div style="font-size: 0.6rem; color: rgba(255,255,255,0.4); margin-bottom: 4px;">TIMEFRAME</div>
-              <div style="font-size: 0.9rem; font-weight: 600; color: #00d4ff;">{{ patternData.timeframe || '1h' }}</div>
-            </div>
-            <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center;">
-              <div style="font-size: 0.6rem; color: rgba(255,255,255,0.4); margin-bottom: 4px;">VOLUME</div>
-              <div :style="{ fontSize: '0.9rem', fontWeight: '600', color: patternData.volume_ratio >= 1.2 ? '#22c55e' : 'rgba(255,255,255,0.7)' }">
-                {{ patternData.volume_ratio ? patternData.volume_ratio.toFixed(1) + 'x' : '--' }}
+          <!-- No Pattern Found -->
+          <template v-else>
+            <div style="text-align: center; padding: 20px;">
+              <div style="font-size: 2rem; margin-bottom: 8px;">📊</div>
+              <div style="font-size: 0.85rem; color: rgba(255,255,255,0.5); margin-bottom: 8px;">No Pattern Detected</div>
+              <div style="font-size: 0.7rem; color: rgba(255,255,255,0.35);">
+                No significant candlestick reversal patterns found on the 1h timeframe.
               </div>
             </div>
-            <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center;">
-              <div style="font-size: 0.6rem; color: rgba(255,255,255,0.4); margin-bottom: 4px;">ASI IMPACT</div>
-              <div :style="{ fontSize: '0.9rem', fontWeight: '600', color: patternData.pattern_adjustment > 0 ? '#22c55e' : patternData.pattern_adjustment < 0 ? '#ef4444' : 'rgba(255,255,255,0.7)' }">
-                {{ patternData.pattern_adjustment > 0 ? '+' : '' }}{{ patternData.pattern_adjustment || 0 }}
-              </div>
-            </div>
-          </div>
-          
-          <!-- Pattern Explanation -->
-          <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px; border-left: 3px solid #a855f7;">
-            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7); line-height: 1.5;">
-              <template v-if="patternData.pattern === 'Bullish Engulfing'">
-                A large bullish candle completely engulfs the previous bearish candle. Strong reversal signal indicating buyers are taking control.
-              </template>
-              <template v-else-if="patternData.pattern === 'Bearish Engulfing'">
-                A large bearish candle completely engulfs the previous bullish candle. Strong reversal signal indicating sellers are taking control.
-              </template>
-              <template v-else-if="patternData.pattern === 'Morning Star'">
-                Three-candle bullish reversal pattern. Indicates the end of a downtrend with a small-bodied candle followed by a strong bullish candle.
-              </template>
-              <template v-else-if="patternData.pattern === 'Evening Star'">
-                Three-candle bearish reversal pattern. Indicates the end of an uptrend with a small-bodied candle followed by a strong bearish candle.
-              </template>
-              <template v-else-if="patternData.pattern === 'Hammer'">
-                Bullish reversal pattern with a small body and long lower wick. Indicates buying pressure at the bottom.
-              </template>
-              <template v-else-if="patternData.pattern === 'Shooting Star'">
-                Bearish reversal pattern with a small body and long upper wick. Indicates selling pressure at the top.
-              </template>
-              <template v-else-if="patternData.pattern === 'Doji'">
-                Indecision pattern where open and close are nearly equal. Market is uncertain about direction.
-              </template>
-              <template v-else>
-                {{ patternData.pattern }} detected. {{ patternData.reliability === 'HIGH' ? 'High volume confirms the signal.' : 'Low volume - wait for confirmation.' }}
-              </template>
-            </div>
-          </div>
+          </template>
         </div>
       </section>
 
@@ -1112,21 +1126,23 @@ const executeSearch = async (coinId?: string) => {
         const config = useRuntimeConfig()
         const mhRes = await $fetch<any>(`${config.public.apiBase}/sentiment/${targetCoinId}/multi-horizon`)
         if (mhRes?.success && mhRes.data) {
-          // Update pattern data if available
-          if (mhRes.data.pattern) {
+          // Pattern data is in timeframes['1h']
+          const tf1h = mhRes.data.timeframes?.['1h']
+          if (tf1h?.pattern) {
             patternData.value = {
-              pattern: mhRes.data.pattern,
-              direction: mhRes.data.pattern_direction || 'NEUTRAL',
-              reliability: mhRes.data.pattern_reliability,
+              pattern: tf1h.pattern,
+              direction: tf1h.pattern_direction || 'NEUTRAL',
+              reliability: tf1h.pattern_reliability,
               timeframe: '1h',
-              volume_ratio: mhRes.data.volume_ratio || null,
-              pattern_adjustment: mhRes.data.pattern_adjustment || 0,
+              volume_ratio: tf1h.volume_ratio || null,
+              pattern_adjustment: tf1h.pattern_adjustment || 0,
             }
           }
         }
       } catch (e) {
         console.warn('Multi-horizon data not available:', e)
       }
+
 
       
       // Fetch on-chain data
