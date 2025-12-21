@@ -352,8 +352,169 @@
         </div>
       </div>
     </section>
+
+    <!-- Technical Signals Section (NEW) -->
+    <section class="d-section">
+      <div class="d-section-header">
+        <h2 class="d-section-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M3 12h4l3 8l4-16l3 8h4"/></svg>
+          Technical Signals
+        </h2>
+        <div class="d-inline-tabs">
+          <button class="d-inline-tab" :class="{ active: signalFilter === 'all' }" @click="signalFilter = 'all'">All</button>
+          <button class="d-inline-tab" :class="{ active: signalFilter === 'bullish' }" @click="signalFilter = 'bullish'">Bullish</button>
+          <button class="d-inline-tab" :class="{ active: signalFilter === 'bearish' }" @click="signalFilter = 'bearish'">Bearish</button>
+        </div>
+      </div>
+      
+      <div class="d-table-card">
+        <table class="d-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Coin</th>
+              <th class="text-right">Price</th>
+              <th class="text-right">24h</th>
+              <th>Pattern</th>
+              <th>RSI</th>
+              <th>MACD</th>
+              <th>BB</th>
+              <th>Confirm</th>
+              <th>Signal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(coin, idx) in technicalSignals" :key="coin.coin_id">
+              <td><span class="d-rank">{{ idx + 1 }}</span></td>
+              <td>
+                <div class="d-coin-cell">
+                  <img :src="coin.image" class="d-coin-avatar" />
+                  <div>
+                    <span class="d-coin-name">{{ coin.symbol }}</span>
+                    <span class="d-coin-symbol">{{ coin.name }}</span>
+                  </div>
+                </div>
+              </td>
+              <td class="text-right font-mono">{{ formatPrice(coin.price) }}</td>
+              <td class="text-right" :class="coin.change_24h >= 0 ? 'text-success' : 'text-danger'">
+                {{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(2) }}%
+              </td>
+              <td>
+                <div class="d-pattern-cell" v-if="coin.pattern_name">
+                  <span class="d-pattern-name" :class="'pattern-' + (coin.pattern_direction?.toLowerCase() || 'neutral')">
+                    {{ coin.pattern_name }}
+                  </span>
+                  <span class="d-pattern-rel" :class="'rel-' + (coin.pattern_reliability?.toLowerCase() || 'low')">
+                    {{ coin.pattern_reliability }}
+                  </span>
+                </div>
+                <span v-else class="d-muted">--</span>
+              </td>
+              <td>
+                <div class="d-rsi-cell" v-if="coin.rsi_14">
+                  <span class="d-rsi-value" :class="getRsiClass(coin.rsi_14)">{{ coin.rsi_14 }}</span>
+                  <span v-if="coin.divergence_type" class="d-divergence" :class="getDivergenceClass(coin.divergence_type)">
+                    {{ coin.divergence_type === 'BULLISH_DIV' ? '↗ Div' : '↘ Div' }}
+                  </span>
+                </div>
+                <span v-else class="d-muted">--</span>
+              </td>
+              <td>
+                <span v-if="coin.macd_signal_type" class="d-macd" :class="'macd-' + coin.macd_signal_type?.toLowerCase()">
+                  {{ coin.macd_signal_type }}
+                </span>
+                <span v-else class="d-muted">--</span>
+              </td>
+              <td>
+                <div class="d-bb-cell" v-if="coin.bb_position">
+                  <span class="d-bb-pos" :class="'bb-' + coin.bb_position?.toLowerCase()">{{ coin.bb_position }}</span>
+                  <span v-if="coin.bb_squeeze" class="d-bb-squeeze">SQUEEZE</span>
+                </div>
+                <span v-else class="d-muted">--</span>
+              </td>
+              <td>
+                <div class="d-confirm-cell">
+                  <span class="d-confirm-count" :class="getConfirmClass(coin.confirmation_count)">
+                    {{ coin.confirmation_count }}/7
+                  </span>
+                  <div class="d-confirm-bar">
+                    <div class="d-confirm-fill" :style="{ width: (coin.confirmation_count / 7 * 100) + '%' }"></div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span v-if="coin.signal_strength" class="d-signal-strength" :class="'strength-' + (coin.signal_strength?.toLowerCase() || '')">
+                  {{ formatSignalStrength(coin.signal_strength) }}
+                </span>
+                <span v-else class="d-muted">--</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div v-if="technicalSignals.length === 0" class="d-table-empty">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><path d="M3 12h4l3 8l4-16l3 8h4"/></svg>
+          <span>No technical signals detected</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Hidden Gems Section (NEW) -->
+    <section class="d-section">
+      <div class="d-section-header">
+        <h2 class="d-section-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          Hidden Gems
+        </h2>
+        <span class="d-section-note">Small caps outperforming market</span>
+      </div>
+      
+      <div class="d-gems-grid">
+        <div v-for="coin in hiddenGems" :key="coin.coin_id" class="d-gem-card">
+          <div class="d-gem-header">
+            <img :src="coin.image" class="d-gem-avatar" />
+            <div>
+              <span class="d-gem-symbol">{{ coin.symbol }}</span>
+              <span class="d-gem-rank">#{{ coin.market_cap_rank }}</span>
+            </div>
+            <span class="d-gem-score" :class="getGemScoreClass(coin.discovery_score)">
+              {{ coin.discovery_score }}
+            </span>
+          </div>
+          <div class="d-gem-body">
+            <div class="d-gem-stat">
+              <span class="d-gem-label">Price</span>
+              <span class="d-gem-value">{{ formatPrice(coin.price) }}</span>
+            </div>
+            <div class="d-gem-stat">
+              <span class="d-gem-label">24h</span>
+              <span class="d-gem-value" :class="coin.change_24h >= 0 ? 'text-success' : 'text-danger'">
+                {{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(2) }}%
+              </span>
+            </div>
+            <div class="d-gem-stat">
+              <span class="d-gem-label">vs BTC</span>
+              <span class="d-gem-value" :class="coin.rs_vs_btc >= 0 ? 'text-success' : 'text-danger'">
+                {{ coin.rs_vs_btc >= 0 ? '+' : '' }}{{ coin.rs_vs_btc?.toFixed(2) }}%
+              </span>
+            </div>
+          </div>
+          <div v-if="coin.pattern_name" class="d-gem-footer">
+            <span class="d-gem-pattern" :class="'pattern-' + (coin.pattern_direction?.toLowerCase() || 'neutral')">
+              {{ coin.pattern_name }}
+            </span>
+            <span v-if="coin.signal_strength" class="d-gem-signal">{{ formatSignalStrength(coin.signal_strength) }}</span>
+          </div>
+        </div>
+        
+        <div v-if="hiddenGems.length === 0" class="d-gems-empty">
+          <span>No hidden gems found at this time</span>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
+
 
 <script setup lang="ts">
 interface Coin {
@@ -392,6 +553,55 @@ const socketConnected = ref(false)
 // ASI by Horizon data
 const activeHorizon = ref<'short' | 'medium' | 'long'>('short')
 const multiHorizonData = ref<Record<string, any>>({})
+
+// Technical Signals data (NEW)
+const signalFilter = ref<'all' | 'bullish' | 'bearish'>('all')
+const technicalSignalsRaw = ref<any[]>([])
+const hiddenGems = ref<any[]>([])
+
+// Computed: filtered technical signals
+const technicalSignals = computed(() => {
+  if (signalFilter.value === 'all') return technicalSignalsRaw.value
+  if (signalFilter.value === 'bullish') {
+    return technicalSignalsRaw.value.filter(c => 
+      c.pattern_direction === 'BULLISH' || c.divergence_type === 'BULLISH_DIV'
+    )
+  }
+  return technicalSignalsRaw.value.filter(c => 
+    c.pattern_direction === 'BEARISH' || c.divergence_type === 'BEARISH_DIV'
+  )
+})
+
+// Helper functions for technical signals (NEW)
+const getRsiClass = (rsi: number | null) => {
+  if (!rsi) return ''
+  if (rsi < 30) return 'rsi-oversold'
+  if (rsi > 70) return 'rsi-overbought'
+  return 'rsi-neutral'
+}
+
+const getDivergenceClass = (type: string | null) => {
+  if (type === 'BULLISH_DIV') return 'div-bullish'
+  if (type === 'BEARISH_DIV') return 'div-bearish'
+  return ''
+}
+
+const getConfirmClass = (count: number) => {
+  if (count >= 5) return 'confirm-high'
+  if (count >= 3) return 'confirm-medium'
+  return 'confirm-low'
+}
+
+const getGemScoreClass = (score: number) => {
+  if (score >= 80) return 'gem-excellent'
+  if (score >= 70) return 'gem-good'
+  return 'gem-moderate'
+}
+
+const formatSignalStrength = (strength: string | null) => {
+  if (!strength) return '--'
+  return strength.replace(/_/g, ' ').replace('VERY STRONG ', '⚡ ').replace('CONFIRMED ', '✓ ')
+}
 
 // Computed: horizon coins list
 const horizonCoins = computed(() => {
@@ -656,6 +866,7 @@ const setupSocketConnection = () => {
 
 onMounted(() => {
   fetchData()
+  fetchTechnicalSignals()
   setupSocketConnection()
   
   // Fallback refresh if WebSocket not connected (every 10s)
@@ -665,8 +876,38 @@ onMounted(() => {
     }
   }, 10000)
   
-  onUnmounted(() => clearInterval(interval))
+  // Refresh technical signals every 5 min
+  const techInterval = setInterval(() => fetchTechnicalSignals(), 300000)
+  
+  onUnmounted(() => {
+    clearInterval(interval)
+    clearInterval(techInterval)
+  })
 })
+
+// Fetch technical signals from discovery API
+const fetchTechnicalSignals = async () => {
+  const config = useRuntimeConfig()
+  const apiUrl = config.public.apiUrl || 'http://localhost:8000'
+  
+  try {
+    // Fetch technical signals
+    const [signalsRes, gemsRes] = await Promise.all([
+      $fetch(`${apiUrl}/api/discovery/technical-signals?limit=15`),
+      $fetch(`${apiUrl}/api/discovery/hidden-gems?limit=8`)
+    ])
+    
+    if (signalsRes?.success && signalsRes.data) {
+      technicalSignalsRaw.value = signalsRes.data
+    }
+    if (gemsRes?.success && gemsRes.data) {
+      hiddenGems.value = gemsRes.data
+    }
+  } catch (error) {
+    console.error('[Dashboard] Technical signals fetch failed:', error)
+  }
+}
+
 
 const formatCurrency = (n: number) => '$' + (n >= 1e12 ? (n/1e12).toFixed(2) + 'T' : n >= 1e9 ? (n/1e9).toFixed(2) + 'B' : n.toLocaleString())
 const formatPrice = (p: number) => '$' + (p >= 1 ? p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : p.toFixed(6))
@@ -1227,4 +1468,207 @@ const getAsiClass = (v: number) => v >= 60 ? 'positive' : v <= 40 ? 'negative' :
 .text-center {
   text-align: center;
 }
+
+/* ================================== */
+/* Technical Signals Styles (NEW)     */
+/* ================================== */
+
+/* Pattern cell */
+.d-pattern-cell { display: flex; flex-direction: column; gap: 2px; }
+.d-pattern-name {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.d-pattern-name.pattern-bullish { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.d-pattern-name.pattern-bearish { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.d-pattern-name.pattern-neutral { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+
+.d-pattern-rel { font-size: 9px; opacity: 0.6; }
+.d-pattern-rel.rel-high { color: #fbbf24; }
+.d-pattern-rel.rel-medium { color: #94a3b8; }
+.d-pattern-rel.rel-low { color: #64748b; }
+
+/* RSI cell */
+.d-rsi-cell { display: flex; align-items: center; gap: 4px; }
+.d-rsi-value {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+.d-rsi-value.rsi-oversold { color: #10b981; }
+.d-rsi-value.rsi-overbought { color: #ef4444; }
+.d-rsi-value.rsi-neutral { color: #94a3b8; }
+
+.d-divergence {
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+.d-divergence.div-bullish { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+.d-divergence.div-bearish { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+/* MACD */
+.d-macd {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+.d-macd.macd-bullish, .d-macd.macd-bullish_cross { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.d-macd.macd-bearish, .d-macd.macd-bearish_cross { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+/* Bollinger Bands */
+.d-bb-cell { display: flex; flex-direction: column; gap: 2px; }
+.d-bb-pos {
+  font-size: 10px;
+  font-weight: 500;
+}
+.d-bb-pos.bb-upper { color: #ef4444; }
+.d-bb-pos.bb-middle { color: #94a3b8; }
+.d-bb-pos.bb-lower { color: #10b981; }
+
+.d-bb-squeeze {
+  font-size: 8px;
+  padding: 1px 4px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+/* Confirmation cell */
+.d-confirm-cell { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.d-confirm-count {
+  font-size: 11px;
+  font-weight: 600;
+}
+.d-confirm-count.confirm-high { color: #10b981; }
+.d-confirm-count.confirm-medium { color: #fbbf24; }
+.d-confirm-count.confirm-low { color: #94a3b8; }
+
+.d-confirm-bar {
+  width: 40px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.d-confirm-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  border-radius: 2px;
+}
+
+/* Signal strength */
+.d-signal-strength {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.d-signal-strength.strength-very_strong_bull { background: rgba(16, 185, 129, 0.25); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); }
+.d-signal-strength.strength-very_strong_bear { background: rgba(239, 68, 68, 0.25); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); }
+.d-signal-strength.strength-strong_bullish { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.d-signal-strength.strength-strong_bearish { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.d-signal-strength.strength-confirmed_bull { background: rgba(16, 185, 129, 0.1); color: #34d399; }
+.d-signal-strength.strength-confirmed_bear { background: rgba(239, 68, 68, 0.1); color: #f87171; }
+.d-signal-strength.strength-bullish { color: #10b981; }
+.d-signal-strength.strength-bearish { color: #ef4444; }
+
+.d-muted { color: rgba(255, 255, 255, 0.3); font-size: 12px; }
+
+/* ================================== */
+/* Hidden Gems Grid Styles            */
+/* ================================== */
+.d-gems-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.d-gem-card {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s ease;
+}
+.d-gem-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(139, 92, 246, 0.3);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.d-gem-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.d-gem-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.d-gem-symbol { font-weight: 700; font-size: 14px; color: #fff; display: block; }
+.d-gem-rank { font-size: 10px; color: rgba(255, 255, 255, 0.4); }
+
+.d-gem-score {
+  margin-left: auto;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+.d-gem-score.gem-excellent { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+.d-gem-score.gem-good { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+.d-gem-score.gem-moderate { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
+
+.d-gem-body {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.d-gem-stat { text-align: center; }
+.d-gem-label { font-size: 9px; color: rgba(255, 255, 255, 0.4); display: block; margin-bottom: 2px; text-transform: uppercase; }
+.d-gem-value { font-size: 12px; font-weight: 600; color: #fff; }
+
+.d-gem-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.d-gem-pattern {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.d-gem-pattern.pattern-bullish { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.d-gem-pattern.pattern-bearish { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+.d-gem-signal { font-size: 10px; color: rgba(255, 255, 255, 0.6); }
+
+.d-gems-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px;
+  color: rgba(255, 255, 255, 0.3);
+}
 </style>
+
