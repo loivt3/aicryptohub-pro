@@ -78,4 +78,22 @@ export default defineNuxtConfig({
     nitro: {
         preset: 'node-server',
     },
+
+    // Vite config for socket.io-client
+    vite: {
+        optimizeDeps: {
+            include: ['socket.io-client'],
+        },
+        build: {
+            rollupOptions: {
+                // Ensure socket.io-client is bundled
+            }
+        }
+    },
+
+    // Build config for SSR compatibility
+    build: {
+        transpile: ['socket.io-client'],
+    },
 })
+
