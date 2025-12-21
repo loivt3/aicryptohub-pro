@@ -332,9 +332,15 @@ class DiscoveryEngine:
     
     def _calculate_trend_score(self, df: pd.DataFrame) -> pd.DataFrame:
         """Calculate Trend Score (-5 to +5)."""
+        # Ensure numeric columns are float to avoid Decimal issues
+        for col in ['change_1h', 'change_4h', 'change_24h']:
+            if col in df.columns:
+                df[col] = df[col].apply(lambda x: float(x) if x is not None else 0.0)
+        
         df['trend_1h'] = np.where(df['change_1h'].abs() > 2, np.sign(df['change_1h']) * 2, np.sign(df['change_1h']))
         df['trend_4h'] = np.where(df['change_4h'].abs() > 4, np.sign(df['change_4h']) * 1.5, np.sign(df['change_4h']) * 0.75)
         df['trend_24h'] = np.where(df['change_24h'].abs() > 8, np.sign(df['change_24h']) * 1.5, np.sign(df['change_24h']) * 0.75)
+
         
         df['trend_score'] = np.clip(df['trend_1h'] + df['trend_4h'] + df['trend_24h'], -5, 5).round(1)
         
