@@ -1568,8 +1568,12 @@ const toggleFavorite = (coinId: string) => {
   flex-direction: column;
   align-items: center;
   padding: 8px 4px;
-  background: rgba(30, 30, 50, 0.5);
-  border-radius: 8px;
+  background: linear-gradient(180deg, #1a2634 0%, #0a3d47 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 12px;
+  box-shadow: inset 0 0 15px rgba(16, 185, 129, 0.05);
 }
 
 .m-stat-mini .stat-value {
@@ -1594,10 +1598,14 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-horizon-coin {
-  background: rgba(30, 30, 50, 0.6);
-  border-radius: 10px;
+  background: linear-gradient(180deg, #1a2634 0%, #0a3d47 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 12px;
   padding: 12px;
   margin-bottom: 8px;
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .m-horizon-coin-row {
@@ -1999,11 +2007,14 @@ const toggleFavorite = (coinId: string) => {
 
 .m-gem-card {
   flex: 0 0 180px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.02));
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: linear-gradient(180deg, #1a2634 0%, #0a3d47 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(16, 185, 129, 0.15);
   border-radius: 12px;
   padding: 12px;
   overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 6px 24px rgba(0, 0, 0, 0.35);
 }
 
 .m-gem-header {
@@ -2254,11 +2265,14 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-tsig-row {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
+  background: linear-gradient(180deg, #1a2634 0%, #0a3d47 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 12px;
   margin-bottom: 10px;
   padding: 12px;
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 6px 24px rgba(0, 0, 0, 0.35);
 }
 
 .m-tsig-main {
