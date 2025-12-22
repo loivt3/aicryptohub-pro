@@ -1066,8 +1066,14 @@ class DiscoveryEngine:
                         bb_df[['coin_id', 'bb_position', 'bb_squeeze', 'bb_width_pct']], 
                         on='coin_id', 
                         how='left',
-                        suffixes=('', '_bb')
+                        suffixes=('_orig', '')
                     )
+                    
+                    # Drop original columns and keep merged ones
+                    if 'bb_position_orig' in df.columns:
+                        df.drop(columns=['bb_position_orig'], errors='ignore', inplace=True)
+                    if 'bb_squeeze_orig' in df.columns:
+                        df.drop(columns=['bb_squeeze_orig'], errors='ignore', inplace=True)
                     
                     df['bb_width'] = df['bb_width_pct']
                     
