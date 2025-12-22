@@ -345,6 +345,31 @@ class AnalyzerService:
         """
         indicators = {}
         
+        # Minimum required: 50 for EMA(50), 26 for MACD, 14 for RSI/Stoch/ADX/ATR
+        MIN_ROWS = 50
+        if len(df) < MIN_ROWS:
+            logger.debug(f"Insufficient data for indicators: {len(df)} rows (need {MIN_ROWS})")
+            return {
+                "rsi_14": 50,
+                "macd_line": 0,
+                "macd_signal": 0,
+                "macd_histogram": 0,
+                "bb_percent_b": 0.5,
+                "bb_upper": 0,
+                "bb_middle": 0,
+                "bb_lower": 0,
+                "ema_9": 0,
+                "ema_21": 0,
+                "ema_50": 0,
+                "stoch_k": 50,
+                "stoch_d": 50,
+                "adx": 0,
+                "atr_14": 0,
+                "current_price": float(df["Close"].iloc[-1]) if len(df) > 0 and "Close" in df.columns else 0,
+                "price_change_24h": 0,
+                "data_insufficient": True,
+            }
+        
         try:
             # RSI (14)
             rsi_indicator = RSIIndicator(close=df["Close"], window=14)
