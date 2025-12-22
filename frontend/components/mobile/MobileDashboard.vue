@@ -2256,9 +2256,9 @@ const toggleFavorite = (coinId: string) => {
 .m-tsig-row {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
-  margin-bottom: 8px;
-  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  padding: 12px;
 }
 
 .m-tsig-main {
@@ -2269,15 +2269,15 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-tsig-rank {
-  min-width: 16px;
-  font-size: 10px;
+  min-width: 18px;
+  font-size: 11px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.4);
 }
 
 .m-tsig-avatar {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -2287,8 +2287,8 @@ const toggleFavorite = (coinId: string) => {
   min-width: 0;
 }
 
-.m-tsig-symbol { font-size: 12px; font-weight: 700; color: #fff; }
-.m-tsig-name { font-size: 9px; color: rgba(255, 255, 255, 0.4); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-tsig-symbol { font-size: 13px; font-weight: 700; color: #fff; }
+.m-tsig-name { font-size: 11px; color: rgba(255, 255, 255, 0.5); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .m-tsig-price-col {
   display: flex;
@@ -2296,37 +2296,37 @@ const toggleFavorite = (coinId: string) => {
   align-items: flex-end;
 }
 
-.m-tsig-price { font-size: 11px; font-weight: 600; color: #fff; }
-.m-tsig-change { font-size: 10px; font-weight: 600; }
+.m-tsig-price { font-size: 13px; font-weight: 600; color: #fff; }
+.m-tsig-change { font-size: 11px; font-weight: 600; }
 .m-tsig-change.positive { color: #10b981; }
 .m-tsig-change.negative { color: #ef4444; }
 
 .m-tsig-indicators {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 12px;
+  gap: 8px 14px;
 }
 
 .m-tsig-ind {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
 }
 
 .m-tsig-ind .ind-label {
-  font-size: 8px;
-  color: rgba(255, 255, 255, 0.35);
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
   text-transform: uppercase;
 }
 
 .m-tsig-ind .ind-value {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
 }
 
 .m-tsig-ind .ind-muted {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.2);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
 }
 
 
