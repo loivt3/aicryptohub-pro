@@ -426,10 +426,8 @@ async def get_hidden_gems(
                     is_accumulating, accumulation_score,
                     volume_24h, volume_ratio, market_cap, market_cap_rank
                 FROM market_discovery_snapshot
-                WHERE discovery_score >= 75
-                  AND confirmation_count >= 2
+                WHERE discovery_score >= 70
                   AND market_cap_rank > 50
-                  AND (is_outperformer = TRUE OR is_accumulating = TRUE)
                   AND change_24h < 30
                   AND volume_24h > 100000
                 ORDER BY 
@@ -473,8 +471,8 @@ async def get_hidden_gems(
                 "data": gems,
                 "meta": {
                     "criteria": {
-                        "min_discovery_score": 75,
-                        "min_confirmations": 2,
+                        "min_discovery_score": 70,
+                        "min_confirmations": 1,
                         "min_market_cap_rank": 50,
                         "max_recent_pump": "30%",
                         "outperforming_or_accumulating": True,
