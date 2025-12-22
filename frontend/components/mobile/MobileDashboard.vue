@@ -1568,9 +1568,9 @@ const toggleFavorite = (coinId: string) => {
   flex-direction: column;
   align-items: center;
   padding: 8px 4px;
-  background: linear-gradient(180deg, #1a2634 0%, #0a3d47 100%);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(20, 20, 20, 0.27);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(16, 185, 129, 0.15);
   border-radius: 12px;
   box-shadow: inset 0 0 15px rgba(16, 185, 129, 0.05);
@@ -1598,14 +1598,14 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-horizon-coin {
-  background: linear-gradient(180deg, #1a2634 0%, #0a3d47 100%);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(20, 20, 20, 0.27);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(16, 185, 129, 0.15);
   border-radius: 12px;
   padding: 12px;
   margin-bottom: 8px;
-  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 4px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .m-horizon-coin-row {
@@ -2007,14 +2007,14 @@ const toggleFavorite = (coinId: string) => {
 
 .m-gem-card {
   flex: 0 0 180px;
-  background: linear-gradient(180deg, #1a2634 0%, #0a3d47 100%);
+  background: rgba(20, 20, 20, 0.27);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(16, 185, 129, 0.15);
   border-radius: 12px;
   padding: 12px;
   overflow: hidden;
-  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 6px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .m-gem-header {
@@ -2265,14 +2265,15 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-tsig-row {
-  background: linear-gradient(180deg, #1a2634 0%, #0a3d47 100%);
+  background: rgba(20, 20, 20, 0.27);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(16, 185, 129, 0.15);
   border-radius: 12px;
-  margin-bottom: 10px;
-  padding: 12px;
-  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 6px 24px rgba(0, 0, 0, 0.35);
+  margin-bottom: 12px;
+  padding: 14px;
+  animation: fadeInUp 0.8s ease-out;
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .m-tsig-main {
@@ -2378,6 +2379,16 @@ const toggleFavorite = (coinId: string) => {
   text-align: center;
   color: rgba(255, 255, 255, 0.3);
   font-size: 13px;
+}
+.m-section {
+  background: rgba(20, 20, 20, 0.27);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 20px;
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 </style>
 

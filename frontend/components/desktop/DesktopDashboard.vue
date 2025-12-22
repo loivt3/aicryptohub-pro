@@ -953,7 +953,16 @@ const getAsiClass = (v: number) => v >= 60 ? 'positive' : v <= 40 ? 'negative' :
   min-height: 100vh;
 }
 
-.d-section { margin-bottom: var(--aihub-spacing-xl); }
+.d-section { 
+  margin-bottom: var(--aihub-spacing-xl);
+  background: rgba(20, 20, 20, 0.27);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(16, 185, 129, 0.15); 
+  border-radius: 12px; 
+  padding: 20px;
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
+}
 
 .d-section-header { 
   display: flex; 
@@ -985,14 +994,14 @@ const getAsiClass = (v: number) => v >= 60 ? 'positive' : v <= 40 ? 'negative' :
 }
 
 .d-stat-card { 
-  background: linear-gradient(180deg, #1a2634 0%, #0a3d47 100%);
+  background: rgba(20, 20, 20, 0.27);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(16, 185, 129, 0.15); 
   border-radius: 12px; 
   padding: 24px; 
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 6px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .d-stat-card:hover { 
@@ -1084,13 +1093,13 @@ const getAsiClass = (v: number) => v >= 60 ? 'positive' : v <= 40 ? 'negative' :
 .d-content-grid { display: grid; grid-template-columns: 1fr 380px; gap: 28px; }
 
 .d-table-card { 
-  background: linear-gradient(180deg, #1a2634 0%, #0a3d47 100%);
+  background: rgba(20, 20, 20, 0.27);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(16, 185, 129, 0.15); 
   border-radius: 12px; 
   overflow: hidden;
-  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 6px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .d-table { width: 100%; border-collapse: collapse; }
@@ -1228,14 +1237,14 @@ const getAsiClass = (v: number) => v >= 60 ? 'positive' : v <= 40 ? 'negative' :
 .d-sidebar { display: flex; flex-direction: column; gap: 20px; }
 
 .d-sidebar-card { 
-  background: linear-gradient(180deg, #1a2634 0%, #0a3d47 100%);
+  background: rgba(20, 20, 20, 0.27);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(16, 185, 129, 0.15); 
   border-radius: 12px; 
   padding: 24px;
   transition: all 0.3s ease;
-  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 6px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .d-sidebar-card:hover {
@@ -1631,14 +1640,14 @@ const getAsiClass = (v: number) => v >= 60 ? 'positive' : v <= 40 ? 'negative' :
 }
 
 .d-gem-card {
-  background: linear-gradient(180deg, #1a2634 0%, #0a3d47 100%);
+  background: rgba(20, 20, 20, 0.27);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(16, 185, 129, 0.15);
   border-radius: 12px;
   padding: 16px;
   transition: all 0.2s ease;
-  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 6px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 .d-gem-card:hover {
   transform: translateY(-2px);
