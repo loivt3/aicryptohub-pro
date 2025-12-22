@@ -728,9 +728,10 @@
                       </span>
                    </div>
                    
-                   <div class="m-tsig-action">
+                   <div class="m-tsig-action-col">
+                      <span class="signal-label-top">SIGNAL</span>
                       <span class="signal-btn" :class="'btn-' + (coin.signal_strength?.toLowerCase() || 'neutral')">
-                        {{ coin.signal_strength || 'HOLD' }}
+                        {{ (coin.signal_strength || 'HOLD').replace('_', ' ') }}
                       </span>
                    </div>
                 </div>
@@ -740,7 +741,7 @@
               <div class="m-tsig-indicators-scroll">
                 <!-- Pattern -->
                 <div class="m-tsig-pill" v-if="coin.pattern_name">
-                  <span class="pill-label">PAT</span>
+                  <span class="pill-label">PATTERN</span>
                   <span class="pill-val" :class="'pattern-' + (coin.pattern_direction?.toLowerCase() || 'neutral')">
                     {{ coin.pattern_name }}
                   </span>
@@ -764,7 +765,7 @@
                 
                 <!-- Confirm -->
                 <div class="m-tsig-pill">
-                  <span class="pill-label">CONF</span>
+                  <span class="pill-label">CONFIRM</span>
                   <span class="pill-val" :class="getConfirmClass(coin.confirmation_count)">
                     {{ coin.confirmation_count || 0 }}/7
                   </span>
@@ -2318,13 +2319,25 @@ const toggleFavorite = (coinId: string) => {
 .m-tsig-meta-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .m-tsig-price-box {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+}
+.m-tsig-action-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.signal-label-top {
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 600;
+  text-transform: uppercase;
 }
 .m-tsig-price { font-size: 13px; font-weight: 600; color: #fff; }
 .m-tsig-change { font-size: 10px; font-weight: 500; }
