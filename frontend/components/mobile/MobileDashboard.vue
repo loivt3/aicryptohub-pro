@@ -2300,10 +2300,28 @@ const toggleFavorite = (coinId: string) => {
 .m-tsig-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: normal;
 }
 
-.m-tsig-symbol { font-size: 13px; font-weight: 700; color: #fff; }
-.m-tsig-name { font-size: 11px; color: rgba(255, 255, 255, 0.5); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-tsig-symbol { 
+  display: block;
+  font-size: 14px; 
+  font-weight: 700; 
+  color: #fff; 
+  line-height: 1.2;
+}
+.m-tsig-name { 
+  display: block;
+  font-size: 11px; 
+  color: rgba(255, 255, 255, 0.5); 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  white-space: nowrap; 
+  line-height: 1.2;
+}
 
 .m-tsig-price-col {
   display: flex;
