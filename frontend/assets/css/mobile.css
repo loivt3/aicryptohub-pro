@@ -721,17 +721,19 @@
    10. Filter Chips
    =========================================== */
 .m-filter-chip {
-    flex: 0 0 auto;
-    padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
-    color: rgba(255, 255, 255, 0.85);
+    flex: 1;
+    padding: 10px 16px;
+    background: rgb(30 32 36 / 92%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.7);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
+    text-align: center;
     -webkit-tap-highlight-color: transparent;
     transition: all 0.2s ease;
+    box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
 }
 
 .m-filter-chip:active {
@@ -739,9 +741,10 @@
 }
 
 .m-filter-chip.active {
-    background: rgba(56, 239, 235, 0.15);
-    border-color: #38efeb;
+    background: linear-gradient(135deg, rgba(56, 239, 235, 0.15), rgba(34, 197, 94, 0.1));
+    border-color: rgba(56, 239, 235, 0.4);
     color: #38efeb;
+    box-shadow: rgba(56, 239, 235, 0.15) 0px 0px 10px, rgba(0, 0, 0, 0.24) 0px 6px 12px;
 }
 
 /* ===========================================
