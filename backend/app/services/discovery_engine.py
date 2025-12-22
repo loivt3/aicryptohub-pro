@@ -671,9 +671,10 @@ class DiscoveryEngine:
                     if len(coin_rsi) < 6:
                         continue
                     
-                    # Get current (rn=1) and previous period (rn=4-6)
+                    # Get current (rn=1) and previous period (rn=4-6) - only numeric columns for mean
                     current = coin_rsi.iloc[0]
-                    previous = coin_rsi.iloc[4:6].mean() if len(coin_rsi) >= 6 else None
+                    numeric_cols = ['close', 'high', 'low', 'rsi_14']
+                    previous = coin_rsi.iloc[4:6][numeric_cols].mean() if len(coin_rsi) >= 6 else None
                     
                     if previous is None:
                         continue
