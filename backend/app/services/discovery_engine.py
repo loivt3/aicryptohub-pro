@@ -591,11 +591,18 @@ class DiscoveryEngine:
         df['rsi_14'] = None
         df['divergence_score'] = 0
         
-        # Fixed query using correct OHLCV schema
+        # Fixed query using correct OHLCV schema with deduplication
         query = text("""
-            WITH price_data AS (
+            WITH unique_coins AS (
+                -- Get one coin_id per symbol (prefer highest market cap)
+                SELECT DISTINCT ON (UPPER(symbol)) coin_id, UPPER(symbol) as symbol_upper
+                FROM aihub_coins
+                WHERE symbol IS NOT NULL
+                ORDER BY UPPER(symbol), COALESCE(market_cap, 0) DESC
+            ),
+            price_data AS (
                 SELECT 
-                    c.coin_id,
+                    uc.coin_id,
                     o.close,
                     o.high,
                     o.low,
@@ -603,7 +610,7 @@ class DiscoveryEngine:
                     LAG(o.close) OVER (PARTITION BY o.symbol ORDER BY o.open_time) as prev_close,
                     ROW_NUMBER() OVER (PARTITION BY o.symbol ORDER BY o.open_time DESC) as rn
                 FROM aihub_ohlcv o
-                JOIN aihub_coins c ON UPPER(o.symbol) = UPPER(c.symbol)
+                JOIN unique_coins uc ON UPPER(o.symbol) = uc.symbol_upper
                 WHERE o.timeframe = 1
                   AND o.open_time > NOW() - INTERVAL '48 hours'
             ),
@@ -729,9 +736,14 @@ class DiscoveryEngine:
         coin_ids = df['coin_id'].tolist()[:100]  # Limit for performance
         
         query = text("""
-            WITH recent_prices AS (
+            WITH unique_coins AS (
+                SELECT DISTINCT ON (UPPER(symbol)) coin_id, UPPER(symbol) as symbol_upper
+                FROM aihub_coins WHERE symbol IS NOT NULL
+                ORDER BY UPPER(symbol), COALESCE(market_cap, 0) DESC
+            ),
+            recent_prices AS (
                 SELECT 
-                    c.coin_id,
+                    uc.coin_id,
                     o.close,
                     o.high,
                     o.low,
@@ -741,7 +753,7 @@ class DiscoveryEngine:
                     MIN(o.low) OVER (PARTITION BY o.symbol ORDER BY o.open_time ROWS BETWEEN 23 PRECEDING AND CURRENT ROW) as support_24h,
                     ROW_NUMBER() OVER (PARTITION BY o.symbol ORDER BY o.open_time DESC) as rn
                 FROM aihub_ohlcv o
-                JOIN aihub_coins c ON UPPER(o.symbol) = UPPER(c.symbol)
+                JOIN unique_coins uc ON UPPER(o.symbol) = uc.symbol_upper
                 WHERE o.timeframe = 1
                   AND o.open_time > NOW() - INTERVAL '48 hours'
             )
@@ -882,16 +894,21 @@ class DiscoveryEngine:
         df['macd_histogram'] = None
         df['macd_signal_type'] = None
         
-        # Fixed query using correct OHLCV schema
+        # Fixed query using correct OHLCV schema with deduplication
         query = text("""
-            WITH price_series AS (
+            WITH unique_coins AS (
+                SELECT DISTINCT ON (UPPER(symbol)) coin_id, UPPER(symbol) as symbol_upper
+                FROM aihub_coins WHERE symbol IS NOT NULL
+                ORDER BY UPPER(symbol), COALESCE(market_cap, 0) DESC
+            ),
+            price_series AS (
                 SELECT 
-                    c.coin_id,
+                    uc.coin_id,
                     o.close,
                     o.open_time,
                     ROW_NUMBER() OVER (PARTITION BY o.symbol ORDER BY o.open_time DESC) as rn
                 FROM aihub_ohlcv o
-                JOIN aihub_coins c ON UPPER(o.symbol) = UPPER(c.symbol)
+                JOIN unique_coins uc ON UPPER(o.symbol) = uc.symbol_upper
                 WHERE o.timeframe = 1
                   AND o.open_time > NOW() - INTERVAL '48 hours'
             ),
@@ -982,18 +999,23 @@ class DiscoveryEngine:
         df['bb_squeeze'] = False
         df['bb_width'] = None
         
-        # Fixed query using correct OHLCV schema
+        # Fixed query using correct OHLCV schema with deduplication
         query = text("""
-            WITH price_series AS (
+            WITH unique_coins AS (
+                SELECT DISTINCT ON (UPPER(symbol)) coin_id, UPPER(symbol) as symbol_upper
+                FROM aihub_coins WHERE symbol IS NOT NULL
+                ORDER BY UPPER(symbol), COALESCE(market_cap, 0) DESC
+            ),
+            price_series AS (
                 SELECT 
-                    c.coin_id,
+                    uc.coin_id,
                     o.close,
                     o.high,
                     o.low,
                     o.open_time,
                     ROW_NUMBER() OVER (PARTITION BY o.symbol ORDER BY o.open_time DESC) as rn
                 FROM aihub_ohlcv o
-                JOIN aihub_coins c ON UPPER(o.symbol) = UPPER(c.symbol)
+                JOIN unique_coins uc ON UPPER(o.symbol) = uc.symbol_upper
                 WHERE o.timeframe = 1
                   AND o.open_time > NOW() - INTERVAL '48 hours'
             ),
