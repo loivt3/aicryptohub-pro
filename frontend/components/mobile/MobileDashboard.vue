@@ -1543,12 +1543,12 @@ const toggleFavorite = (coinId: string) => {
   align-items: center;
   padding: 8px 4px;
   padding: 8px 4px;
-  background: linear-gradient(160deg, rgba(30, 35, 55, 0.7), rgba(15, 20, 35, 0.7));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08); /* Unified border style */
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background: rgba(20, 20, 20, 0.27);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 12px;
+  box-shadow: inset 0 0 15px rgba(16, 185, 129, 0.05);
 }
 
 .m-stat-mini .stat-value {
@@ -1573,14 +1573,14 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-horizon-coin {
-  background: linear-gradient(160deg, rgba(30, 35, 55, 0.7), rgba(15, 20, 35, 0.7));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08); /* Unified border style */
-  border-radius: 16px;
+  background: rgba(20, 20, 20, 0.27);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 12px;
   padding: 12px;
   margin-bottom: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .m-horizon-coin-row {
@@ -1982,14 +1982,14 @@ const toggleFavorite = (coinId: string) => {
 
 .m-gem-card {
   flex: 0 0 180px;
-  background: linear-gradient(160deg, rgba(30, 35, 55, 0.7), rgba(15, 20, 35, 0.7));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08); /* Unified border style */
-  border-radius: 16px;
+  background: rgba(20, 20, 20, 0.27);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 12px;
   padding: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .m-gem-header {
