@@ -610,7 +610,7 @@
       <section class="m-section">
         <div class="m-section-header">
           <h3 class="m-section-title">
-            <Icon name="ph:gem" class="w-4 h-4" style="color: #10b981;" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M6 3l6 3 6-3"/><path d="M3 8l9 4 9-4"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 12v9"/></svg>
             Hidden Gems
           </h3>
           <span class="m-section-note">Outperforming market</span>
@@ -1820,11 +1820,12 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-gem-card {
-  flex: 0 0 160px;
+  flex: 0 0 180px;
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.02));
   border: 1px solid rgba(16, 185, 129, 0.2);
   border-radius: 12px;
   padding: 12px;
+  overflow: hidden;
 }
 
 .m-gem-header {
@@ -1839,7 +1840,9 @@ const toggleFavorite = (coinId: string) => {
   height: 28px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
 }
+
 
 .m-gem-info {
   flex: 1;
