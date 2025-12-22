@@ -1266,7 +1266,7 @@ class DiscoveryEngine:
             INSERT INTO market_discovery_snapshot (
                 coin_id, symbol, name, image, price,
                 change_1h, change_4h, change_24h, change_7d,
-                volume_24h, volume_1h, avg_volume_1h, volume_change_pct,
+                volume_24h, volume_1h, avg_volume_1h, volume_change_pct, volume_ratio,
                 market_cap, market_cap_rank,
                 is_sudden_pump, is_sudden_dump,
                 asi_score, signal,
@@ -1278,11 +1278,12 @@ class DiscoveryEngine:
                 bb_position, bb_squeeze, bb_width, bb_signal,
                 volume_confirmed, ma_confirmed, rsi_extreme, near_sr, mtf_aligned,
                 confirmation_count, confirmation_score, discovery_score, signal_strength,
+                is_accumulating, accumulation_score,
                 updated_at
             ) VALUES (
                 :coin_id, :symbol, :name, :image, :price,
                 :change_1h, :change_4h, :change_24h, :change_7d,
-                :volume_24h, :volume_1h, :avg_volume_1h, :volume_change_pct,
+                :volume_24h, :volume_1h, :avg_volume_1h, :volume_change_pct, :volume_ratio,
                 :market_cap, :market_cap_rank,
                 :is_sudden_pump, :is_sudden_dump,
                 :asi_score, :signal,
@@ -1294,6 +1295,7 @@ class DiscoveryEngine:
                 :bb_position, :bb_squeeze, :bb_width, :bb_signal,
                 :volume_confirmed, :ma_confirmed, :rsi_extreme, :near_sr, :mtf_aligned,
                 :confirmation_count, :confirmation_score, :discovery_score, :signal_strength,
+                :is_accumulating, :accumulation_score,
                 NOW()
             )
             ON CONFLICT (coin_id) DO UPDATE SET
@@ -1302,6 +1304,7 @@ class DiscoveryEngine:
                 change_24h = EXCLUDED.change_24h, change_7d = EXCLUDED.change_7d,
                 volume_24h = EXCLUDED.volume_24h, volume_1h = EXCLUDED.volume_1h,
                 avg_volume_1h = EXCLUDED.avg_volume_1h, volume_change_pct = EXCLUDED.volume_change_pct,
+                volume_ratio = EXCLUDED.volume_ratio,
                 market_cap = EXCLUDED.market_cap, market_cap_rank = EXCLUDED.market_cap_rank,
                 is_sudden_pump = EXCLUDED.is_sudden_pump, is_sudden_dump = EXCLUDED.is_sudden_dump,
                 asi_score = EXCLUDED.asi_score, signal = EXCLUDED.signal,
@@ -1322,6 +1325,7 @@ class DiscoveryEngine:
                 rsi_extreme = EXCLUDED.rsi_extreme, near_sr = EXCLUDED.near_sr, mtf_aligned = EXCLUDED.mtf_aligned,
                 confirmation_count = EXCLUDED.confirmation_count, confirmation_score = EXCLUDED.confirmation_score,
                 discovery_score = EXCLUDED.discovery_score, signal_strength = EXCLUDED.signal_strength,
+                is_accumulating = EXCLUDED.is_accumulating, accumulation_score = EXCLUDED.accumulation_score,
                 updated_at = NOW()
         """)
 
@@ -1401,6 +1405,10 @@ class DiscoveryEngine:
                             # Final scores
                             'discovery_score': int(row.get('discovery_score', 0)) if row.get('discovery_score') is not None else 0,
                             'signal_strength': str(row.get('signal_strength', ''))[:20] if row.get('signal_strength') else None,
+                            # Volume ratio and accumulation
+                            'volume_ratio': float(row.get('volume_ratio', 0)) if row.get('volume_ratio') is not None else None,
+                            'is_accumulating': bool(row.get('is_accumulating', False)),
+                            'accumulation_score': int(row.get('accumulation_score', 0)) if row.get('accumulation_score') is not None else 0,
                         })
 
                         count += 1
