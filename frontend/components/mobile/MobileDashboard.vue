@@ -606,8 +606,54 @@
         </div>
       </section>
 
+      <!-- Hidden Gems Section (NEW for Mobile) -->
+      <section class="m-section">
+        <div class="m-section-header">
+          <h3 class="m-section-title">
+            <Icon name="ph:gem" class="w-4 h-4" style="color: #10b981;" />
+            Hidden Gems
+          </h3>
+          <span class="m-section-note">Outperforming market</span>
+        </div>
+        
+        <div class="m-gems-scroll">
+          <div class="m-gems-container">
+            <div v-for="gem in hiddenGems" :key="gem.coin_id" class="m-gem-card">
+              <div class="m-gem-header">
+                <img :src="gem.image" class="m-gem-avatar" />
+                <div class="m-gem-info">
+                  <span class="m-gem-symbol">{{ gem.symbol }}</span>
+                  <span class="m-gem-rank">#{{ gem.market_cap_rank }}</span>
+                </div>
+                <span class="m-gem-score" :class="getGemScoreClass(gem.discovery_score)">
+                  {{ gem.discovery_score }}
+                </span>
+              </div>
+              <div class="m-gem-stats">
+                <div class="m-gem-stat">
+                  <span class="stat-label">24h</span>
+                  <span class="stat-value" :class="gem.change_24h >= 0 ? 'positive' : 'negative'">
+                    {{ gem.change_24h >= 0 ? '+' : '' }}{{ gem.change_24h?.toFixed(1) }}%
+                  </span>
+                </div>
+                <div class="m-gem-stat">
+                  <span class="stat-label">vs BTC</span>
+                  <span class="stat-value" :class="gem.rs_vs_btc >= 0 ? 'positive' : 'negative'">
+                    {{ gem.rs_vs_btc >= 0 ? '+' : '' }}{{ gem.rs_vs_btc?.toFixed(1) }}%
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div v-if="hiddenGems.length === 0" class="m-gems-empty">
+              <span>No hidden gems at this time</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
 
       <div class="m-bottom-spacer"></div>
+
     </main>
 
     <!-- Bottom Navigation (from WordPress) -->
@@ -715,6 +761,9 @@ const activeHorizon = ref<'short' | 'medium' | 'long'>('short')
 
 // Multi-horizon data for all coins (fetched from API)
 const multiHorizonData = ref<Record<string, any>>({})
+
+// Hidden gems data from discovery API
+const hiddenGems = ref<any[]>([])
 
 // Coins filtered by selected horizon
 const horizonCoins = computed(() => {
@@ -1044,9 +1093,32 @@ const fetchData = async () => {
   }
 }
 
+// Fetch hidden gems from discovery API
+const fetchHiddenGems = async () => {
+  const config = useRuntimeConfig()
+  const apiBase = config.public.apiBase || '/api/v1'
+  
+  try {
+    const res = await $fetch<any>(`${apiBase}/discovery/hidden-gems?limit=8`)
+    if (res?.success && res.data) {
+      hiddenGems.value = res.data
+    }
+  } catch (error) {
+    console.error('[Mobile] Hidden gems fetch failed:', error)
+  }
+}
+
+// Helper for gem score styling
+const getGemScoreClass = (score: number) => {
+  if (score >= 80) return 'gem-excellent'
+  if (score >= 70) return 'gem-good'
+  return 'gem-moderate'
+}
+
 // Fetch on mount
 onMounted(() => {
   fetchData()
+  fetchHiddenGems()
   
   // Setup real-time WebSocket connection
   setupSocketConnection()
@@ -1729,5 +1801,110 @@ const toggleFavorite = (coinId: string) => {
 .treemap-change.down {
   color: #ffcdd2;
 }
+
+/* ================================== */
+/* Hidden Gems Section Styles         */
+/* ================================== */
+.m-gems-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 0 16px;
+}
+.m-gems-scroll::-webkit-scrollbar { display: none; }
+
+.m-gems-container {
+  display: flex;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.m-gem-card {
+  flex: 0 0 160px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.02));
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.m-gem-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.m-gem-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.m-gem-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.m-gem-symbol {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.m-gem-rank {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.m-gem-score {
+  font-size: 14px;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.m-gem-score.gem-excellent { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+.m-gem-score.gem-good { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.m-gem-score.gem-moderate { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+
+.m-gem-stats {
+  display: flex;
+  gap: 8px;
+}
+
+.m-gem-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.m-gem-stat .stat-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.m-gem-stat .stat-value {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.m-gem-stat .stat-value.positive { color: #10b981; }
+.m-gem-stat .stat-value.negative { color: #ef4444; }
+
+.m-gems-empty {
+  padding: 24px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 13px;
+}
+
+.m-section-note {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
 </style>
+
 
