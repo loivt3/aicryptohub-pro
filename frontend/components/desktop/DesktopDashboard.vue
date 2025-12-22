@@ -459,21 +459,22 @@
       </div>
     </section>
 
-    <!-- Hidden Gems Section (NEW) -->
+    <!-- Hidden Gems Section (ENHANCED) -->
     <section class="d-section">
       <div class="d-section-header">
         <h2 class="d-section-title">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
           Hidden Gems
         </h2>
-        <span class="d-section-note">Small caps outperforming market</span>
+        <span class="d-section-note">High-potential coins with strong signals</span>
       </div>
       
       <div class="d-gems-grid">
         <div v-for="coin in hiddenGems" :key="coin.coin_id" class="d-gem-card">
+          <!-- Header with signal strength badge -->
           <div class="d-gem-header">
             <img :src="coin.image" class="d-gem-avatar" />
-            <div>
+            <div class="d-gem-info">
               <span class="d-gem-symbol">{{ coin.symbol }}</span>
               <span class="d-gem-rank">#{{ coin.market_cap_rank }}</span>
             </div>
@@ -481,29 +482,56 @@
               {{ coin.discovery_score }}
             </span>
           </div>
-          <div class="d-gem-body">
-            <div class="d-gem-stat">
-              <span class="d-gem-label">Price</span>
-              <span class="d-gem-value">{{ formatPrice(coin.price) }}</span>
-            </div>
-            <div class="d-gem-stat">
+          
+          <!-- Trust Badges Row -->
+          <div class="d-gem-badges">
+            <span v-if="coin.is_accumulating" class="d-gem-badge accumulating" title="Smart money detected">
+              🐋 Accumulating
+            </span>
+            <span v-if="coin.signal_strength" class="d-gem-badge" :class="'sig-' + coin.signal_strength?.toLowerCase().replace(/_/g, '-')">
+              {{ coin.signal_strength?.replace('_', ' ') }}
+            </span>
+            <span v-if="coin.confirmation_count >= 2" class="d-gem-badge confirmed">
+              ✓ {{ coin.confirmation_count }} Confirmed
+            </span>
+          </div>
+          
+          <!-- Key Metrics Grid -->
+          <div class="d-gem-metrics">
+            <div class="d-gem-metric">
               <span class="d-gem-label">24h</span>
               <span class="d-gem-value" :class="coin.change_24h >= 0 ? 'text-success' : 'text-danger'">
-                {{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(2) }}%
+                {{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(1) }}%
               </span>
             </div>
-            <div class="d-gem-stat">
+            <div class="d-gem-metric">
               <span class="d-gem-label">vs BTC</span>
               <span class="d-gem-value" :class="coin.rs_vs_btc >= 0 ? 'text-success' : 'text-danger'">
-                {{ coin.rs_vs_btc >= 0 ? '+' : '' }}{{ coin.rs_vs_btc?.toFixed(2) }}%
+                {{ coin.rs_vs_btc >= 0 ? '+' : '' }}{{ coin.rs_vs_btc?.toFixed(1) }}%
+              </span>
+            </div>
+            <div class="d-gem-metric" v-if="coin.volume_ratio">
+              <span class="d-gem-label">Vol Ratio</span>
+              <span class="d-gem-value" :class="coin.volume_ratio > 1.5 ? 'text-success' : ''">
+                {{ coin.volume_ratio?.toFixed(1) }}x
+              </span>
+            </div>
+            <div class="d-gem-metric" v-if="coin.rsi_14">
+              <span class="d-gem-label">RSI</span>
+              <span class="d-gem-value" :class="getRsiClass(coin.rsi_14)">
+                {{ coin.rsi_14?.toFixed(0) }}
               </span>
             </div>
           </div>
-          <div v-if="coin.pattern_name" class="d-gem-footer">
-            <span class="d-gem-pattern" :class="'pattern-' + (coin.pattern_direction?.toLowerCase() || 'neutral')">
-              {{ coin.pattern_name }}
+          
+          <!-- Technical Indicators Footer -->
+          <div class="d-gem-footer" v-if="coin.macd_signal_type || coin.bb_position">
+            <span v-if="coin.macd_signal_type" class="d-gem-tech" :class="'macd-' + coin.macd_signal_type?.toLowerCase()">
+              MACD: {{ coin.macd_signal_type }}
             </span>
-            <span v-if="coin.signal_strength" class="d-gem-signal">{{ formatSignalStrength(coin.signal_strength) }}</span>
+            <span v-if="coin.bb_position" class="d-gem-tech" :class="'bb-' + coin.bb_position?.toLowerCase()">
+              BB: {{ coin.bb_position }}
+            </span>
           </div>
         </div>
         
@@ -1672,5 +1700,92 @@ const getAsiClass = (v: number) => v >= 60 ? 'positive' : v <= 40 ? 'negative' :
   padding: 40px;
   color: rgba(255, 255, 255, 0.3);
 }
+
+/* Hidden Gems Enhanced - Trust Badges & Metrics */
+.d-gem-info { flex: 1; }
+
+.d-gem-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.d-gem-badge {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  background: rgba(100, 116, 139, 0.2);
+  color: #94a3b8;
+}
+
+.d-gem-badge.accumulating {
+  background: rgba(14, 165, 233, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+.d-gem-badge.confirmed {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.d-gem-badge.sig-accumulation {
+  background: rgba(14, 165, 233, 0.2);
+  color: #38bdf8;
+}
+.d-gem-badge.sig-very-strong-bull,
+.d-gem-badge.sig-strong-bullish,
+.d-gem-badge.sig-confirmed-bull,
+.d-gem-badge.sig-bullish {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+.d-gem-badge.sig-very-strong-bear,
+.d-gem-badge.sig-strong-bearish,
+.d-gem-badge.sig-confirmed-bear,
+.d-gem-badge.sig-bearish {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.d-gem-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.d-gem-metric {
+  text-align: center;
+  padding: 6px 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+}
+
+.d-gem-footer {
+  display: flex;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.d-gem-tech {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: rgba(100, 116, 139, 0.15);
+  color: #94a3b8;
+}
+
+.d-gem-tech.macd-bullish { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.d-gem-tech.macd-bearish { background: rgba(239, 68, 68, 0.12); color: #f87171; }
+.d-gem-tech.bb-upper { background: rgba(239, 68, 68, 0.12); color: #f87171; }
+.d-gem-tech.bb-lower { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.d-gem-tech.bb-middle { background: rgba(100, 116, 139, 0.15); color: #94a3b8; }
 </style>
 
