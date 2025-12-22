@@ -709,15 +709,16 @@
         </div>
         
         <div class="m-tsig-list">
-          <div class="m-tsig-card">
             <div v-for="(coin, idx) in technicalSignals" :key="coin.coin_id" class="m-tsig-row">
               <!-- Main row: Coin info + price + change -->
               <div class="m-tsig-main">
                 <span class="m-tsig-rank">{{ idx + 1 }}</span>
                 <img :src="coin.image" class="m-tsig-avatar" />
                 <div class="m-tsig-info">
-                  <span class="m-tsig-symbol">{{ coin.symbol }}</span>
-                  <span class="m-tsig-name">{{ coin.name }}</span>
+                  <div class="m-tsig-ident">
+                    <span class="m-tsig-symbol">{{ coin.symbol }}</span>
+                    <span class="m-tsig-name">{{ coin.name }}</span>
+                  </div>
                 </div>
                 <div class="m-tsig-price-col">
                   <span class="m-tsig-price">${{ coin.price?.toFixed(2) }}</span>
@@ -729,15 +730,15 @@
               
               <!-- Indicators row: Pattern + RSI + MACD + BB + Confirm + Signal -->
               <div class="m-tsig-indicators">
-                <!-- Keep existing indicators logic -->
-                <div class="m-tsig-ind">
-                  <span class="ind-label">Pattern</span>
-                  <span v-if="coin.pattern_name" class="ind-value" :class="'pattern-' + (coin.pattern_direction?.toLowerCase() || 'neutral')">
+                <!-- Pattern -->
+                <div class="m-tsig-ind" v-if="coin.pattern_name">
+                  <span class="ind-label">PATTERN</span>
+                  <span class="ind-value" :class="'pattern-' + (coin.pattern_direction?.toLowerCase() || 'neutral')">
                     {{ coin.pattern_name }}
                   </span>
-                  <span v-else class="ind-muted">--</span>
                 </div>
                 
+                <!-- RSI -->
                 <div class="m-tsig-ind">
                   <span class="ind-label">RSI</span>
                   <span v-if="coin.rsi_14" class="ind-value" :class="getRsiClass(coin.rsi_14)">
@@ -745,13 +746,39 @@
                   </span>
                   <span v-else class="ind-muted">--</span>
                 </div>
-                
+
+                <!-- MACD -->
                 <div class="m-tsig-ind">
-                  <span class="ind-label">Signal</span>
-                  <span v-if="coin.signal_strength" class="ind-value" :class="'strength-' + (coin.signal_strength?.toLowerCase() || '')">
-                    {{ coin.signal_strength }}
+                  <span class="ind-label">MACD</span>
+                  <span v-if="coin.macd_signal_type" class="ind-value" :class="'macd-' + coin.macd_signal_type?.toLowerCase()">
+                    {{ coin.macd_signal_type }}
                   </span>
                   <span v-else class="ind-muted">--</span>
+                </div>
+                
+                 <!-- BB -->
+                 <div class="m-tsig-ind">
+                  <span class="ind-label">BB</span>
+                  <span v-if="coin.bb_position" class="ind-value" :class="'bb-' + coin.bb_position?.toLowerCase()">
+                    {{ coin.bb_position }}
+                  </span>
+                  <span v-else class="ind-muted">--</span>
+                </div>
+
+                <!-- Confirm -->
+                <div class="m-tsig-ind">
+                  <span class="ind-label">CONFIRM</span>
+                  <span class="ind-value" :class="getConfirmClass(coin.confirmation_count)">
+                    {{ coin.confirmation_count || 0 }}/7
+                  </span>
+                </div>
+                
+                <!-- Signal (Full Width) -->
+                <div class="m-tsig-ind full-width-signal" v-if="coin.signal_strength">
+                  <span class="ind-label">SIGNAL</span>
+                  <span class="ind-value signal-text" :class="'strength-' + (coin.signal_strength?.toLowerCase() || '')">
+                    {{ coin.signal_strength }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -759,7 +786,6 @@
             <div v-if="technicalSignals.length === 0" class="m-tsig-empty">
               <span>No technical signals detected</span>
             </div>
-          </div>
         </div>
       </section>
 
@@ -2239,33 +2265,21 @@ const toggleFavorite = (coinId: string) => {
   padding: 0 12px;
 }
 
-/* Main Container Card (Glass Style) */
-.m-tsig-card {
-  background: linear-gradient(160deg, rgba(30, 35, 55, 0.7), rgba(15, 20, 35, 0.7));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-}
+/* Main Container Card (Removed, reverting to individual rows) */
+/* .m-tsig-card { display: contents; } */
 
-/* List Item Row (Simple Dark Style) */
+/* List Item Row (Dark Individual Card Style) */
 .m-tsig-row {
-  background: rgba(0, 0, 0, 0.2);
+  background: #0b0e14; /* Deep dark background from screenshot */
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  margin-bottom: 8px;
-  padding: 12px;
-  transition: background 0.2s ease;
+  margin-bottom: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .m-tsig-row:last-child {
   margin-bottom: 0;
-}
-
-.m-tsig-row:active {
-  background: rgba(255, 255, 255, 0.05);
 }
 
 .m-tsig-main {
@@ -2295,24 +2309,26 @@ const toggleFavorite = (coinId: string) => {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  line-height: normal;
+}
+
+.m-tsig-ident {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
 }
 
 .m-tsig-symbol { 
-  display: block;
-  font-size: 14px; 
+  font-size: 15px; 
   font-weight: 700; 
   color: #fff; 
-  line-height: 1.2;
 }
+
 .m-tsig-name { 
-  display: block;
   font-size: 11px; 
-  color: rgba(255, 255, 255, 0.5); 
+  color: rgba(255, 255, 255, 0.4); 
   overflow: hidden; 
   text-overflow: ellipsis; 
   white-space: nowrap; 
-  line-height: 1.2;
 }
 
 .m-tsig-price-col {
@@ -2339,9 +2355,11 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-tsig-ind .ind-label {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.45);
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.3);
   text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .m-tsig-ind .ind-value {
@@ -2380,9 +2398,20 @@ const toggleFavorite = (coinId: string) => {
 .ind-value.confirm-weak { color: rgba(255, 255, 255, 0.4); }
 
 /* Signal Strength Styling */
-.ind-value.strength-strong { color: #10b981; font-weight: 700; }
-.ind-value.strength-moderate { color: #fbbf24; }
-.ind-value.strength-weak { color: rgba(255, 255, 255, 0.4); }
+.m-tsig-ind.full-width-signal {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.m-tsig-ind .signal-text {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.ind-value.strength-strong { color: #fff; text-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
+.ind-value.strength-moderate { color: #fff; text-shadow: 0 0 10px rgba(251, 191, 36, 0.5); }
+.ind-value.strength-weak { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.2); }
 
 .m-tsig-empty {
   padding: 32px;
