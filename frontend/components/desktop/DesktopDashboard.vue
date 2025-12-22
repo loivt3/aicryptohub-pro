@@ -953,16 +953,7 @@ const getAsiClass = (v: number) => v >= 60 ? 'positive' : v <= 40 ? 'negative' :
   min-height: 100vh;
 }
 
-.d-section { 
-  margin-bottom: var(--aihub-spacing-xl);
-  background: rgba(20, 20, 20, 0.27);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(16, 185, 129, 0.15); 
-  border-radius: 12px; 
-  padding: 20px;
-  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
-}
+.d-section { margin-bottom: var(--aihub-spacing-xl); }
 
 .d-section-header { 
   display: flex; 

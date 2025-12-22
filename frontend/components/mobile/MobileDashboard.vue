@@ -2380,16 +2380,7 @@ const toggleFavorite = (coinId: string) => {
   color: rgba(255, 255, 255, 0.3);
   font-size: 13px;
 }
-.m-section {
-  background: rgba(20, 20, 20, 0.27);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(16, 185, 129, 0.15);
-  border-radius: 12px;
-  padding: 14px;
-  margin-bottom: 20px;
-  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
-}
+
 </style>
 
 
