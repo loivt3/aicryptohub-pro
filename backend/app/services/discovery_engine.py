@@ -731,18 +731,19 @@ class DiscoveryEngine:
         query = text("""
             WITH recent_prices AS (
                 SELECT 
-                    coin_id,
-                    close,
-                    high,
-                    low,
-                    timestamp,
-                    AVG(close) OVER (PARTITION BY coin_id ORDER BY timestamp ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) as ma_20,
-                    MAX(high) OVER (PARTITION BY coin_id ORDER BY timestamp ROWS BETWEEN 23 PRECEDING AND CURRENT ROW) as resistance_24h,
-                    MIN(low) OVER (PARTITION BY coin_id ORDER BY timestamp ROWS BETWEEN 23 PRECEDING AND CURRENT ROW) as support_24h,
-                    ROW_NUMBER() OVER (PARTITION BY coin_id ORDER BY timestamp DESC) as rn
-                FROM aihub_ohlcv
-                WHERE interval = '1h'
-                  AND timestamp > NOW() - INTERVAL '48 hours'
+                    c.coin_id,
+                    o.close,
+                    o.high,
+                    o.low,
+                    o.open_time,
+                    AVG(o.close) OVER (PARTITION BY o.symbol ORDER BY o.open_time ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) as ma_20,
+                    MAX(o.high) OVER (PARTITION BY o.symbol ORDER BY o.open_time ROWS BETWEEN 23 PRECEDING AND CURRENT ROW) as resistance_24h,
+                    MIN(o.low) OVER (PARTITION BY o.symbol ORDER BY o.open_time ROWS BETWEEN 23 PRECEDING AND CURRENT ROW) as support_24h,
+                    ROW_NUMBER() OVER (PARTITION BY o.symbol ORDER BY o.open_time DESC) as rn
+                FROM aihub_ohlcv o
+                JOIN aihub_coins c ON UPPER(o.symbol) = UPPER(c.symbol)
+                WHERE o.timeframe = 1
+                  AND o.open_time > NOW() - INTERVAL '48 hours'
             )
             SELECT 
                 coin_id,
