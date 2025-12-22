@@ -1568,7 +1568,10 @@ const toggleFavorite = (coinId: string) => {
   flex-direction: column;
   align-items: center;
   padding: 8px 4px;
-  background: linear-gradient(160deg, rgba(30, 35, 55, 0.95), rgba(15, 20, 35, 0.95));
+  padding: 8px 4px;
+  background: linear-gradient(160deg, rgba(30, 35, 55, 0.7), rgba(15, 20, 35, 0.7));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08); /* Unified border style */
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -1596,7 +1599,9 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-horizon-coin {
-  background: linear-gradient(160deg, rgba(30, 35, 55, 0.95), rgba(15, 20, 35, 0.95));
+  background: linear-gradient(160deg, rgba(30, 35, 55, 0.7), rgba(15, 20, 35, 0.7));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08); /* Unified border style */
   border-radius: 16px;
   padding: 12px;
@@ -2003,7 +2008,9 @@ const toggleFavorite = (coinId: string) => {
 
 .m-gem-card {
   flex: 0 0 180px;
-  background: linear-gradient(160deg, rgba(30, 35, 55, 0.95), rgba(15, 20, 35, 0.95));
+  background: linear-gradient(160deg, rgba(30, 35, 55, 0.7), rgba(15, 20, 35, 0.7));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08); /* Unified border style */
   border-radius: 16px;
   padding: 12px;
@@ -2259,7 +2266,9 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-tsig-row {
-  background: linear-gradient(160deg, rgba(30, 35, 55, 0.95), rgba(15, 20, 35, 0.95));
+  background: linear-gradient(160deg, rgba(30, 35, 55, 0.7), rgba(15, 20, 35, 0.7));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08); /* Unified border style */
   border-radius: 16px;
   margin-bottom: 12px;
