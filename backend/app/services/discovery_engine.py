@@ -791,9 +791,10 @@ class DiscoveryEngine:
                     ).fillna(False)
                     
                     # Near S/R level (within 2% of support or resistance)
-                    price = df['price'].fillna(0)
-                    support = df['support_24h'].fillna(0)
-                    resistance = df['resistance_24h'].fillna(0)
+                    # Convert to float to handle Decimal types from PostgreSQL
+                    price = df['price'].fillna(0).astype(float)
+                    support = df['support_24h'].fillna(0).astype(float)
+                    resistance = df['resistance_24h'].fillna(0).astype(float)
                     
                     df['near_support'] = (price > 0) & (support > 0) & (abs(price - support) / support < 0.02)
                     df['near_resistance'] = (price > 0) & (resistance > 0) & (abs(price - resistance) / resistance < 0.02)
