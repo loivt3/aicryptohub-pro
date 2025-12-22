@@ -709,82 +709,56 @@
         </div>
         
         <div class="m-tsig-list">
-          <div v-for="(coin, idx) in technicalSignals" :key="coin.coin_id" class="m-tsig-row">
-            <!-- Main row: Coin info + price + change -->
-            <div class="m-tsig-main">
-              <span class="m-tsig-rank">{{ idx + 1 }}</span>
-              <img :src="coin.image" class="m-tsig-avatar" />
-              <div class="m-tsig-info">
-                <span class="m-tsig-symbol">{{ coin.symbol }}</span>
-                <span class="m-tsig-name">{{ coin.name }}</span>
+          <div class="m-tsig-card">
+            <div v-for="(coin, idx) in technicalSignals" :key="coin.coin_id" class="m-tsig-row">
+              <!-- Main row: Coin info + price + change -->
+              <div class="m-tsig-main">
+                <span class="m-tsig-rank">{{ idx + 1 }}</span>
+                <img :src="coin.image" class="m-tsig-avatar" />
+                <div class="m-tsig-info">
+                  <span class="m-tsig-symbol">{{ coin.symbol }}</span>
+                  <span class="m-tsig-name">{{ coin.name }}</span>
+                </div>
+                <div class="m-tsig-price-col">
+                  <span class="m-tsig-price">${{ coin.price?.toFixed(2) }}</span>
+                  <span class="m-tsig-change" :class="coin.change_24h >= 0 ? 'positive' : 'negative'">
+                    {{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(1) }}%
+                  </span>
+                </div>
               </div>
-              <div class="m-tsig-price-col">
-                <span class="m-tsig-price">${{ coin.price?.toFixed(2) }}</span>
-                <span class="m-tsig-change" :class="coin.change_24h >= 0 ? 'positive' : 'negative'">
-                  {{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(1) }}%
-                </span>
+              
+              <!-- Indicators row: Pattern + RSI + MACD + BB + Confirm + Signal -->
+              <div class="m-tsig-indicators">
+                <!-- Keep existing indicators logic -->
+                <div class="m-tsig-ind">
+                  <span class="ind-label">Pattern</span>
+                  <span v-if="coin.pattern_name" class="ind-value" :class="'pattern-' + (coin.pattern_direction?.toLowerCase() || 'neutral')">
+                    {{ coin.pattern_name }}
+                  </span>
+                  <span v-else class="ind-muted">--</span>
+                </div>
+                
+                <div class="m-tsig-ind">
+                  <span class="ind-label">RSI</span>
+                  <span v-if="coin.rsi_14" class="ind-value" :class="getRsiClass(coin.rsi_14)">
+                    {{ coin.rsi_14 }}
+                  </span>
+                  <span v-else class="ind-muted">--</span>
+                </div>
+                
+                <div class="m-tsig-ind">
+                  <span class="ind-label">Signal</span>
+                  <span v-if="coin.signal_strength" class="ind-value" :class="'strength-' + (coin.signal_strength?.toLowerCase() || '')">
+                    {{ coin.signal_strength }}
+                  </span>
+                  <span v-else class="ind-muted">--</span>
+                </div>
               </div>
             </div>
             
-            <!-- Indicators row: Pattern + RSI + MACD + BB + Confirm + Signal -->
-            <div class="m-tsig-indicators">
-              <!-- Pattern -->
-              <div class="m-tsig-ind">
-                <span class="ind-label">Pattern</span>
-                <span v-if="coin.pattern_name" class="ind-value" :class="'pattern-' + (coin.pattern_direction?.toLowerCase() || 'neutral')">
-                  {{ coin.pattern_name }}
-                </span>
-                <span v-else class="ind-muted">--</span>
-              </div>
-              
-              <!-- RSI -->
-              <div class="m-tsig-ind">
-                <span class="ind-label">RSI</span>
-                <span v-if="coin.rsi_14" class="ind-value" :class="getRsiClass(coin.rsi_14)">
-                  {{ coin.rsi_14 }}
-                </span>
-                <span v-else class="ind-muted">--</span>
-              </div>
-              
-              <!-- MACD -->
-              <div class="m-tsig-ind">
-                <span class="ind-label">MACD</span>
-                <span v-if="coin.macd_signal_type" class="ind-value" :class="'macd-' + coin.macd_signal_type?.toLowerCase()">
-                  {{ coin.macd_signal_type }}
-                </span>
-                <span v-else class="ind-muted">--</span>
-              </div>
-              
-              <!-- BB Position -->
-              <div class="m-tsig-ind">
-                <span class="ind-label">BB</span>
-                <span v-if="coin.bb_position" class="ind-value" :class="'bb-' + coin.bb_position?.toLowerCase()">
-                  {{ coin.bb_position }}
-                </span>
-                <span v-else class="ind-muted">--</span>
-              </div>
-              
-              <!-- Confirmation -->
-              <div class="m-tsig-ind">
-                <span class="ind-label">Confirm</span>
-                <span class="ind-value" :class="getConfirmClass(coin.confirmation_count)">
-                  {{ coin.confirmation_count || 0 }}/7
-                </span>
-              </div>
-              
-              <!-- Signal Strength -->
-              <div class="m-tsig-ind">
-                <span class="ind-label">Signal</span>
-                <span v-if="coin.signal_strength" class="ind-value" :class="'strength-' + (coin.signal_strength?.toLowerCase() || '')">
-                  {{ coin.signal_strength }}
-                </span>
-                <span v-else class="ind-muted">--</span>
-              </div>
+            <div v-if="technicalSignals.length === 0" class="m-tsig-empty">
+              <span>No technical signals detected</span>
             </div>
-          </div>
-          
-          <div v-if="technicalSignals.length === 0" class="m-tsig-empty">
-            <span>No technical signals detected</span>
           </div>
         </div>
       </section>
@@ -2265,16 +2239,33 @@ const toggleFavorite = (coinId: string) => {
   padding: 0 12px;
 }
 
-.m-tsig-row {
+/* Main Container Card (Glass Style) */
+.m-tsig-card {
   background: linear-gradient(160deg, rgba(30, 35, 55, 0.7), rgba(15, 20, 35, 0.7));
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08); /* Unified border style */
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  margin-bottom: 12px;
-  padding: 14px;
-  animation: fadeInUp 0.8s ease-out;
+  padding: 8px;
+  overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* List Item Row (Simple Dark Style) */
+.m-tsig-row {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  padding: 12px;
+  transition: background 0.2s ease;
+}
+
+.m-tsig-row:last-child {
+  margin-bottom: 0;
+}
+
+.m-tsig-row:active {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .m-tsig-main {
