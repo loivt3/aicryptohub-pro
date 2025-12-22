@@ -104,6 +104,15 @@ SCHEDULER_STATE = {
         "is_running": False,
         "last_result": None,
     },
+    # Hidden Gems Performance Tracker - evaluates gem success
+    "gems_tracker": {
+        "enabled": True,
+        "interval_minutes": 360,  # Every 6 hours
+        "last_run": None,
+        "next_run": None,
+        "is_running": False,
+        "last_result": None,
+    },
 }
 
 _scheduler: Optional[AsyncIOScheduler] = None
@@ -525,6 +534,139 @@ async def run_discovery_engine_job():
         state["is_running"] = False
 
 
+async def run_gems_tracker_job():
+    """
+    Background job to track hidden gems performance.
+    
+    1. Save newly detected gems to hidden_gems_history table
+    2. Evaluate performance of gems detected 7d and 30d ago
+    3. Update success/failed status
+    """
+    state = SCHEDULER_STATE["gems_tracker"]
+    
+    if state["is_running"]:
+        logger.warning("Gems tracker job already running, skipping")
+        return
+    
+    state["is_running"] = True
+    state["last_run"] = datetime.now().isoformat()
+    
+    try:
+        from sqlalchemy import text
+        from app.services.database import get_database_service
+        
+        logger.info("Scheduler: Starting Gems Tracker job...")
+        
+        db = get_database_service()
+        stats = {
+            "new_gems_saved": 0,
+            "gems_evaluated_7d": 0,
+            "gems_evaluated_30d": 0,
+            "successes": 0,
+            "failures": 0,
+        }
+        
+        with db.engine.connect() as conn:
+            # 1. Save new gems to history (those not already saved today)
+            save_query = text("""
+                INSERT INTO hidden_gems_history (
+                    coin_id, symbol, name, detected_at, detection_price,
+                    discovery_score, signal_strength, confirmation_count,
+                    pattern_name, divergence_type, rs_vs_btc, rs_vs_market,
+                    volume_ratio, is_accumulating
+                )
+                SELECT 
+                    coin_id, symbol, name, NOW(), price,
+                    discovery_score, signal_strength, confirmation_count,
+                    pattern_name, divergence_type, rs_vs_btc, rs_vs_market,
+                    volume_ratio, COALESCE(is_accumulating, FALSE)
+                FROM market_discovery_snapshot
+                WHERE discovery_score >= 75
+                  AND confirmation_count >= 2
+                  AND market_cap_rank > 50
+                  AND (is_outperformer = TRUE OR is_accumulating = TRUE)
+                  AND change_24h < 30
+                  AND volume_24h > 100000
+                ON CONFLICT (coin_id, DATE(detected_at)) DO NOTHING
+                RETURNING coin_id
+            """)
+            result = conn.execute(save_query)
+            stats["new_gems_saved"] = result.rowcount
+            
+            # 2. Get BTC price change for comparison
+            btc_query = text("""
+                SELECT change_7d, change_24h * 30 / 100 as approx_30d
+                FROM market_discovery_snapshot
+                WHERE symbol = 'BTC' LIMIT 1
+            """)
+            btc_result = conn.execute(btc_query).fetchone()
+            btc_return_7d = float(btc_result[0]) if btc_result and btc_result[0] else 0
+            btc_return_30d = float(btc_result[1]) if btc_result and btc_result[1] else 0
+            
+            # 3. Evaluate gems from 7 days ago
+            eval_7d_query = text("""
+                UPDATE hidden_gems_history h
+                SET 
+                    price_7d = c.price,
+                    return_7d = CASE 
+                        WHEN h.detection_price > 0 THEN 
+                            ((c.price - h.detection_price) / h.detection_price * 100)
+                        ELSE 0 
+                    END,
+                    btc_return_7d = :btc_return_7d,
+                    evaluated_at = NOW()
+                FROM aihub_coins c
+                WHERE h.coin_id = c.coin_id
+                  AND h.detected_at >= NOW() - INTERVAL '8 days'
+                  AND h.detected_at < NOW() - INTERVAL '6 days'
+                  AND h.price_7d IS NULL
+                RETURNING h.coin_id
+            """)
+            result = conn.execute(eval_7d_query, {"btc_return_7d": btc_return_7d})
+            stats["gems_evaluated_7d"] = result.rowcount
+            
+            # 4. Evaluate gems from 30 days ago and set final status
+            eval_30d_query = text("""
+                UPDATE hidden_gems_history h
+                SET 
+                    price_30d = c.price,
+                    return_30d = CASE 
+                        WHEN h.detection_price > 0 THEN 
+                            ((c.price - h.detection_price) / h.detection_price * 100)
+                        ELSE 0 
+                    END,
+                    btc_return_30d = :btc_return_30d,
+                    status = CASE
+                        WHEN ((c.price - h.detection_price) / NULLIF(h.detection_price, 0) * 100) > 25 THEN 'success'
+                        WHEN ((c.price - h.detection_price) / NULLIF(h.detection_price, 0) * 100) < -20 THEN 'failed'
+                        ELSE 'neutral'
+                    END,
+                    evaluated_at = NOW()
+                FROM aihub_coins c
+                WHERE h.coin_id = c.coin_id
+                  AND h.detected_at >= NOW() - INTERVAL '31 days'
+                  AND h.detected_at < NOW() - INTERVAL '29 days'
+                  AND h.price_30d IS NULL
+                RETURNING h.coin_id, h.status
+            """)
+            result = conn.execute(eval_30d_query, {"btc_return_30d": btc_return_30d})
+            rows = result.fetchall()
+            stats["gems_evaluated_30d"] = len(rows)
+            stats["successes"] = sum(1 for r in rows if r[1] == 'success')
+            stats["failures"] = sum(1 for r in rows if r[1] == 'failed')
+            
+            conn.commit()
+        
+        state["last_result"] = stats
+        logger.info(f"Scheduler: Gems Tracker complete - {stats}")
+        
+    except Exception as e:
+        logger.error(f"Scheduler: Gems Tracker job failed - {e}")
+        state["last_result"] = {"error": str(e)}
+    finally:
+        state["is_running"] = False
+
+
 # ==================== Scheduler Management ====================
 
 def get_scheduler() -> Optional[AsyncIOScheduler]:
@@ -651,6 +793,17 @@ def start_scheduler():
             replace_existing=True,
         )
         logger.info(f"Scheduled Discovery Engine job: every {SCHEDULER_STATE['discovery_engine']['interval_minutes']} minutes")
+    
+    # Add Gems Tracker job - every 6 hours
+    if SCHEDULER_STATE["gems_tracker"]["enabled"]:
+        _scheduler.add_job(
+            run_gems_tracker_job,
+            trigger=IntervalTrigger(minutes=SCHEDULER_STATE["gems_tracker"]["interval_minutes"]),
+            id="gems_tracker_job",
+            name="Hidden Gems Performance Tracker",
+            replace_existing=True,
+        )
+        logger.info(f"Scheduled Gems Tracker job: every {SCHEDULER_STATE['gems_tracker']['interval_minutes']} minutes")
     
     _scheduler.start()
     logger.info("Background scheduler started")

@@ -1154,16 +1154,41 @@ class DiscoveryEngine:
         """
         Calculate Discovery Score for hidden gem detection.
         
-        Includes:
-        - Momentum Score (40%)
-        - Relative Strength Score (30%)
-        - Pattern Bonus (candlestick patterns)
-        - Divergence Bonus (RSI divergence)
-        - Confirmation Bonus (multi-factor validation)
-        - Trend/Outperformer bonuses
+        Enhanced scoring (v2):
+        - Momentum Score (25%) - reduced, too reactive
+        - Relative Strength Score (25%)
+        - Confirmation Score (30%) - increased, multi-factor is key
+        - Volume/Accumulation (10%)
+        - Trend Strength (10%)
+        - Pattern Bonus (-15 to +15)
+        - Divergence Bonus (-15 to +15)
         """
-        # Base score from momentum and RS
-        base_score = df['momentum_score'] * 0.4 + df['rs_score'] * 0.3
+        # Detect Smart Money Accumulation
+        # High volume + stable/slightly down price = institutional accumulation
+        volume_ratio = df['volume_ratio'].fillna(1)
+        change_24h = df['change_24h'].fillna(0)
+        
+        df['is_accumulating'] = (
+            (volume_ratio > 1.8) &           # 1.8x+ normal volume
+            (change_24h < 8) &               # Price not pumping yet
+            (change_24h > -15)               # Not dumping hard
+        )
+        
+        # Accumulation score: 0-15 based on volume spike during stable price
+        df['accumulation_score'] = np.where(
+            df['is_accumulating'],
+            np.clip((volume_ratio - 1.5) * 10, 5, 15),  # 5-15 points
+            0
+        )
+        
+        # Volume score for discovery (normalized 0-10)
+        volume_score = np.clip((volume_ratio - 1) * 5, 0, 10)
+        
+        # Base weighted scores (rebalanced for reliability)
+        momentum_component = df['momentum_score'].fillna(50) * 0.25
+        rs_component = df['rs_score'].fillna(50) * 0.25
+        confirmation_component = df['confirmation_score'].fillna(0) * 0.30  # Heavily weighted
+        trend_component = df['trend_score'].fillna(0) * 3  # Scale up (original is 0-3)
         
         # Pattern bonus (from candlestick patterns: -15 to +15)
         pattern_bonus = df['pattern_score'].fillna(0)
@@ -1171,47 +1196,58 @@ class DiscoveryEngine:
         # Divergence bonus (from RSI divergence: -15 to +15)
         divergence_bonus = df['divergence_score'].fillna(0)
         
-        # Confirmation bonus (0 to +20 based on confirmation count)
-        confirmation_bonus = df['confirmation_score'].fillna(0)
+        # Accumulation bonus (smart money signal: 0 to +15)
+        accumulation_bonus = df['accumulation_score'].fillna(0)
         
-        # Other bonuses
-        rank_bonus = np.where(df['market_cap_rank'] > 100, 10, 0)  # Small cap bonus
-        outperformer_bonus = np.where(df['is_outperformer'], 10, 0)
-        trend_bonus = np.where(df['trend_score'] > 2, 10, 0)
+        # Other bonuses (reduced from 10 to 5 each for more balanced scoring)
+        rank_bonus = np.where(df['market_cap_rank'] > 50, 5, 0)  # Mid/small cap
+        outperformer_bonus = np.where(df['is_outperformer'], 8, 0)
+        
+        # Penalty for recent pump (avoid FOMO entries)
+        pump_penalty = np.where(change_24h > 25, -10, 0)
         
         # Combined score
         df['discovery_score'] = (
-            base_score + 
+            momentum_component + 
+            rs_component + 
+            confirmation_component +
+            trend_component +
+            volume_score +
             pattern_bonus + 
             divergence_bonus + 
-            confirmation_bonus +
+            accumulation_bonus +
             rank_bonus + 
-            outperformer_bonus + 
-            trend_bonus
+            outperformer_bonus +
+            pump_penalty
         ).round(0).astype(int)
         
         df['discovery_score'] = np.clip(df['discovery_score'], 0, 100)
         
         # Create signal strength label based on technical signals + confirmations
         high_confirmation = df['confirmation_count'].fillna(0) >= 3
+        has_accumulation = df['is_accumulating']
         
         df['signal_strength'] = np.select(
             [
                 # VERY_STRONG: Pattern + Divergence + 3+ confirmations
                 (df['pattern_direction'] == 'BULLISH') & (df['divergence_type'] == 'BULLISH_DIV') & high_confirmation,
                 (df['pattern_direction'] == 'BEARISH') & (df['divergence_type'] == 'BEARISH_DIV') & high_confirmation,
-                # STRONG: Pattern + Divergence (without high confirmation)
+                # STRONG: Pattern + Divergence OR Accumulation + Confirmation
                 (df['pattern_direction'] == 'BULLISH') & (df['divergence_type'] == 'BULLISH_DIV'),
                 (df['pattern_direction'] == 'BEARISH') & (df['divergence_type'] == 'BEARISH_DIV'),
+                (has_accumulation) & high_confirmation,
                 # CONFIRMED: Pattern or Divergence + 3+ confirmations
                 ((df['pattern_direction'] == 'BULLISH') | (df['divergence_type'] == 'BULLISH_DIV')) & high_confirmation,
                 ((df['pattern_direction'] == 'BEARISH') | (df['divergence_type'] == 'BEARISH_DIV')) & high_confirmation,
+                # ACCUMULATION: Smart money signal
+                has_accumulation,
                 # MODERATE: Pattern or Divergence only
                 (df['pattern_direction'] == 'BULLISH') | (df['divergence_type'] == 'BULLISH_DIV'),
                 (df['pattern_direction'] == 'BEARISH') | (df['divergence_type'] == 'BEARISH_DIV'),
             ],
             ['VERY_STRONG_BULL', 'VERY_STRONG_BEAR', 'STRONG_BULLISH', 'STRONG_BEARISH', 
-             'CONFIRMED_BULL', 'CONFIRMED_BEAR', 'BULLISH', 'BEARISH'],
+             'ACCUMULATION', 'CONFIRMED_BULL', 'CONFIRMED_BEAR', 'ACCUMULATION',
+             'BULLISH', 'BEARISH'],
             default=None
         )
         

@@ -394,16 +394,18 @@ async def get_hidden_gems(
     limit: int = Query(default=10, le=30),
 ):
     """
-    Get potential hidden gem coins.
+    Get potential hidden gem coins (v2 - enhanced criteria).
     
-    Criteria:
-    - High discovery score (>70)
-    - Market cap rank > 100 (smaller caps)
+    Stricter Criteria:
+    - High discovery score (≥75, was 70)
+    - At least 2 confirmations
+    - Market cap rank > 50 (include mid-caps)
     - Outperforming BTC and market
-    - Strong technical signals
+    - Not recently pumped (change_24h < 30%)
+    - Sufficient volume ($100k+)
     
     Returns:
-        List of potential hidden gems
+        List of potential hidden gems with technical details
     """
     from sqlalchemy import text
     
@@ -418,14 +420,22 @@ async def get_hidden_gems(
                     momentum_score, rs_score, discovery_score,
                     rs_vs_btc, rs_vs_market,
                     pattern_name, pattern_direction,
+                    divergence_type, rsi_14,
+                    bb_position, macd_signal_type,
                     confirmation_count, signal_strength,
-                    volume_24h, market_cap, market_cap_rank
+                    is_accumulating, accumulation_score,
+                    volume_24h, volume_ratio, market_cap, market_cap_rank
                 FROM market_discovery_snapshot
-                WHERE discovery_score >= 70
-                  AND market_cap_rank > 100
-                  AND is_outperformer = TRUE
+                WHERE discovery_score >= 75
+                  AND confirmation_count >= 2
+                  AND market_cap_rank > 50
+                  AND (is_outperformer = TRUE OR is_accumulating = TRUE)
+                  AND change_24h < 30
                   AND volume_24h > 100000
-                ORDER BY discovery_score DESC, confirmation_count DESC
+                ORDER BY 
+                    CASE WHEN is_accumulating THEN 1 ELSE 0 END DESC,
+                    discovery_score DESC, 
+                    confirmation_count DESC
                 LIMIT :limit
             """), {"limit": limit})
             
@@ -439,16 +449,38 @@ async def get_hidden_gems(
                 ) for i, col in enumerate(columns)}
                 gems.append(gem)
             
+            # Get success rate stats if available
+            success_stats = None
+            try:
+                stats_result = conn.execute(text("""
+                    SELECT * FROM v_gems_overall_stats LIMIT 1
+                """))
+                stats_row = stats_result.fetchone()
+                if stats_row:
+                    success_stats = {
+                        "total_gems_tracked": stats_row[0],
+                        "success_count": stats_row[1],
+                        "success_rate_pct": float(stats_row[10]) if stats_row[10] else None,
+                        "avg_return_7d": float(stats_row[3]) if stats_row[3] else None,
+                        "avg_return_30d": float(stats_row[4]) if stats_row[4] else None,
+                        "alpha_30d": float(stats_row[7]) if stats_row[7] else None,
+                    }
+            except:
+                pass  # View may not exist yet
+            
             return {
                 "success": True,
                 "data": gems,
                 "meta": {
                     "criteria": {
-                        "min_discovery_score": 70,
-                        "min_market_cap_rank": 100,
-                        "outperforming": True,
+                        "min_discovery_score": 75,
+                        "min_confirmations": 2,
+                        "min_market_cap_rank": 50,
+                        "max_recent_pump": "30%",
+                        "outperforming_or_accumulating": True,
                         "min_volume_24h": "$100k",
                     },
+                    "success_stats": success_stats,
                     "count": len(gems),
                     "timestamp": datetime.now().isoformat(),
                 }
