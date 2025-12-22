@@ -225,6 +225,19 @@ def calculate_all_enhanced_indicators(df: pd.DataFrame) -> Dict[str, Any]:
     Returns:
         Combined dict of all indicator signals
     """
+    # Minimum rows needed: 20 for CCI window, 5 for OBV ROC
+    MIN_ROWS = 25
+    if len(df) < MIN_ROWS:
+        logger.debug(f"Insufficient data for enhanced indicators: {len(df)} rows (need {MIN_ROWS})")
+        return {
+            "obv_score": 5,
+            "vwap_score": 2.5,
+            "cci_score": 2.5,
+            "enhanced_score": 10,
+            "enhanced_max": 20,
+            "data_insufficient": True,
+        }
+    
     try:
         obv_signal = calculate_obv_signal(df)
         vwap_signal = calculate_vwap_signal(df)
