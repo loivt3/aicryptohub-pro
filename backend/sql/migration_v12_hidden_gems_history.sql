@@ -39,11 +39,12 @@ CREATE TABLE IF NOT EXISTS hidden_gems_history (
     
     -- Evaluation
     status VARCHAR(20) DEFAULT 'pending', -- pending, success, failed, neutral
-    evaluated_at TIMESTAMP,
-    
-    -- Prevent duplicate entries on same day
-    UNIQUE(coin_id, DATE(detected_at))
+    evaluated_at TIMESTAMP
 );
+
+-- Unique constraint using functional index (one gem per coin per day)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_gems_history_unique_daily 
+ON hidden_gems_history(coin_id, DATE(detected_at));
 
 -- Indexes for efficient queries
 CREATE INDEX IF NOT EXISTS idx_gems_history_coin ON hidden_gems_history(coin_id);
