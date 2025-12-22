@@ -2125,46 +2125,45 @@ const toggleFavorite = (coinId: string) => {
 /* Technical Signals List/Table Styles (Matching Desktop) */
 /* ================================== */
 .m-tsig-list {
-  padding: 0 16px;
+  padding: 0 12px;
 }
 
 .m-tsig-row {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  margin-bottom: 10px;
-  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  padding: 10px;
 }
 
 .m-tsig-main {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .m-tsig-rank {
-  min-width: 20px;
-  font-size: 11px;
+  min-width: 16px;
+  font-size: 10px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.4);
 }
 
 .m-tsig-avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
 .m-tsig-info {
   flex: 1;
-  display: flex;
-  flex-direction: column;
+  min-width: 0;
 }
 
-.m-tsig-symbol { font-size: 13px; font-weight: 700; color: #fff; }
-.m-tsig-name { font-size: 10px; color: rgba(255, 255, 255, 0.4); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100px; }
+.m-tsig-symbol { font-size: 12px; font-weight: 700; color: #fff; }
+.m-tsig-name { font-size: 9px; color: rgba(255, 255, 255, 0.4); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .m-tsig-price-col {
   display: flex;
@@ -2172,38 +2171,39 @@ const toggleFavorite = (coinId: string) => {
   align-items: flex-end;
 }
 
-.m-tsig-price { font-size: 12px; font-weight: 600; color: #fff; }
-.m-tsig-change { font-size: 11px; font-weight: 600; }
+.m-tsig-price { font-size: 11px; font-weight: 600; color: #fff; }
+.m-tsig-change { font-size: 10px; font-weight: 600; }
 .m-tsig-change.positive { color: #10b981; }
 .m-tsig-change.negative { color: #ef4444; }
 
 .m-tsig-indicators {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
 }
 
 .m-tsig-ind {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 4px;
 }
 
 .m-tsig-ind .ind-label {
-  font-size: 9px;
+  font-size: 8px;
   color: rgba(255, 255, 255, 0.35);
   text-transform: uppercase;
 }
 
 .m-tsig-ind .ind-value {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
 }
 
 .m-tsig-ind .ind-muted {
-  font-size: 11px;
+  font-size: 10px;
   color: rgba(255, 255, 255, 0.2);
 }
+
 
 /* Pattern Styling */
 .ind-value.pattern-bullish { color: #10b981; }
