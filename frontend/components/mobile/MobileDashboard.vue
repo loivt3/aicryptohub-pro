@@ -1464,13 +1464,15 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-horizon-card {
-  background: rgba(30, 30, 50, 0.8);
-  border-radius: 8px;
+  background: rgb(30 32 36 / 92%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
   padding: 12px 8px;
   text-align: center;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
 }
 
 .m-horizon-label {
@@ -1725,8 +1727,10 @@ const toggleFavorite = (coinId: string) => {
   align-items: center;
   justify-content: center;
   padding: 10px 4px;
-  border-radius: 10px;
-  border: 1px solid transparent;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgb(30 32 36 / 92%);
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
   transition: all 0.2s ease;
   min-height: 90px;
 }
