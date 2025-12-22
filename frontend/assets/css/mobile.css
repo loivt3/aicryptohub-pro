@@ -274,15 +274,16 @@
 .m-stat-card-pro {
     flex: 0 0 auto;
     min-width: 140px;
-    background: linear-gradient(180deg, rgba(30, 35, 50, 0.95) 0%, rgba(20, 25, 38, 0.98) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 14px;
+    background: rgb(30 32 36 / 92%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
     padding: 12px 14px 0 14px;
     text-align: left;
     overflow: hidden;
     position: relative;
     display: flex;
     flex-direction: column;
+    box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
 }
 
 .m-stat-header {
