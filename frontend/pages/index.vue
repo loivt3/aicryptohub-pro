@@ -180,10 +180,11 @@ const onCoinSelect = (coin: any) => {
 
 /* List styles */
 .m-list {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgb(30 32 36 / 92%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
 }
 
 .m-list-item {
