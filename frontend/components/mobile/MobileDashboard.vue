@@ -228,332 +228,341 @@
         </div>
       </section>
 
-      <!-- Top Gainers Section -->
+      <!-- Market Movers Section (Tabbed) -->
       <section class="m-section">
         <div class="m-section-header">
           <h3 class="m-section-title">
-            <Icon name="ph:trend-up" class="w-4 h-4" style="color: #22c55e;" />
-            Top Gainers
+            <Icon name="ph:lightning" class="w-4 h-4" style="color: #f97316;" />
+            Market Movers
           </h3>
-          <span class="m-section-link">ASI = AI Signal</span>
+          <NuxtLink to="/market" class="m-section-link">View All</NuxtLink>
         </div>
         
-        <div class="m-list m-list--dark">
-          <template v-for="(coin, idx) in topGainers" :key="coin.coin_id">
-            <!-- Main Row + Meta combined -->
-            <div class="m-list-item m-list-item--with-meta" @click="expandedCoin = expandedCoin === coin.coin_id ? null : coin.coin_id">
-              <div class="m-list-item-main">
-                <span class="m-rank">{{ idx + 1 }}</span>
-                <img :src="coin.image" class="m-avatar" />
-                <div class="m-info">
-                  <span class="m-info-title">{{ coin.symbol?.toUpperCase() }}</span>
-                  <span class="m-info-subtitle">{{ coin.name }}</span>
-                </div>
-                <div class="m-price-col">
-                  <span class="m-info-title" :class="getFlashClass(coin.symbol)">{{ formatCurrency(coin.price) }}</span>
-                  <span class="m-info-subtitle m-text-success">+{{ coin.change_24h?.toFixed(2) }}%</span>
-                </div>
-                <!-- Mini Sparkline (Real Data) -->
-                <div class="m-mini-sparkline" style="width: 50px; height: 24px;">
-                  <svg viewBox="0 0 50 24" preserveAspectRatio="none" style="width: 100%; height: 100%;">
-                    <path :d="generateSparklineFill(coin, 50, 24)" fill="rgba(34,197,94,0.3)"/>
-                    <path :d="generateSparkline(coin, 50, 24)" fill="none" stroke="#22c55e" stroke-width="1.5"/>
-                  </svg>
-                </div>
+        <!-- Movers Tabs (same style as Horizon tabs) -->
+        <div class="m-horizon-tabs">
+          <button 
+            class="m-horizon-tab" 
+            :class="{ active: activeMoversTab === 'gainers' }"
+            @click="activeMoversTab = 'gainers'"
+          >
+            <span class="tab-label"><span style="color: #22c55e;">▲</span> Gainers</span>
+          </button>
+          <button 
+            class="m-horizon-tab" 
+            :class="{ active: activeMoversTab === 'losers' }"
+            @click="activeMoversTab = 'losers'"
+          >
+            <span class="tab-label"><span style="color: #ef4444;">▼</span> Losers</span>
+          </button>
+          <button 
+            class="m-horizon-tab" 
+            :class="{ active: activeMoversTab === 'traded' }"
+            @click="activeMoversTab = 'traded'"
+          >
+            <span class="tab-label">Most Traded <span class="tab-tf">24h</span></span>
+          </button>
+        </div>
 
-                <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" :class="{ 'rotate-90': expandedCoin === coin.coin_id }" />
-              </div>
-              <!-- ASI Meta Row - inside list-item -->
-              <div class="m-list-item-meta">
-                <span class="m-meta-mcap">MCap: {{ formatMarketCap(coin.market_cap) }}</span>
-                <div class="m-meta-asi">
-                  <span class="m-meta-asi-label">ASI</span>
-                  <div class="m-meta-asi-bar">
-                    <div class="m-meta-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
+        <!-- Coin List - conditionally show based on activeMoversTab -->
+        <div class="m-list m-list--dark">
+          <!-- Top Gainers -->
+          <template v-if="activeMoversTab === 'gainers'">
+            <template v-for="(coin, idx) in topGainers" :key="coin.coin_id">
+              <div class="m-list-item m-list-item--with-meta" @click="expandedCoin = expandedCoin === coin.coin_id ? null : coin.coin_id">
+                <div class="m-list-item-main">
+                  <span class="m-rank">{{ idx + 1 }}</span>
+                  <img :src="coin.image" class="m-avatar" />
+                  <div class="m-info">
+                    <span class="m-info-title">{{ coin.symbol?.toUpperCase() }}</span>
+                    <span class="m-info-subtitle">{{ coin.name }}</span>
                   </div>
-                  <span class="m-meta-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Expanded Panel -->
-            <div v-if="expandedCoin === coin.coin_id" class="m-accordion-panel">
-              <div class="m-ai-box">
-                <div class="m-ai-box-header">
-                  <Icon name="ph:robot" class="w-4 h-4" />
-                  <span>AI ANALYSIS</span>
-                </div>
-                <p class="m-ai-box-text">{{ coin.reasoning || 'Strong bullish momentum detected. Technical indicators suggest upward trend continuation.' }}</p>
-              </div>
-              
-              <div class="m-stats-grid">
-                <div class="m-stat-item">
-                  <span class="m-stat-label">VOL 24H</span>
-                  <span class="m-stat-value">{{ formatMarketCap(coin.volume_24h) }}</span>
-                </div>
-                <div class="m-stat-item">
-                  <span class="m-stat-label">HIGH</span>
-                  <span class="m-stat-value">{{ formatCurrency(coin.high_24h || coin.price * 1.02) }}</span>
-                </div>
-                <div class="m-stat-item">
-                  <span class="m-stat-label">LOW</span>
-                  <span class="m-stat-value">{{ formatCurrency(coin.low_24h || coin.price * 0.98) }}</span>
-                </div>
-              </div>
-              
-              <!-- Support & Resistance -->
-              <div class="m-tech-section">
-                <div class="m-tech-title">
-                  <Icon name="ph:chart-line" class="w-4 h-4" style="color: #60A5FA;" />
-                  Support & Resistance
-                </div>
-                <div class="m-stats-grid m-stats-grid--2col">
-                  <div class="m-stat-item m-stat-item--support">
-                    <span class="m-stat-label">SUPPORT 1</span>
-                    <span class="m-stat-value m-text-danger">{{ formatCurrency(coin.support_1 || coin.price * 0.97) }}</span>
+                  <div class="m-price-col">
+                    <span class="m-info-title" :class="getFlashClass(coin.symbol)">{{ formatCurrency(coin.price) }}</span>
+                    <span class="m-info-subtitle m-text-success">+{{ coin.change_24h?.toFixed(2) }}%</span>
                   </div>
-                  <div class="m-stat-item m-stat-item--resistance">
-                    <span class="m-stat-label">RESIST 1</span>
-                    <span class="m-stat-value m-text-success">{{ formatCurrency(coin.resistance_1 || coin.price * 1.03) }}</span>
+                  <div class="m-mini-sparkline" style="width: 50px; height: 24px;">
+                    <svg viewBox="0 0 50 24" preserveAspectRatio="none" style="width: 100%; height: 100%;">
+                      <path :d="generateSparklineFill(coin, 50, 24)" fill="rgba(34,197,94,0.3)"/>
+                      <path :d="generateSparkline(coin, 50, 24)" fill="none" stroke="#22c55e" stroke-width="1.5"/>
+                    </svg>
                   </div>
-                  <div class="m-stat-item m-stat-item--support">
-                    <span class="m-stat-label">SUPPORT 2</span>
-                    <span class="m-stat-value m-text-danger">{{ formatCurrency(coin.support_2 || coin.price * 0.95) }}</span>
-                  </div>
-                  <div class="m-stat-item m-stat-item--resistance">
-                    <span class="m-stat-label">RESIST 2</span>
-                    <span class="m-stat-value m-text-success">{{ formatCurrency(coin.resistance_2 || coin.price * 1.05) }}</span>
-                  </div>
+                  <span class="m-signal-badge m-signal-badge--compact" :class="'m-signal-' + (coin.ai_signal || 'buy').toLowerCase().replace('_', '-')">
+                    {{ coin.ai_signal || 'BUY' }}
+                  </span>
+                  <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" :class="{ 'rotate-90': expandedCoin === coin.coin_id }" />
                 </div>
-                <!-- Pivot Point -->
-                <div class="m-pivot-row">
-                  <span class="m-pivot-label">PIVOT:</span>
-                  <span class="m-pivot-value">{{ formatCurrency(coin.pivot_point || coin.price) }}</span>
-                  <span class="m-signal-badge" :class="'m-signal-' + (coin.ai_signal || 'hold').toLowerCase().replace('_', '-')">{{ coin.ai_signal || 'HOLD' }}</span>
+                <div class="m-list-item-meta">
+                  <span class="m-meta-mcap">MCap: {{ formatMarketCap(coin.market_cap) }}</span>
+                  <div class="m-meta-asi">
+                    <span class="m-meta-asi-label">ASI</span>
+                    <div class="m-meta-asi-bar">
+                      <div class="m-meta-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
+                    </div>
+                    <span class="m-meta-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
+                  </div>
                 </div>
               </div>
               
-              <button class="m-fav-btn" :class="{ 'is-active': favorites.includes(coin.coin_id) }" @click.stop="toggleFavorite(coin.coin_id)">
-                <Icon name="ph:star" :class="favorites.includes(coin.coin_id) ? 'text-yellow-400' : ''" />
-                {{ favorites.includes(coin.coin_id) ? 'Remove Favorite' : 'Add to Favorites' }}
-              </button>
-            </div>
+              <div v-if="expandedCoin === coin.coin_id" class="m-accordion-panel">
+                <div class="m-ai-box">
+                  <div class="m-ai-box-header">
+                    <Icon name="ph:robot" class="w-4 h-4" />
+                    <span>AI ANALYSIS</span>
+                  </div>
+                  <p class="m-ai-box-text">{{ coin.reasoning || 'Strong bullish momentum detected. Technical indicators suggest upward trend continuation.' }}</p>
+                </div>
+                
+                <div class="m-stats-grid">
+                  <div class="m-stat-item">
+                    <span class="m-stat-label">VOL 24H</span>
+                    <span class="m-stat-value">{{ formatMarketCap(coin.volume_24h) }}</span>
+                  </div>
+                  <div class="m-stat-item">
+                    <span class="m-stat-label">HIGH</span>
+                    <span class="m-stat-value">{{ formatCurrency(coin.high_24h || coin.price * 1.02) }}</span>
+                  </div>
+                  <div class="m-stat-item">
+                    <span class="m-stat-label">LOW</span>
+                    <span class="m-stat-value">{{ formatCurrency(coin.low_24h || coin.price * 0.98) }}</span>
+                  </div>
+                </div>
+                
+                <div class="m-tech-section">
+                  <div class="m-tech-title">
+                    <Icon name="ph:chart-line" class="w-4 h-4" style="color: #60A5FA;" />
+                    Support & Resistance
+                  </div>
+                  <div class="m-stats-grid m-stats-grid--2col">
+                    <div class="m-stat-item m-stat-item--support">
+                      <span class="m-stat-label">SUPPORT 1</span>
+                      <span class="m-stat-value m-text-danger">{{ formatCurrency(coin.support_1 || coin.price * 0.97) }}</span>
+                    </div>
+                    <div class="m-stat-item m-stat-item--resistance">
+                      <span class="m-stat-label">RESIST 1</span>
+                      <span class="m-stat-value m-text-success">{{ formatCurrency(coin.resistance_1 || coin.price * 1.03) }}</span>
+                    </div>
+                    <div class="m-stat-item m-stat-item--support">
+                      <span class="m-stat-label">SUPPORT 2</span>
+                      <span class="m-stat-value m-text-danger">{{ formatCurrency(coin.support_2 || coin.price * 0.95) }}</span>
+                    </div>
+                    <div class="m-stat-item m-stat-item--resistance">
+                      <span class="m-stat-label">RESIST 2</span>
+                      <span class="m-stat-value m-text-success">{{ formatCurrency(coin.resistance_2 || coin.price * 1.05) }}</span>
+                    </div>
+                  </div>
+                  <div class="m-pivot-row">
+                    <span class="m-pivot-label">PIVOT:</span>
+                    <span class="m-pivot-value">{{ formatCurrency(coin.pivot_point || coin.price) }}</span>
+                    <span class="m-signal-badge" :class="'m-signal-' + (coin.ai_signal || 'hold').toLowerCase().replace('_', '-')">{{ coin.ai_signal || 'HOLD' }}</span>
+                  </div>
+                </div>
+                
+                <button class="m-fav-btn" :class="{ 'is-active': favorites.includes(coin.coin_id) }" @click.stop="toggleFavorite(coin.coin_id)">
+                  <Icon name="ph:star" :class="favorites.includes(coin.coin_id) ? 'text-yellow-400' : ''" />
+                  {{ favorites.includes(coin.coin_id) ? 'Remove Favorite' : 'Add to Favorites' }}
+                </button>
+              </div>
+            </template>
           </template>
-        </div>
-      </section>
 
-      <!-- Top Losers Section -->
-      <section class="m-section">
-        <div class="m-section-header">
-          <h3 class="m-section-title">
-            <Icon name="ph:trend-down" class="w-4 h-4" style="color: #ef4444;" />
-            Top Losers
-          </h3>
-        </div>
-        
-        <div class="m-list m-list--dark">
-          <template v-for="(coin, idx) in topLosers" :key="'loser-'+coin.coin_id">
-            <div class="m-list-item m-list-item--with-meta" @click="expandedCoin = expandedCoin === 'loser-'+coin.coin_id ? null : 'loser-'+coin.coin_id">
-              <div class="m-list-item-main">
-                <span class="m-rank m-rank--danger">{{ idx + 1 }}</span>
-                <img :src="coin.image" class="m-avatar" />
-                <div class="m-info">
-                  <span class="m-info-title">{{ coin.symbol?.toUpperCase() }}</span>
-                  <span class="m-info-subtitle">{{ coin.name }}</span>
-                </div>
-                <div class="m-price-col">
-                  <span class="m-info-title" :class="getFlashClass(coin.symbol)">{{ formatCurrency(coin.price) }}</span>
-                  <span class="m-info-subtitle m-text-danger">{{ coin.change_24h?.toFixed(2) }}%</span>
-                </div>
-                <div class="m-mini-sparkline" style="width: 50px; height: 24px;">
-                  <svg viewBox="0 0 50 24" preserveAspectRatio="none" style="width: 100%; height: 100%;">
-                    <path :d="generateSparklineFill(coin, 50, 24)" fill="rgba(239,68,68,0.3)"/>
-                    <path :d="generateSparkline(coin, 50, 24)" fill="none" stroke="#ef4444" stroke-width="1.5"/>
-                  </svg>
-                </div>
-
-                <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" />
-              </div>
-              <div class="m-list-item-meta">
-                <span class="m-meta-mcap">MCap: {{ formatMarketCap(coin.market_cap) }}</span>
-                <div class="m-meta-asi">
-                  <span class="m-meta-asi-label">ASI</span>
-                  <div class="m-meta-asi-bar">
-                    <div class="m-meta-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
+          <!-- Top Losers -->
+          <template v-else-if="activeMoversTab === 'losers'">
+            <template v-for="(coin, idx) in topLosers" :key="'loser-'+coin.coin_id">
+              <div class="m-list-item m-list-item--with-meta" @click="expandedCoin = expandedCoin === 'loser-'+coin.coin_id ? null : 'loser-'+coin.coin_id">
+                <div class="m-list-item-main">
+                  <span class="m-rank m-rank--danger">{{ idx + 1 }}</span>
+                  <img :src="coin.image" class="m-avatar" />
+                  <div class="m-info">
+                    <span class="m-info-title">{{ coin.symbol?.toUpperCase() }}</span>
+                    <span class="m-info-subtitle">{{ coin.name }}</span>
                   </div>
-                  <span class="m-meta-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
+                  <div class="m-price-col">
+                    <span class="m-info-title" :class="getFlashClass(coin.symbol)">{{ formatCurrency(coin.price) }}</span>
+                    <span class="m-info-subtitle m-text-danger">{{ coin.change_24h?.toFixed(2) }}%</span>
+                  </div>
+                  <div class="m-mini-sparkline" style="width: 50px; height: 24px;">
+                    <svg viewBox="0 0 50 24" preserveAspectRatio="none" style="width: 100%; height: 100%;">
+                      <path :d="generateSparklineFill(coin, 50, 24)" fill="rgba(239,68,68,0.3)"/>
+                      <path :d="generateSparkline(coin, 50, 24)" fill="none" stroke="#ef4444" stroke-width="1.5"/>
+                    </svg>
+                  </div>
+                  <span class="m-signal-badge m-signal-badge--compact" :class="'m-signal-' + (coin.ai_signal || 'sell').toLowerCase().replace('_', '-')">
+                    {{ coin.ai_signal || 'SELL' }}
+                  </span>
+                  <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" />
                 </div>
-              </div>
-            </div>
-            
-            <!-- Expanded Panel for Losers -->
-            <div v-if="expandedCoin === 'loser-'+coin.coin_id" class="m-accordion-panel">
-              <div class="m-ai-box">
-                <div class="m-ai-box-header">
-                  <Icon name="ph:robot" class="w-4 h-4" />
-                  <span>AI ANALYSIS</span>
-                </div>
-                <p class="m-ai-box-text">{{ coin.reasoning || 'Bearish pressure detected. Technical indicators suggest downward momentum.' }}</p>
-              </div>
-              
-              <div class="m-stats-grid">
-                <div class="m-stat-item">
-                  <span class="m-stat-label">VOL 24H</span>
-                  <span class="m-stat-value">{{ formatMarketCap(coin.volume_24h) }}</span>
-                </div>
-                <div class="m-stat-item">
-                  <span class="m-stat-label">HIGH</span>
-                  <span class="m-stat-value">{{ formatCurrency(coin.high_24h || coin.price * 1.02) }}</span>
-                </div>
-                <div class="m-stat-item">
-                  <span class="m-stat-label">LOW</span>
-                  <span class="m-stat-value">{{ formatCurrency(coin.low_24h || coin.price * 0.98) }}</span>
+                <div class="m-list-item-meta">
+                  <span class="m-meta-mcap">MCap: {{ formatMarketCap(coin.market_cap) }}</span>
+                  <div class="m-meta-asi">
+                    <span class="m-meta-asi-label">ASI</span>
+                    <div class="m-meta-asi-bar">
+                      <div class="m-meta-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
+                    </div>
+                    <span class="m-meta-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
+                  </div>
                 </div>
               </div>
               
-              <div class="m-tech-section">
-                <div class="m-tech-title">
-                  <Icon name="ph:chart-line" class="w-4 h-4" style="color: #60A5FA;" />
-                  Support & Resistance
+              <div v-if="expandedCoin === 'loser-'+coin.coin_id" class="m-accordion-panel">
+                <div class="m-ai-box">
+                  <div class="m-ai-box-header">
+                    <Icon name="ph:robot" class="w-4 h-4" />
+                    <span>AI ANALYSIS</span>
+                  </div>
+                  <p class="m-ai-box-text">{{ coin.reasoning || 'Bearish pressure detected. Technical indicators suggest downward momentum.' }}</p>
                 </div>
-                <div class="m-stats-grid m-stats-grid--2col">
-                  <div class="m-stat-item m-stat-item--support">
-                    <span class="m-stat-label">SUPPORT 1</span>
-                    <span class="m-stat-value m-text-danger">{{ formatCurrency(coin.support_1 || coin.price * 0.97) }}</span>
+                
+                <div class="m-stats-grid">
+                  <div class="m-stat-item">
+                    <span class="m-stat-label">VOL 24H</span>
+                    <span class="m-stat-value">{{ formatMarketCap(coin.volume_24h) }}</span>
                   </div>
-                  <div class="m-stat-item m-stat-item--resistance">
-                    <span class="m-stat-label">RESIST 1</span>
-                    <span class="m-stat-value m-text-success">{{ formatCurrency(coin.resistance_1 || coin.price * 1.03) }}</span>
+                  <div class="m-stat-item">
+                    <span class="m-stat-label">HIGH</span>
+                    <span class="m-stat-value">{{ formatCurrency(coin.high_24h || coin.price * 1.02) }}</span>
                   </div>
-                  <div class="m-stat-item m-stat-item--support">
-                    <span class="m-stat-label">SUPPORT 2</span>
-                    <span class="m-stat-value m-text-danger">{{ formatCurrency(coin.support_2 || coin.price * 0.95) }}</span>
-                  </div>
-                  <div class="m-stat-item m-stat-item--resistance">
-                    <span class="m-stat-label">RESIST 2</span>
-                    <span class="m-stat-value m-text-success">{{ formatCurrency(coin.resistance_2 || coin.price * 1.05) }}</span>
+                  <div class="m-stat-item">
+                    <span class="m-stat-label">LOW</span>
+                    <span class="m-stat-value">{{ formatCurrency(coin.low_24h || coin.price * 0.98) }}</span>
                   </div>
                 </div>
-                <div class="m-pivot-row">
-                  <span class="m-pivot-label">PIVOT:</span>
-                  <span class="m-pivot-value">{{ formatCurrency(coin.pivot_point || coin.price) }}</span>
-                  <span class="m-signal-badge" :class="'m-signal-' + (coin.ai_signal || 'sell').toLowerCase().replace('_', '-')">{{ coin.ai_signal || 'SELL' }}</span>
+                
+                <div class="m-tech-section">
+                  <div class="m-tech-title">
+                    <Icon name="ph:chart-line" class="w-4 h-4" style="color: #60A5FA;" />
+                    Support & Resistance
+                  </div>
+                  <div class="m-stats-grid m-stats-grid--2col">
+                    <div class="m-stat-item m-stat-item--support">
+                      <span class="m-stat-label">SUPPORT 1</span>
+                      <span class="m-stat-value m-text-danger">{{ formatCurrency(coin.support_1 || coin.price * 0.97) }}</span>
+                    </div>
+                    <div class="m-stat-item m-stat-item--resistance">
+                      <span class="m-stat-label">RESIST 1</span>
+                      <span class="m-stat-value m-text-success">{{ formatCurrency(coin.resistance_1 || coin.price * 1.03) }}</span>
+                    </div>
+                    <div class="m-stat-item m-stat-item--support">
+                      <span class="m-stat-label">SUPPORT 2</span>
+                      <span class="m-stat-value m-text-danger">{{ formatCurrency(coin.support_2 || coin.price * 0.95) }}</span>
+                    </div>
+                    <div class="m-stat-item m-stat-item--resistance">
+                      <span class="m-stat-label">RESIST 2</span>
+                      <span class="m-stat-value m-text-success">{{ formatCurrency(coin.resistance_2 || coin.price * 1.05) }}</span>
+                    </div>
+                  </div>
+                  <div class="m-pivot-row">
+                    <span class="m-pivot-label">PIVOT:</span>
+                    <span class="m-pivot-value">{{ formatCurrency(coin.pivot_point || coin.price) }}</span>
+                    <span class="m-signal-badge" :class="'m-signal-' + (coin.ai_signal || 'sell').toLowerCase().replace('_', '-')">{{ coin.ai_signal || 'SELL' }}</span>
+                  </div>
                 </div>
+                
+                <button class="m-fav-btn" :class="{ 'is-active': favorites.includes(coin.coin_id) }" @click.stop="toggleFavorite(coin.coin_id)">
+                  <Icon name="ph:star" :class="favorites.includes(coin.coin_id) ? 'text-yellow-400' : ''" />
+                  {{ favorites.includes(coin.coin_id) ? 'Remove Favorite' : 'Add to Favorites' }}
+                </button>
               </div>
-              
-              <button class="m-fav-btn" :class="{ 'is-active': favorites.includes(coin.coin_id) }" @click.stop="toggleFavorite(coin.coin_id)">
-                <Icon name="ph:star" :class="favorites.includes(coin.coin_id) ? 'text-yellow-400' : ''" />
-                {{ favorites.includes(coin.coin_id) ? 'Remove Favorite' : 'Add to Favorites' }}
-              </button>
-            </div>
+            </template>
           </template>
-        </div>
-      </section>
 
-      <!-- Most Traded Section -->
-      <section class="m-section">
-        <div class="m-section-header">
-          <h3 class="m-section-title">
-            <Icon name="ph:activity" class="w-4 h-4" style="color: #f97316;" />
-            Most Traded
-          </h3>
-        </div>
-        
-        <div class="m-list m-list--dark">
-          <template v-for="(coin, idx) in mostTraded" :key="'traded-'+coin.coin_id">
-            <div class="m-list-item m-list-item--with-meta" @click="expandedCoin = expandedCoin === 'traded-'+coin.coin_id ? null : 'traded-'+coin.coin_id">
-              <div class="m-list-item-main">
-                <span class="m-rank m-rank--info">{{ idx + 1 }}</span>
-                <img :src="coin.image" class="m-avatar" />
-                <div class="m-info">
-                  <span class="m-info-title">{{ coin.symbol?.toUpperCase() }}</span>
-                  <span class="m-info-subtitle">{{ coin.name }}</span>
-                </div>
-                <div class="m-price-col">
-                  <span class="m-info-title" :class="getFlashClass(coin.symbol)">{{ formatCurrency(coin.price) }}</span>
-                  <span class="m-info-subtitle" :class="coin.change_24h >= 0 ? 'm-text-success' : 'm-text-danger'">{{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(2) }}%</span>
-                </div>
-                <div class="m-mini-sparkline" style="width: 50px; height: 24px;">
-                  <svg viewBox="0 0 50 24" preserveAspectRatio="none" style="width: 100%; height: 100%;">
-                    <path :d="generateSparklineFill(coin, 50, 24)" :fill="coin.change_24h >= 0 ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'"/>
-                    <path :d="generateSparkline(coin, 50, 24)" fill="none" :stroke="coin.change_24h >= 0 ? '#22c55e' : '#ef4444'" stroke-width="1.5"/>
-                  </svg>
-                </div>
-
-                <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" />
-              </div>
-              <div class="m-list-item-meta">
-                <span class="m-meta-mcap">Vol: {{ formatMarketCap(coin.volume_24h) }}</span>
-                <div class="m-meta-asi">
-                  <span class="m-meta-asi-label">ASI</span>
-                  <div class="m-meta-asi-bar">
-                    <div class="m-meta-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
+          <!-- Most Traded -->
+          <template v-else>
+            <template v-for="(coin, idx) in mostTraded" :key="'traded-'+coin.coin_id">
+              <div class="m-list-item m-list-item--with-meta" @click="expandedCoin = expandedCoin === 'traded-'+coin.coin_id ? null : 'traded-'+coin.coin_id">
+                <div class="m-list-item-main">
+                  <span class="m-rank m-rank--info">{{ idx + 1 }}</span>
+                  <img :src="coin.image" class="m-avatar" />
+                  <div class="m-info">
+                    <span class="m-info-title">{{ coin.symbol?.toUpperCase() }}</span>
+                    <span class="m-info-subtitle">{{ coin.name }}</span>
                   </div>
-                  <span class="m-meta-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
+                  <div class="m-price-col">
+                    <span class="m-info-title" :class="getFlashClass(coin.symbol)">{{ formatCurrency(coin.price) }}</span>
+                    <span class="m-info-subtitle" :class="coin.change_24h >= 0 ? 'm-text-success' : 'm-text-danger'">{{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(2) }}%</span>
+                  </div>
+                  <div class="m-mini-sparkline" style="width: 50px; height: 24px;">
+                    <svg viewBox="0 0 50 24" preserveAspectRatio="none" style="width: 100%; height: 100%;">
+                      <path :d="generateSparklineFill(coin, 50, 24)" :fill="coin.change_24h >= 0 ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'"/>
+                      <path :d="generateSparkline(coin, 50, 24)" fill="none" :stroke="coin.change_24h >= 0 ? '#22c55e' : '#ef4444'" stroke-width="1.5"/>
+                    </svg>
+                  </div>
+                  <span class="m-signal-badge m-signal-badge--compact" :class="'m-signal-' + (coin.ai_signal || 'hold').toLowerCase().replace('_', '-')">
+                    {{ coin.ai_signal || 'HOLD' }}
+                  </span>
+                  <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" />
                 </div>
-              </div>
-            </div>
-            
-            <!-- Expanded Panel for Most Traded -->
-            <div v-if="expandedCoin === 'traded-'+coin.coin_id" class="m-accordion-panel">
-              <div class="m-ai-box">
-                <div class="m-ai-box-header">
-                  <Icon :name="coin.change_24h >= 0 ? 'ph:trend-up' : 'ph:trend-down'" class="w-4 h-4" />
-                  <span>AI ANALYSIS</span>
-                </div>
-                <p class="m-ai-box-text">{{ coin.reasoning || 'High trading volume detected. Market interest remains strong.' }}</p>
-              </div>
-              
-              <div class="m-stats-grid">
-                <div class="m-stat-item">
-                  <span class="m-stat-label">MCAP</span>
-                  <span class="m-stat-value">{{ formatMarketCap(coin.market_cap || 0) }}</span>
-                </div>
-                <div class="m-stat-item">
-                  <span class="m-stat-label">HIGH</span>
-                  <span class="m-stat-value">{{ formatCurrency(coin.high_24h || coin.price * 1.02) }}</span>
-                </div>
-                <div class="m-stat-item">
-                  <span class="m-stat-label">LOW</span>
-                  <span class="m-stat-value">{{ formatCurrency(coin.low_24h || coin.price * 0.98) }}</span>
+                <div class="m-list-item-meta">
+                  <span class="m-meta-mcap">Vol: {{ formatMarketCap(coin.volume_24h) }}</span>
+                  <div class="m-meta-asi">
+                    <span class="m-meta-asi-label">ASI</span>
+                    <div class="m-meta-asi-bar">
+                      <div class="m-meta-asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
+                    </div>
+                    <span class="m-meta-asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
+                  </div>
                 </div>
               </div>
               
-              <div class="m-tech-section">
-                <div class="m-tech-title">
-                  <Icon name="ph:chart-line" class="w-4 h-4" style="color: #60A5FA;" />
-                  Support & Resistance
+              <div v-if="expandedCoin === 'traded-'+coin.coin_id" class="m-accordion-panel">
+                <div class="m-ai-box">
+                  <div class="m-ai-box-header">
+                    <Icon :name="coin.change_24h >= 0 ? 'ph:trend-up' : 'ph:trend-down'" class="w-4 h-4" />
+                    <span>AI ANALYSIS</span>
+                  </div>
+                  <p class="m-ai-box-text">{{ coin.reasoning || 'High trading volume detected. Market interest remains strong.' }}</p>
                 </div>
-                <div class="m-stats-grid m-stats-grid--2col">
-                  <div class="m-stat-item m-stat-item--support">
-                    <span class="m-stat-label">SUPPORT 1</span>
-                    <span class="m-stat-value m-text-danger">{{ formatCurrency(coin.support_1 || coin.price * 0.97) }}</span>
+                
+                <div class="m-stats-grid">
+                  <div class="m-stat-item">
+                    <span class="m-stat-label">MCAP</span>
+                    <span class="m-stat-value">{{ formatMarketCap(coin.market_cap || 0) }}</span>
                   </div>
-                  <div class="m-stat-item m-stat-item--resistance">
-                    <span class="m-stat-label">RESIST 1</span>
-                    <span class="m-stat-value m-text-success">{{ formatCurrency(coin.resistance_1 || coin.price * 1.03) }}</span>
+                  <div class="m-stat-item">
+                    <span class="m-stat-label">HIGH</span>
+                    <span class="m-stat-value">{{ formatCurrency(coin.high_24h || coin.price * 1.02) }}</span>
                   </div>
-                  <div class="m-stat-item m-stat-item--support">
-                    <span class="m-stat-label">SUPPORT 2</span>
-                    <span class="m-stat-value m-text-danger">{{ formatCurrency(coin.support_2 || coin.price * 0.95) }}</span>
-                  </div>
-                  <div class="m-stat-item m-stat-item--resistance">
-                    <span class="m-stat-label">RESIST 2</span>
-                    <span class="m-stat-value m-text-success">{{ formatCurrency(coin.resistance_2 || coin.price * 1.05) }}</span>
+                  <div class="m-stat-item">
+                    <span class="m-stat-label">LOW</span>
+                    <span class="m-stat-value">{{ formatCurrency(coin.low_24h || coin.price * 0.98) }}</span>
                   </div>
                 </div>
-                <div class="m-pivot-row">
-                  <span class="m-pivot-label">PIVOT:</span>
-                  <span class="m-pivot-value">{{ formatCurrency(coin.pivot_point || coin.price) }}</span>
-                  <span class="m-signal-badge" :class="'m-signal-' + (coin.ai_signal || 'hold').toLowerCase().replace('_', '-')">{{ coin.ai_signal || 'HOLD' }}</span>
+                
+                <div class="m-tech-section">
+                  <div class="m-tech-title">
+                    <Icon name="ph:chart-line" class="w-4 h-4" style="color: #60A5FA;" />
+                    Support & Resistance
+                  </div>
+                  <div class="m-stats-grid m-stats-grid--2col">
+                    <div class="m-stat-item m-stat-item--support">
+                      <span class="m-stat-label">SUPPORT 1</span>
+                      <span class="m-stat-value m-text-danger">{{ formatCurrency(coin.support_1 || coin.price * 0.97) }}</span>
+                    </div>
+                    <div class="m-stat-item m-stat-item--resistance">
+                      <span class="m-stat-label">RESIST 1</span>
+                      <span class="m-stat-value m-text-success">{{ formatCurrency(coin.resistance_1 || coin.price * 1.03) }}</span>
+                    </div>
+                    <div class="m-stat-item m-stat-item--support">
+                      <span class="m-stat-label">SUPPORT 2</span>
+                      <span class="m-stat-value m-text-danger">{{ formatCurrency(coin.support_2 || coin.price * 0.95) }}</span>
+                    </div>
+                    <div class="m-stat-item m-stat-item--resistance">
+                      <span class="m-stat-label">RESIST 2</span>
+                      <span class="m-stat-value m-text-success">{{ formatCurrency(coin.resistance_2 || coin.price * 1.05) }}</span>
+                    </div>
+                  </div>
+                  <div class="m-pivot-row">
+                    <span class="m-pivot-label">PIVOT:</span>
+                    <span class="m-pivot-value">{{ formatCurrency(coin.pivot_point || coin.price) }}</span>
+                    <span class="m-signal-badge" :class="'m-signal-' + (coin.ai_signal || 'hold').toLowerCase().replace('_', '-')">{{ coin.ai_signal || 'HOLD' }}</span>
+                  </div>
                 </div>
+                
+                <button class="m-fav-btn" :class="{ 'is-active': favorites.includes(coin.coin_id) }" @click.stop="toggleFavorite(coin.coin_id)">
+                  <Icon name="ph:star" :class="favorites.includes(coin.coin_id) ? 'text-yellow-400' : ''" />
+                  {{ favorites.includes(coin.coin_id) ? 'Remove Favorite' : 'Add to Favorites' }}
+                </button>
               </div>
-              
-              <button class="m-fav-btn" :class="{ 'is-active': favorites.includes(coin.coin_id) }" @click.stop="toggleFavorite(coin.coin_id)">
-                <Icon name="ph:star" :class="favorites.includes(coin.coin_id) ? 'text-yellow-400' : ''" />
-                {{ favorites.includes(coin.coin_id) ? 'Remove Favorite' : 'Add to Favorites' }}
-              </button>
-            </div>
+            </template>
           </template>
         </div>
       </section>
@@ -850,6 +859,9 @@ const marketAsi = ref<{ short: number | null; medium: number | null; long: numbe
 // Active horizon tab for filtering
 const activeHorizon = ref<'short' | 'medium' | 'long'>('short')
 
+// Active movers tab for Market Movers section
+const activeMoversTab = ref<'gainers' | 'losers' | 'traded'>('gainers')
+
 // Multi-horizon data for all coins (fetched from API)
 const multiHorizonData = ref<Record<string, any>>({})
 
@@ -980,6 +992,17 @@ const mostTraded = computed(() => {
       ai_signal: sentimentMap.value[c.coin_id]?.signal || 'HOLD',
       reasoning: sentimentMap.value[c.coin_id]?.reason || '',
     }))
+})
+
+// Average change for market movers stats bar
+const moversAvgChange = computed(() => {
+  const gainersChange = topGainers.value.map(c => c.change_24h || 0)
+  const losersChange = topLosers.value.map(c => c.change_24h || 0)
+  const tradedChange = mostTraded.value.map(c => c.change_24h || 0)
+  const allChanges = [...gainersChange, ...losersChange, ...tradedChange]
+  if (allChanges.length === 0) return '0%'
+  const avg = allChanges.reduce((a, b) => a + b, 0) / allChanges.length
+  return (avg >= 0 ? '+' : '') + avg.toFixed(1) + '%'
 })
 
 const aiSignals = computed(() => {
