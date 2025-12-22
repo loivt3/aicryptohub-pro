@@ -888,14 +888,15 @@ onMounted(() => {
 // Fetch technical signals from discovery API
 const fetchTechnicalSignals = async () => {
   const config = useRuntimeConfig()
-  const apiUrl = config.public.apiUrl || 'http://localhost:8000'
+  const apiBase = config.public.apiBase || 'http://localhost:8000/api/v1'
   
   try {
     // Fetch technical signals
     const [signalsRes, gemsRes] = await Promise.all([
-      $fetch(`${apiUrl}/api/v1/discovery/technical-signals?limit=15`),
-      $fetch(`${apiUrl}/api/v1/discovery/hidden-gems?limit=8`)
+      $fetch(`${apiBase}/discovery/technical-signals?limit=15`),
+      $fetch(`${apiBase}/discovery/hidden-gems?limit=8`)
     ])
+
 
     
     if (signalsRes?.success && signalsRes.data) {
