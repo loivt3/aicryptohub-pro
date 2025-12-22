@@ -1514,21 +1514,23 @@ const toggleFavorite = (coinId: string) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px 8px;
-  background: rgba(30, 30, 50, 0.6);
-  border: 1px solid transparent;
-  border-radius: 10px;
+  padding: 12px 8px;
+  background: rgb(30 32 36 / 92%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
 }
 
 .m-horizon-tab:hover {
-  background: rgba(40, 40, 70, 0.8);
+  background: rgb(40 44 52 / 95%);
 }
 
 .m-horizon-tab.active {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(56, 189, 248, 0.15));
-  border-color: rgba(139, 92, 246, 0.4);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(56, 189, 248, 0.2));
+  border-color: rgba(139, 92, 246, 0.5);
+  box-shadow: rgba(139, 92, 246, 0.3) 0px 0px 12px, rgba(0, 0, 0, 0.24) 0px 6px 12px;
 }
 
 .m-horizon-tab .tab-label {
