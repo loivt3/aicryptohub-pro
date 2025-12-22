@@ -615,19 +615,20 @@
         </div>
       </section>
 
-      <!-- Hidden Gems Section (NEW for Mobile) -->
+      <!-- Hidden Gems Section (ENHANCED for Mobile) -->
       <section class="m-section">
         <div class="m-section-header">
           <h3 class="m-section-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M6 3l6 3 6-3"/><path d="M3 8l9 4 9-4"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 12v9"/></svg>
             Hidden Gems
           </h3>
-          <span class="m-section-note">Outperforming market</span>
+          <span class="m-section-note">High potential with strong signals</span>
         </div>
         
         <div class="m-gems-scroll">
           <div class="m-gems-container">
             <div v-for="gem in hiddenGems" :key="gem.coin_id" class="m-gem-card">
+              <!-- Header: avatar, symbol, score -->
               <div class="m-gem-header">
                 <img :src="gem.image" class="m-gem-avatar" />
                 <div class="m-gem-info">
@@ -638,6 +639,21 @@
                   {{ gem.discovery_score }}
                 </span>
               </div>
+              
+              <!-- Trust Badges -->
+              <div class="m-gem-badges">
+                <span v-if="gem.is_accumulating" class="m-gem-badge accumulating">
+                  🐋 Accum
+                </span>
+                <span v-if="gem.signal_strength" class="m-gem-badge" :class="'sig-' + gem.signal_strength?.toLowerCase().replace(/_/g, '-')">
+                  {{ gem.signal_strength?.replace('_', ' ').substring(0, 12) }}
+                </span>
+                <span v-if="gem.confirmation_count >= 2" class="m-gem-badge confirmed">
+                  ✓{{ gem.confirmation_count }}
+                </span>
+              </div>
+              
+              <!-- Metrics Grid -->
               <div class="m-gem-stats">
                 <div class="m-gem-stat">
                   <span class="stat-label">24h</span>
@@ -651,6 +667,28 @@
                     {{ gem.rs_vs_btc >= 0 ? '+' : '' }}{{ gem.rs_vs_btc?.toFixed(1) }}%
                   </span>
                 </div>
+                <div class="m-gem-stat" v-if="gem.volume_ratio">
+                  <span class="stat-label">Vol</span>
+                  <span class="stat-value" :class="gem.volume_ratio > 1.5 ? 'positive' : ''">
+                    {{ gem.volume_ratio?.toFixed(1) }}x
+                  </span>
+                </div>
+                <div class="m-gem-stat" v-if="gem.rsi_14">
+                  <span class="stat-label">RSI</span>
+                  <span class="stat-value" :class="getRsiClass(gem.rsi_14)">
+                    {{ gem.rsi_14?.toFixed(0) }}
+                  </span>
+                </div>
+              </div>
+              
+              <!-- Technical Footer -->
+              <div class="m-gem-footer" v-if="gem.macd_signal_type || gem.bb_position">
+                <span v-if="gem.macd_signal_type" class="m-gem-tech" :class="'macd-' + gem.macd_signal_type?.toLowerCase()">
+                  MACD: {{ gem.macd_signal_type }}
+                </span>
+                <span v-if="gem.bb_position" class="m-gem-tech" :class="'bb-' + gem.bb_position?.toLowerCase()">
+                  BB: {{ gem.bb_position }}
+                </span>
               </div>
             </div>
             <div v-if="hiddenGems.length === 0" class="m-gems-empty">
@@ -2043,6 +2081,70 @@ const toggleFavorite = (coinId: string) => {
   color: rgba(255, 255, 255, 0.3);
   font-size: 13px;
 }
+
+/* Mobile Gem Enhanced - Badges & Footer */
+.m-gem-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px 0;
+}
+
+.m-gem-badge {
+  font-size: 8px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  background: rgba(100, 116, 139, 0.2);
+  color: #94a3b8;
+}
+
+.m-gem-badge.accumulating {
+  background: rgba(14, 165, 233, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+.m-gem-badge.confirmed {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.m-gem-badge.sig-accumulation { background: rgba(14, 165, 233, 0.2); color: #38bdf8; }
+.m-gem-badge.sig-very-strong-bull,
+.m-gem-badge.sig-strong-bullish,
+.m-gem-badge.sig-bullish { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+.m-gem-badge.sig-very-strong-bear,
+.m-gem-badge.sig-bearish { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+.m-gem-footer {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.m-gem-tech {
+  font-size: 8px;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(100, 116, 139, 0.15);
+  color: #94a3b8;
+}
+
+.m-gem-tech.macd-bullish { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.m-gem-tech.macd-bearish { background: rgba(239, 68, 68, 0.12); color: #f87171; }
+.m-gem-tech.bb-upper { background: rgba(239, 68, 68, 0.12); color: #f87171; }
+.m-gem-tech.bb-lower { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.m-gem-tech.bb-middle { background: rgba(100, 116, 139, 0.15); color: #94a3b8; }
+
+/* RSI classes for gems */
+.stat-value.rsi-overbought { color: #ef4444; }
+.stat-value.rsi-oversold { color: #10b981; }
+.stat-value.rsi-neutral { color: rgba(255, 255, 255, 0.7); }
 
 .m-section-note {
   font-size: 11px;
