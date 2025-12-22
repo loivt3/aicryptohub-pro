@@ -1560,12 +1560,10 @@ const toggleFavorite = (coinId: string) => {
   align-items: center;
   padding: 8px 4px;
   padding: 8px 4px;
-  background: rgba(20, 20, 20, 0.27);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(16, 185, 129, 0.15);
+  background: rgb(30 32 36 / 92%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
-  box-shadow: inset 0 0 15px rgba(16, 185, 129, 0.05);
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
 }
 
 .m-stat-mini .stat-value {
@@ -1590,14 +1588,12 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-horizon-coin {
-  background: rgba(20, 20, 20, 0.27);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(16, 185, 129, 0.15);
+  background: rgb(30 32 36 / 92%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
   padding: 12px;
   margin-bottom: 8px;
-  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
 }
 
 .m-horizon-coin-row {
@@ -1999,14 +1995,12 @@ const toggleFavorite = (coinId: string) => {
 
 .m-gem-card {
   flex: 0 0 180px;
-  background: rgba(20, 20, 20, 0.27);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(16, 185, 129, 0.15);
+  background: rgb(30 32 36 / 92%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
   padding: 12px;
   overflow: hidden;
-  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
 }
 
 .m-gem-header {
@@ -2258,12 +2252,12 @@ const toggleFavorite = (coinId: string) => {
 
 /* Main Container Card (Unified List) */
 .m-tsig-card {
-  background: #0b0e14;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgb(30 32 36 / 92%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
   padding: 0;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
 }
 
 .m-tsig-row {
