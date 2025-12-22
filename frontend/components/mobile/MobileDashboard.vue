@@ -134,7 +134,6 @@
             @click="activeHorizon = 'short'"
           >
             <span class="tab-label">Short</span>
-            <span class="tab-tf">1h</span>
           </button>
           <button 
             class="m-horizon-tab" 
@@ -142,7 +141,6 @@
             @click="activeHorizon = 'medium'"
           >
             <span class="tab-label">Medium</span>
-            <span class="tab-tf">4h+1d</span>
           </button>
           <button 
             class="m-horizon-tab" 
@@ -150,7 +148,6 @@
             @click="activeHorizon = 'long'"
           >
             <span class="tab-label">Long</span>
-            <span class="tab-tf">1w+1M</span>
           </button>
         </div>
         
@@ -1528,9 +1525,9 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-horizon-tab.active {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(56, 189, 248, 0.2));
-  border-color: rgba(139, 92, 246, 0.5);
-  box-shadow: rgba(139, 92, 246, 0.3) 0px 0px 12px, rgba(0, 0, 0, 0.24) 0px 6px 12px;
+  background: linear-gradient(135deg, rgba(56, 239, 235, 0.2), rgba(34, 197, 94, 0.15));
+  border-color: rgba(56, 239, 235, 0.5);
+  box-shadow: rgba(56, 239, 235, 0.3) 0px 0px 12px, rgba(0, 0, 0, 0.24) 0px 6px 12px;
 }
 
 .m-horizon-tab .tab-label {
@@ -1546,7 +1543,7 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-horizon-tab.active .tab-label {
-  color: #8b5cf6;
+  color: #38efeb;
 }
 
 /* Stats Bar */
