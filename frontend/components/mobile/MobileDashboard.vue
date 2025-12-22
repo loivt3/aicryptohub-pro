@@ -651,46 +651,93 @@
         </div>
       </section>
 
-      <!-- Technical Signals Section (NEW for Mobile) -->
+      <!-- Technical Signals Section (Matching Desktop Table Design) -->
       <section class="m-section">
         <div class="m-section-header">
           <h3 class="m-section-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M3 12h4l3 8l4-16l3 8h4"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M3 12h4l3 8l4-16l3 8h4"/></svg>
             Technical Signals
           </h3>
           <span class="m-section-note">Patterns & Indicators</span>
         </div>
         
-        <div class="m-signals-scroll">
-          <div class="m-signals-container">
-            <div v-for="signal in technicalSignals" :key="signal.coin_id" class="m-signal-card">
-              <div class="m-signal-header">
-                <img :src="signal.image" class="m-signal-avatar" />
-                <div class="m-signal-info">
-                  <span class="m-signal-symbol">{{ signal.symbol }}</span>
-                  <span class="m-signal-price">${{ signal.price?.toFixed(2) }}</span>
-                </div>
+        <div class="m-tsig-list">
+          <div v-for="(coin, idx) in technicalSignals" :key="coin.coin_id" class="m-tsig-row">
+            <!-- Main row: Coin info + price + change -->
+            <div class="m-tsig-main">
+              <span class="m-tsig-rank">{{ idx + 1 }}</span>
+              <img :src="coin.image" class="m-tsig-avatar" />
+              <div class="m-tsig-info">
+                <span class="m-tsig-symbol">{{ coin.symbol }}</span>
+                <span class="m-tsig-name">{{ coin.name }}</span>
               </div>
-              <div class="m-signal-body">
-                <div v-if="signal.pattern_name" class="m-signal-pattern" :class="'pattern-' + (signal.pattern_direction?.toLowerCase() || 'neutral')">
-                  {{ signal.pattern_name }}
-                </div>
-                <div v-if="signal.macd_signal_type" class="m-signal-macd" :class="'macd-' + signal.macd_signal_type?.toLowerCase()">
-                  MACD {{ signal.macd_signal_type }}
-                </div>
-                <div v-if="signal.divergence_type" class="m-signal-div" :class="signal.divergence_type?.includes('BULL') ? 'bullish' : 'bearish'">
-                  {{ signal.divergence_type === 'BULLISH_DIV' ? '↗ Bullish Div' : '↘ Bearish Div' }}
-                </div>
-              </div>
-              <div class="m-signal-footer">
-                <span class="m-signal-change" :class="signal.change_24h >= 0 ? 'positive' : 'negative'">
-                  {{ signal.change_24h >= 0 ? '+' : '' }}{{ signal.change_24h?.toFixed(1) }}%
+              <div class="m-tsig-price-col">
+                <span class="m-tsig-price">${{ coin.price?.toFixed(2) }}</span>
+                <span class="m-tsig-change" :class="coin.change_24h >= 0 ? 'positive' : 'negative'">
+                  {{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(1) }}%
                 </span>
               </div>
             </div>
-            <div v-if="technicalSignals.length === 0" class="m-signals-empty">
-              <span>No technical signals detected</span>
+            
+            <!-- Indicators row: Pattern + RSI + MACD + BB + Confirm + Signal -->
+            <div class="m-tsig-indicators">
+              <!-- Pattern -->
+              <div class="m-tsig-ind">
+                <span class="ind-label">Pattern</span>
+                <span v-if="coin.pattern_name" class="ind-value" :class="'pattern-' + (coin.pattern_direction?.toLowerCase() || 'neutral')">
+                  {{ coin.pattern_name }}
+                </span>
+                <span v-else class="ind-muted">--</span>
+              </div>
+              
+              <!-- RSI -->
+              <div class="m-tsig-ind">
+                <span class="ind-label">RSI</span>
+                <span v-if="coin.rsi_14" class="ind-value" :class="getRsiClass(coin.rsi_14)">
+                  {{ coin.rsi_14 }}
+                </span>
+                <span v-else class="ind-muted">--</span>
+              </div>
+              
+              <!-- MACD -->
+              <div class="m-tsig-ind">
+                <span class="ind-label">MACD</span>
+                <span v-if="coin.macd_signal_type" class="ind-value" :class="'macd-' + coin.macd_signal_type?.toLowerCase()">
+                  {{ coin.macd_signal_type }}
+                </span>
+                <span v-else class="ind-muted">--</span>
+              </div>
+              
+              <!-- BB Position -->
+              <div class="m-tsig-ind">
+                <span class="ind-label">BB</span>
+                <span v-if="coin.bb_position" class="ind-value" :class="'bb-' + coin.bb_position?.toLowerCase()">
+                  {{ coin.bb_position }}
+                </span>
+                <span v-else class="ind-muted">--</span>
+              </div>
+              
+              <!-- Confirmation -->
+              <div class="m-tsig-ind">
+                <span class="ind-label">Confirm</span>
+                <span class="ind-value" :class="getConfirmClass(coin.confirmation_count)">
+                  {{ coin.confirmation_count || 0 }}/7
+                </span>
+              </div>
+              
+              <!-- Signal Strength -->
+              <div class="m-tsig-ind">
+                <span class="ind-label">Signal</span>
+                <span v-if="coin.signal_strength" class="ind-value" :class="'strength-' + (coin.signal_strength?.toLowerCase() || '')">
+                  {{ coin.signal_strength }}
+                </span>
+                <span v-else class="ind-muted">--</span>
+              </div>
             </div>
+          </div>
+          
+          <div v-if="technicalSignals.length === 0" class="m-tsig-empty">
+            <span>No technical signals detected</span>
           </div>
         </div>
       </section>
@@ -1169,6 +1216,21 @@ const getGemScoreClass = (score: number) => {
   if (score >= 70) return 'gem-good'
   return 'gem-moderate'
 }
+
+// Helper for RSI styling
+const getRsiClass = (rsi: number) => {
+  if (rsi >= 70) return 'rsi-overbought'
+  if (rsi <= 30) return 'rsi-oversold'
+  return 'rsi-neutral'
+}
+
+// Helper for confirmation count styling
+const getConfirmClass = (count: number) => {
+  if (count >= 5) return 'confirm-strong'
+  if (count >= 3) return 'confirm-moderate'
+  return 'confirm-weak'
+}
+
 
 // Fetch on mount
 onMounted(() => {
@@ -2058,7 +2120,128 @@ const toggleFavorite = (coinId: string) => {
   color: rgba(255, 255, 255, 0.3);
   font-size: 13px;
 }
+
+/* ================================== */
+/* Technical Signals List/Table Styles (Matching Desktop) */
+/* ================================== */
+.m-tsig-list {
+  padding: 0 16px;
+}
+
+.m-tsig-row {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  padding: 12px;
+}
+
+.m-tsig-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.m-tsig-rank {
+  min-width: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.m-tsig-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.m-tsig-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.m-tsig-symbol { font-size: 13px; font-weight: 700; color: #fff; }
+.m-tsig-name { font-size: 10px; color: rgba(255, 255, 255, 0.4); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100px; }
+
+.m-tsig-price-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.m-tsig-price { font-size: 12px; font-weight: 600; color: #fff; }
+.m-tsig-change { font-size: 11px; font-weight: 600; }
+.m-tsig-change.positive { color: #10b981; }
+.m-tsig-change.negative { color: #ef4444; }
+
+.m-tsig-indicators {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.m-tsig-ind {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.m-tsig-ind .ind-label {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+}
+
+.m-tsig-ind .ind-value {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.m-tsig-ind .ind-muted {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.2);
+}
+
+/* Pattern Styling */
+.ind-value.pattern-bullish { color: #10b981; }
+.ind-value.pattern-bearish { color: #ef4444; }
+.ind-value.pattern-neutral { color: #fbbf24; }
+
+/* RSI Styling */
+.ind-value.rsi-overbought { color: #ef4444; }
+.ind-value.rsi-oversold { color: #10b981; }
+.ind-value.rsi-neutral { color: rgba(255, 255, 255, 0.7); }
+
+/* MACD Styling */
+.ind-value.macd-bullish { color: #10b981; }
+.ind-value.macd-bearish { color: #ef4444; }
+
+/* BB Position Styling */
+.ind-value.bb-upper { color: #ef4444; }
+.ind-value.bb-lower { color: #10b981; }
+.ind-value.bb-middle { color: rgba(255, 255, 255, 0.7); }
+
+/* Confirm Styling */
+.ind-value.confirm-strong { color: #10b981; }
+.ind-value.confirm-moderate { color: #fbbf24; }
+.ind-value.confirm-weak { color: rgba(255, 255, 255, 0.4); }
+
+/* Signal Strength Styling */
+.ind-value.strength-strong { color: #10b981; font-weight: 700; }
+.ind-value.strength-moderate { color: #fbbf24; }
+.ind-value.strength-weak { color: rgba(255, 255, 255, 0.4); }
+
+.m-tsig-empty {
+  padding: 32px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 13px;
+}
 </style>
+
 
 
 
