@@ -651,6 +651,50 @@
         </div>
       </section>
 
+      <!-- Technical Signals Section (NEW for Mobile) -->
+      <section class="m-section">
+        <div class="m-section-header">
+          <h3 class="m-section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M3 12h4l3 8l4-16l3 8h4"/></svg>
+            Technical Signals
+          </h3>
+          <span class="m-section-note">Patterns & Indicators</span>
+        </div>
+        
+        <div class="m-signals-scroll">
+          <div class="m-signals-container">
+            <div v-for="signal in technicalSignals" :key="signal.coin_id" class="m-signal-card">
+              <div class="m-signal-header">
+                <img :src="signal.image" class="m-signal-avatar" />
+                <div class="m-signal-info">
+                  <span class="m-signal-symbol">{{ signal.symbol }}</span>
+                  <span class="m-signal-price">${{ signal.price?.toFixed(2) }}</span>
+                </div>
+              </div>
+              <div class="m-signal-body">
+                <div v-if="signal.pattern_name" class="m-signal-pattern" :class="'pattern-' + (signal.pattern_direction?.toLowerCase() || 'neutral')">
+                  {{ signal.pattern_name }}
+                </div>
+                <div v-if="signal.macd_signal_type" class="m-signal-macd" :class="'macd-' + signal.macd_signal_type?.toLowerCase()">
+                  MACD {{ signal.macd_signal_type }}
+                </div>
+                <div v-if="signal.divergence_type" class="m-signal-div" :class="signal.divergence_type?.includes('BULL') ? 'bullish' : 'bearish'">
+                  {{ signal.divergence_type === 'BULLISH_DIV' ? '↗ Bullish Div' : '↘ Bearish Div' }}
+                </div>
+              </div>
+              <div class="m-signal-footer">
+                <span class="m-signal-change" :class="signal.change_24h >= 0 ? 'positive' : 'negative'">
+                  {{ signal.change_24h >= 0 ? '+' : '' }}{{ signal.change_24h?.toFixed(1) }}%
+                </span>
+              </div>
+            </div>
+            <div v-if="technicalSignals.length === 0" class="m-signals-empty">
+              <span>No technical signals detected</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
 
       <div class="m-bottom-spacer"></div>
 
@@ -764,6 +808,9 @@ const multiHorizonData = ref<Record<string, any>>({})
 
 // Hidden gems data from discovery API
 const hiddenGems = ref<any[]>([])
+
+// Technical signals data from discovery API
+const technicalSignals = ref<any[]>([])
 
 // Coins filtered by selected horizon
 const horizonCoins = computed(() => {
@@ -1093,20 +1140,28 @@ const fetchData = async () => {
   }
 }
 
-// Fetch hidden gems from discovery API
-const fetchHiddenGems = async () => {
+// Fetch hidden gems and technical signals from discovery API
+const fetchDiscoveryData = async () => {
   const config = useRuntimeConfig()
   const apiBase = config.public.apiBase || '/api/v1'
   
   try {
-    const res = await $fetch<any>(`${apiBase}/discovery/hidden-gems?limit=8`)
-    if (res?.success && res.data) {
-      hiddenGems.value = res.data
+    const [gemsRes, signalsRes] = await Promise.all([
+      $fetch<any>(`${apiBase}/discovery/hidden-gems?limit=8`),
+      $fetch<any>(`${apiBase}/discovery/technical-signals?limit=10`)
+    ])
+    
+    if (gemsRes?.success && gemsRes.data) {
+      hiddenGems.value = gemsRes.data
+    }
+    if (signalsRes?.success && signalsRes.data) {
+      technicalSignals.value = signalsRes.data
     }
   } catch (error) {
-    console.error('[Mobile] Hidden gems fetch failed:', error)
+    console.error('[Mobile] Discovery fetch failed:', error)
   }
 }
+
 
 // Helper for gem score styling
 const getGemScoreClass = (score: number) => {
@@ -1118,7 +1173,7 @@ const getGemScoreClass = (score: number) => {
 // Fetch on mount
 onMounted(() => {
   fetchData()
-  fetchHiddenGems()
+  fetchDiscoveryData()
   
   // Setup real-time WebSocket connection
   setupSocketConnection()
@@ -1908,6 +1963,102 @@ const toggleFavorite = (coinId: string) => {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.4);
 }
+
+/* ================================== */
+/* Technical Signals Section Styles   */
+/* ================================== */
+.m-signals-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 0 16px;
+}
+.m-signals-scroll::-webkit-scrollbar { display: none; }
+
+.m-signals-container {
+  display: flex;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.m-signal-card {
+  flex: 0 0 170px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(139, 92, 246, 0.02));
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 12px;
+  padding: 12px;
+  overflow: hidden;
+}
+
+.m-signal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.m-signal-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.m-signal-info { flex: 1; display: flex; flex-direction: column; }
+.m-signal-symbol { font-size: 12px; font-weight: 700; color: #fff; }
+.m-signal-price { font-size: 10px; color: rgba(255, 255, 255, 0.5); }
+
+.m-signal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.m-signal-pattern {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  width: fit-content;
+}
+.m-signal-pattern.pattern-bullish { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+.m-signal-pattern.pattern-bearish { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+.m-signal-pattern.pattern-neutral { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+
+.m-signal-macd {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 6px;
+  border-radius: 4px;
+  width: fit-content;
+}
+.m-signal-macd.macd-bullish { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.m-signal-macd.macd-bearish { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+.m-signal-div {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 6px;
+  border-radius: 4px;
+  width: fit-content;
+}
+.m-signal-div.bullish { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.m-signal-div.bearish { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+.m-signal-footer { display: flex; justify-content: flex-end; }
+.m-signal-change { font-size: 12px; font-weight: 600; }
+.m-signal-change.positive { color: #10b981; }
+.m-signal-change.negative { color: #ef4444; }
+
+.m-signals-empty {
+  padding: 24px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 13px;
+}
 </style>
+
 
 
