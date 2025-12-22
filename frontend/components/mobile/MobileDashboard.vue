@@ -1568,12 +1568,10 @@ const toggleFavorite = (coinId: string) => {
   flex-direction: column;
   align-items: center;
   padding: 8px 4px;
-  background: rgba(20, 20, 20, 0.27);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(16, 185, 129, 0.15);
-  border-radius: 12px;
-  box-shadow: inset 0 0 15px rgba(16, 185, 129, 0.05);
+  background: linear-gradient(160deg, rgba(30, 35, 55, 0.95), rgba(15, 20, 35, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.08); /* Unified border style */
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .m-stat-mini .stat-value {
@@ -1598,14 +1596,12 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-horizon-coin {
-  background: rgba(20, 20, 20, 0.27);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(16, 185, 129, 0.15);
-  border-radius: 12px;
+  background: linear-gradient(160deg, rgba(30, 35, 55, 0.95), rgba(15, 20, 35, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.08); /* Unified border style */
+  border-radius: 16px;
   padding: 12px;
   margin-bottom: 8px;
-  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .m-horizon-coin-row {
@@ -2007,14 +2003,12 @@ const toggleFavorite = (coinId: string) => {
 
 .m-gem-card {
   flex: 0 0 180px;
-  background: rgba(20, 20, 20, 0.27);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(16, 185, 129, 0.15);
-  border-radius: 12px;
+  background: linear-gradient(160deg, rgba(30, 35, 55, 0.95), rgba(15, 20, 35, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.08); /* Unified border style */
+  border-radius: 16px;
   padding: 12px;
   overflow: hidden;
-  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .m-gem-header {
@@ -2265,15 +2259,13 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-tsig-row {
-  background: rgba(20, 20, 20, 0.27);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(16, 185, 129, 0.15);
-  border-radius: 12px;
+  background: linear-gradient(160deg, rgba(30, 35, 55, 0.95), rgba(15, 20, 35, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.08); /* Unified border style */
+  border-radius: 16px;
   margin-bottom: 12px;
   padding: 14px;
   animation: fadeInUp 0.8s ease-out;
-  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .m-tsig-main {
