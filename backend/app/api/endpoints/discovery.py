@@ -500,3 +500,79 @@ async def get_hidden_gems(
             "success": False,
             "error": str(e),
         }
+
+
+@router.get("/high-rich")
+async def get_high_rich(
+    limit: int = Query(default=10, le=30),
+):
+    """
+    Get High Rich coins - simpler criteria, shorter timeframe.
+    
+    Criteria (Simpler):
+    - Strong 1h momentum (change_1h > 1%)
+    - High ASI score (asi_score >= 60)
+    - Volume spike (volume_ratio > 1.2)
+    - Not recently over-pumped (change_24h < 50%)
+    
+    Focus on SHORT-TERM opportunities.
+    """
+    from sqlalchemy import text
+    
+    db = get_db_service()
+    
+    try:
+        with db.engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT 
+                    ac.coin_id, ac.symbol, ac.name, ac.image,
+                    ac.price, ac.price_change_1h as change_1h,
+                    ac.change_24h, ac.price_change_7d as change_7d,
+                    ac.asi_score, ac.ai_signal,
+                    ac.volume_24h, ac.market_cap, ac.rank as market_cap_rank,
+                    mds.volume_ratio, mds.rsi_14, mds.momentum_score
+                FROM aihub_coins ac
+                LEFT JOIN market_discovery_snapshot mds ON UPPER(mds.symbol) = ac.symbol
+                WHERE ac.price_change_1h > 1
+                  AND ac.asi_score >= 60
+                  AND COALESCE(mds.volume_ratio, 1) > 1.0
+                  AND ac.change_24h < 50
+                  AND ac.change_24h > -10
+                  AND ac.rank > 30
+                ORDER BY 
+                    ac.price_change_1h DESC,
+                    ac.asi_score DESC
+                LIMIT :limit
+            """), {"limit": limit})
+            
+            rows = result.fetchall()
+            columns = result.keys()
+            
+            high_rich = []
+            for row in rows:
+                item = {col: (
+                    round(float(row[i]), 4) if isinstance(row[i], (float,)) else row[i]
+                ) for i, col in enumerate(columns)}
+                high_rich.append(item)
+            
+            return {
+                "success": True,
+                "data": high_rich,
+                "meta": {
+                    "criteria": {
+                        "min_change_1h": "1%",
+                        "min_asi_score": 60,
+                        "min_volume_ratio": 1.0,
+                        "max_change_24h": "50%",
+                        "timeframe": "1H (Short-term)",
+                    },
+                    "count": len(high_rich),
+                    "timestamp": datetime.now().isoformat(),
+                }
+            }
+            
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+        }

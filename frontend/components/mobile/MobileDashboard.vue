@@ -560,17 +560,35 @@
 
 
 
-      <!-- Hidden Gems Section (ENHANCED for Mobile) -->
+      <!-- Hidden Gems & High Rich Section -->
       <section class="m-section">
         <div class="m-section-header">
           <h3 class="m-section-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M6 3l6 3 6-3"/><path d="M3 8l9 4 9-4"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 12v9"/></svg>
-            Hidden Gems
+            Discovery
           </h3>
-          <span class="m-section-note">High potential with strong signals</span>
         </div>
         
-        <div class="m-gems-scroll">
+        <!-- Tabs -->
+        <div class="m-horizon-tabs" style="margin-bottom: 12px;">
+          <button 
+            class="m-horizon-tab" 
+            :class="{ active: activeGemTab === 'gems' }"
+            @click="activeGemTab = 'gems'"
+          >
+            <span class="tab-label">💎 Hidden Gems</span>
+          </button>
+          <button 
+            class="m-horizon-tab" 
+            :class="{ active: activeGemTab === 'highrich' }"
+            @click="activeGemTab = 'highrich'"
+          >
+            <span class="tab-label">🚀 High Rich</span>
+          </button>
+        </div>
+        
+        <!-- Hidden Gems Content -->
+        <div v-if="activeGemTab === 'gems'" class="m-gems-scroll">
           <div class="m-gems-container">
             <div v-for="gem in hiddenGems" :key="gem.coin_id" class="m-gem-card">
               <!-- Header: avatar, symbol, score -->
@@ -641,7 +659,50 @@
             </div>
           </div>
         </div>
+        
+        <!-- High Rich Content (Simpler Design) -->
+        <div v-else class="m-gems-scroll">
+          <div class="m-gems-container">
+            <div v-for="item in highRichCoins" :key="item.coin_id" class="m-gem-card" style="min-width: 140px;">
+              <!-- Simple Header -->
+              <div class="m-gem-header">
+                <img :src="item.image" class="m-gem-avatar" />
+                <div class="m-gem-info">
+                  <span class="m-gem-symbol">{{ item.symbol }}</span>
+                  <span class="m-gem-rank">#{{ item.market_cap_rank }}</span>
+                </div>
+              </div>
+              
+              <!-- Key Metrics Only -->
+              <div class="m-gem-stats" style="margin-top: 8px;">
+                <div class="m-gem-stat">
+                  <span class="stat-label">1H</span>
+                  <span class="stat-value positive" style="font-size: 1.1rem;">
+                    +{{ item.change_1h?.toFixed(1) }}%
+                  </span>
+                </div>
+                <div class="m-gem-stat">
+                  <span class="stat-label">ASI</span>
+                  <span class="stat-value" :class="getAsiClass(item.asi_score)">
+                    {{ item.asi_score }}
+                  </span>
+                </div>
+              </div>
+              
+              <!-- Signal Badge -->
+              <div style="margin-top: 8px; text-align: center;">
+                <span :class="['m-signal-badge', 'm-signal-badge--compact', 'm-signal-' + (item.ai_signal || 'hold').toLowerCase().replace('_', '-')]">
+                  {{ item.ai_signal || 'HOLD' }}
+                </span>
+              </div>
+            </div>
+            <div v-if="highRichCoins.length === 0" class="m-gems-empty">
+              <span>No high rich opportunities right now</span>
+            </div>
+          </div>
+        </div>
       </section>
+
 
       <!-- Technical Signals Section (Matching Desktop Table Design) -->
       <section class="m-section">
@@ -844,6 +905,12 @@ const hiddenGems = ref<any[]>([])
 
 // Technical signals data from discovery API
 const technicalSignals = ref<any[]>([])
+
+// Active gem tab (Hidden Gems vs High Rich)
+const activeGemTab = ref<'gems' | 'highrich'>('gems')
+
+// High Rich coins data
+const highRichCoins = ref<any[]>([])
 
 // Coins filtered by selected horizon
 const horizonCoins = computed(() => {
@@ -1184,15 +1251,16 @@ const fetchData = async () => {
   }
 }
 
-// Fetch hidden gems and technical signals from discovery API
+// Fetch hidden gems, high rich, and technical signals from discovery API
 const fetchDiscoveryData = async () => {
   const config = useRuntimeConfig()
   const apiBase = config.public.apiBase || '/api/v1'
   
   try {
-    const [gemsRes, signalsRes] = await Promise.all([
+    const [gemsRes, signalsRes, highRichRes] = await Promise.all([
       $fetch<any>(`${apiBase}/discovery/hidden-gems?limit=8`),
-      $fetch<any>(`${apiBase}/discovery/technical-signals?limit=10`)
+      $fetch<any>(`${apiBase}/discovery/technical-signals?limit=10`),
+      $fetch<any>(`${apiBase}/discovery/high-rich?limit=8`)
     ])
     
     if (gemsRes?.success && gemsRes.data) {
@@ -1200,6 +1268,9 @@ const fetchDiscoveryData = async () => {
     }
     if (signalsRes?.success && signalsRes.data) {
       technicalSignals.value = signalsRes.data
+    }
+    if (highRichRes?.success && highRichRes.data) {
+      highRichCoins.value = highRichRes.data
     }
   } catch (error) {
     console.error('[Mobile] Discovery fetch failed:', error)
