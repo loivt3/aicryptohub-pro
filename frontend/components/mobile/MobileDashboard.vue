@@ -575,9 +575,9 @@
               fontSize: '12px', fontWeight: activeGemTab === 'gems' ? '600' : '400',
               color: activeGemTab === 'gems' ? '#22c55e' : 'rgba(255,255,255,0.5)',
               borderBottom: activeGemTab === 'gems' ? '2px solid #22c55e' : '2px solid transparent',
-              cursor: 'pointer'
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
             }"
-          >💎 Gems</button>
+          ><svg width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="activeGemTab === 'gems' ? '#22c55e' : 'rgba(255,255,255,0.5)'" stroke-width="2"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M11 3l1 6h8"/><path d="M2 9h20"/><path d="M13 3l-1 6H4"/></svg>Gems</button>
           <button 
             @click="activeGemTab = 'highrich'"
             :style="{
@@ -585,9 +585,9 @@
               fontSize: '12px', fontWeight: activeGemTab === 'highrich' ? '600' : '400',
               color: activeGemTab === 'highrich' ? '#f59e0b' : 'rgba(255,255,255,0.5)',
               borderBottom: activeGemTab === 'highrich' ? '2px solid #f59e0b' : '2px solid transparent',
-              cursor: 'pointer'
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
             }"
-          >🚀 High Rich</button>
+          ><svg width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="activeGemTab === 'highrich' ? '#f59e0b' : 'rgba(255,255,255,0.5)'" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>High Rich</button>
         </div>
         
         <!-- Hidden Gems Content -->
