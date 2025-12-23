@@ -24,6 +24,35 @@
 }
 
 /* ===========================================
+   GLOBAL: Monospace Font for All Numbers
+   =========================================== */
+.m-stat-value,
+.m-stat-value-large,
+.m-ticker-value,
+.m-gauge-number,
+.m-info-title,
+.m-price-col,
+.m-price-col span,
+.m-meta-asi-value,
+.stat-value,
+.m-horizon-score,
+.m-mcap,
+.m-volume,
+.m-change,
+.m-rank,
+.bento-value,
+.bento-stat-value,
+.treemap-change,
+[class*="-value"],
+[class*="-price"],
+[class*="-change"],
+[class*="-score"] {
+    font-family: 'SF Mono', 'Roboto Mono', 'Fira Code', 'Consolas', 'Monaco', ui-monospace, monospace !important;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+}
+
+/* ===========================================
    2. Header (Sticky Top) - Ultra Compact
    =========================================== */
 .m-header {
