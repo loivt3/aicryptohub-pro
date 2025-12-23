@@ -118,37 +118,43 @@
 
       <!-- Multi-Horizon ASI Signals (REDESIGNED) -->
       <section class="m-section">
-        <div class="m-section-header">
-          <h3 class="m-section-title">
+        <!-- Header with inline tabs -->
+        <div style="display: flex; align-items: center; gap: 16px; padding-bottom: 8px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+          <h3 class="m-section-title" style="margin: 0;">
             <Icon name="ph:pulse" class="w-4 h-4" style="color: #8b5cf6;" />
-            ASI by Horizon
+            ASI
           </h3>
-          <NuxtLink to="/analysis" class="m-section-link">View All</NuxtLink>
-        </div>
-        
-        <!-- Horizon Tabs -->
-        <div class="m-horizon-tabs">
           <button 
-            class="m-horizon-tab" 
-            :class="{ active: activeHorizon === 'short' }"
             @click="activeHorizon = 'short'"
-          >
-            <span class="tab-label">Short</span>
-          </button>
+            :style="{
+              background: 'none', border: 'none', padding: '4px 8px',
+              fontSize: '12px', fontWeight: activeHorizon === 'short' ? '600' : '400',
+              color: activeHorizon === 'short' ? '#8b5cf6' : 'rgba(255,255,255,0.5)',
+              borderBottom: activeHorizon === 'short' ? '2px solid #8b5cf6' : '2px solid transparent',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+            }"
+          ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="activeHorizon === 'short' ? '#8b5cf6' : 'rgba(255,255,255,0.5)'" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Short</button>
           <button 
-            class="m-horizon-tab" 
-            :class="{ active: activeHorizon === 'medium' }"
             @click="activeHorizon = 'medium'"
-          >
-            <span class="tab-label">Medium</span>
-          </button>
+            :style="{
+              background: 'none', border: 'none', padding: '4px 8px',
+              fontSize: '12px', fontWeight: activeHorizon === 'medium' ? '600' : '400',
+              color: activeHorizon === 'medium' ? '#8b5cf6' : 'rgba(255,255,255,0.5)',
+              borderBottom: activeHorizon === 'medium' ? '2px solid #8b5cf6' : '2px solid transparent',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+            }"
+          ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="activeHorizon === 'medium' ? '#8b5cf6' : 'rgba(255,255,255,0.5)'" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Medium</button>
           <button 
-            class="m-horizon-tab" 
-            :class="{ active: activeHorizon === 'long' }"
             @click="activeHorizon = 'long'"
-          >
-            <span class="tab-label">Long</span>
-          </button>
+            :style="{
+              background: 'none', border: 'none', padding: '4px 8px',
+              fontSize: '12px', fontWeight: activeHorizon === 'long' ? '600' : '400',
+              color: activeHorizon === 'long' ? '#8b5cf6' : 'rgba(255,255,255,0.5)',
+              borderBottom: activeHorizon === 'long' ? '2px solid #8b5cf6' : '2px solid transparent',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+            }"
+          ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="activeHorizon === 'long' ? '#8b5cf6' : 'rgba(255,255,255,0.5)'" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Long</button>
+          <NuxtLink to="/analysis" class="m-section-link" style="margin-left: auto;">View All</NuxtLink>
         </div>
         
         <!-- Stats Bar -->
@@ -227,37 +233,43 @@
 
       <!-- Market Movers Section (Tabbed) -->
       <section class="m-section">
-        <div class="m-section-header">
-          <h3 class="m-section-title">
+        <!-- Header with inline tabs -->
+        <div style="display: flex; align-items: center; gap: 16px; padding-bottom: 8px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+          <h3 class="m-section-title" style="margin: 0;">
             <Icon name="ph:lightning" class="w-4 h-4" style="color: #f97316;" />
-            Market Movers
+            Movers
           </h3>
-          <NuxtLink to="/market" class="m-section-link">View All</NuxtLink>
-        </div>
-        
-        <!-- Movers Tabs (same style as Horizon tabs) -->
-        <div class="m-horizon-tabs">
           <button 
-            class="m-horizon-tab" 
-            :class="{ active: activeMoversTab === 'gainers' }"
             @click="activeMoversTab = 'gainers'"
-          >
-            <span class="tab-label"><span style="color: #22c55e;">▲</span> Gainers</span>
-          </button>
+            :style="{
+              background: 'none', border: 'none', padding: '4px 8px',
+              fontSize: '12px', fontWeight: activeMoversTab === 'gainers' ? '600' : '400',
+              color: activeMoversTab === 'gainers' ? '#22c55e' : 'rgba(255,255,255,0.5)',
+              borderBottom: activeMoversTab === 'gainers' ? '2px solid #22c55e' : '2px solid transparent',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+            }"
+          ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="activeMoversTab === 'gainers' ? '#22c55e' : 'rgba(255,255,255,0.5)'" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Gainers</button>
           <button 
-            class="m-horizon-tab" 
-            :class="{ active: activeMoversTab === 'losers' }"
             @click="activeMoversTab = 'losers'"
-          >
-            <span class="tab-label"><span style="color: #ef4444;">▼</span> Losers</span>
-          </button>
+            :style="{
+              background: 'none', border: 'none', padding: '4px 8px',
+              fontSize: '12px', fontWeight: activeMoversTab === 'losers' ? '600' : '400',
+              color: activeMoversTab === 'losers' ? '#ef4444' : 'rgba(255,255,255,0.5)',
+              borderBottom: activeMoversTab === 'losers' ? '2px solid #ef4444' : '2px solid transparent',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+            }"
+          ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="activeMoversTab === 'losers' ? '#ef4444' : 'rgba(255,255,255,0.5)'" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>Losers</button>
           <button 
-            class="m-horizon-tab" 
-            :class="{ active: activeMoversTab === 'traded' }"
             @click="activeMoversTab = 'traded'"
-          >
-            <span class="tab-label">Most Traded <span class="tab-tf">24h</span></span>
-          </button>
+            :style="{
+              background: 'none', border: 'none', padding: '4px 8px',
+              fontSize: '12px', fontWeight: activeMoversTab === 'traded' ? '600' : '400',
+              color: activeMoversTab === 'traded' ? '#3b82f6' : 'rgba(255,255,255,0.5)',
+              borderBottom: activeMoversTab === 'traded' ? '2px solid #3b82f6' : '2px solid transparent',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+            }"
+          ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="activeMoversTab === 'traded' ? '#3b82f6' : 'rgba(255,255,255,0.5)'" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Traded</button>
+          <NuxtLink to="/market" class="m-section-link" style="margin-left: auto;">View All</NuxtLink>
         </div>
 
         <!-- Coin List - conditionally show based on activeMoversTab -->
