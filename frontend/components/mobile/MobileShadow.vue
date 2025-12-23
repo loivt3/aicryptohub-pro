@@ -194,6 +194,63 @@
           </div>
         </section>
 
+        <!-- Exchange Flow Stats (NEW) -->
+        <section class="m-section">
+          <div class="m-section-header">
+            <h3 class="m-section-title">
+              <Icon name="ph:arrows-left-right" class="w-4 h-4" style="color: #38bdf8;" />
+              Exchange Flow
+            </h3>
+          </div>
+          <div class="m-flow-cards">
+            <div class="m-flow-card m-flow-inflow">
+              <div class="m-flow-icon">📥</div>
+              <div class="m-flow-info">
+                <span class="m-flow-label">Inflow (24h)</span>
+                <span class="m-flow-value danger">{{ formatCurrency(exchangeInflow) }}</span>
+              </div>
+            </div>
+            <div class="m-flow-card m-flow-outflow">
+              <div class="m-flow-icon">📤</div>
+              <div class="m-flow-info">
+                <span class="m-flow-label">Outflow (24h)</span>
+                <span class="m-flow-value success">{{ formatCurrency(exchangeOutflow) }}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Recent Whale Transactions (NEW) -->
+        <section class="m-section" v-if="whaleTransactions.length">
+          <div class="m-section-header">
+            <h3 class="m-section-title">
+              <Icon name="ph:list-magnifying-glass" class="w-4 h-4" style="color: #a855f7;" />
+              Recent Whale Txs
+            </h3>
+            <span class="m-section-link" @click="fetchOnchainData">Refresh</span>
+          </div>
+          <div class="m-whale-tx-list">
+            <div 
+              v-for="(tx, idx) in whaleTransactions" 
+              :key="idx"
+              class="m-whale-tx-item"
+              :class="tx.tx_type === 'exchange_deposit' ? 'tx-sell' : 'tx-buy'"
+            >
+              <div class="m-tx-icon">{{ tx.tx_type === 'exchange_deposit' ? '🔴' : '🟢' }}</div>
+              <div class="m-tx-info">
+                <span class="m-tx-coin">{{ tx.coin_id?.toUpperCase() }}</span>
+                <span class="m-tx-addresses">
+                  {{ formatAddress(tx.from_address) }} → {{ tx.exchange_name || formatAddress(tx.to_address) }}
+                </span>
+              </div>
+              <div class="m-tx-meta">
+                <span class="m-tx-value">{{ formatCurrency(tx.value_usd) }}</span>
+                <span class="m-tx-time">{{ formatTxTime(tx.tx_timestamp) }}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- Historical Divergence Signals -->
         <section class="m-section">
           <div class="m-section-header">
@@ -348,6 +405,12 @@ const divergenceHistory = ref([])
 const showAlert = ref(false)
 const alertData = ref({})
 const showExplainer = ref(false)
+
+// Onchain data state
+const onchainSummary = ref(null)
+const whaleTransactions = ref([])
+const exchangeInflow = ref(0)
+const exchangeOutflow = ref(0)
 
 // Top coins for quick selection
 const topCoins = ref([
@@ -586,10 +649,43 @@ function getScoreClass(score) {
   return 'score-low'
 }
 
+// Fetch onchain summary data
+async function fetchOnchainData() {
+  try {
+    const response = await fetch(`${apiBase}/onchain/summary`)
+    if (response.ok) {
+      const data = await response.json()
+      onchainSummary.value = data
+      whaleTransactions.value = data.recent_whale_txs?.slice(0, 5) || []
+      exchangeInflow.value = data.total_inflow_24h || 0
+      exchangeOutflow.value = data.total_outflow_24h || 0
+    }
+  } catch (error) {
+    console.error('Failed to fetch onchain data:', error)
+  }
+}
+
+function formatTxTime(timestamp) {
+  if (!timestamp) return '-'
+  const date = new Date(timestamp)
+  const now = new Date()
+  const diff = (now - date) / 1000 / 60
+  if (diff < 60) return `${Math.round(diff)}m ago`
+  if (diff < 1440) return `${Math.round(diff / 60)}h ago`
+  return `${Math.floor(diff / 1440)}d ago`
+}
+
+function formatAddress(addr) {
+  if (!addr) return 'Unknown'
+  if (addr.length > 12) return `${addr.slice(0, 6)}...${addr.slice(-4)}`
+  return addr
+}
+
 // Lifecycle
 onMounted(() => {
   fetchDivergence()
   fetchHistory()
+  fetchOnchainData()
   setupWebSocket()
 })
 
@@ -1118,6 +1214,124 @@ onUnmounted(() => {
   font-size: 10px;
   color: rgba(255, 255, 255, 0.5);
   line-height: 1.4;
+}
+
+/* Exchange Flow Section */
+.m-flow-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.m-flow-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+}
+
+.m-flow-inflow {
+  border-left: 3px solid #ef4444;
+}
+
+.m-flow-outflow {
+  border-left: 3px solid #22c55e;
+}
+
+.m-flow-icon {
+  font-size: 20px;
+}
+
+.m-flow-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.m-flow-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+}
+
+.m-flow-value {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.m-flow-value.danger { color: #ef4444; }
+.m-flow-value.success { color: #22c55e; }
+
+/* Whale Transactions List */
+.m-whale-tx-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.m-whale-tx-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.m-whale-tx-item.tx-sell {
+  border-left: 3px solid #ef4444;
+}
+
+.m-whale-tx-item.tx-buy {
+  border-left: 3px solid #22c55e;
+}
+
+.m-tx-icon {
+  font-size: 16px;
+}
+
+.m-tx-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.m-tx-coin {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.m-tx-addresses {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.m-tx-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.m-tx-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.m-tx-time {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 /* Bottom navigation */
