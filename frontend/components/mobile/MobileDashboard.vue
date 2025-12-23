@@ -1717,7 +1717,7 @@ const toggleFavorite = (coinId: string) => {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 6px;
-  padding: 0 12px;
+  padding: 0;
 }
 
 .m-heatmap-tile {
@@ -1986,7 +1986,7 @@ const toggleFavorite = (coinId: string) => {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding: 0 16px;
+  padding: 0;
 }
 .m-gems-scroll::-webkit-scrollbar { display: none; }
 
@@ -2250,7 +2250,7 @@ const toggleFavorite = (coinId: string) => {
 /* Technical Signals List/Table Styles (Matching Desktop) */
 /* ================================== */
 .m-tsig-list {
-  padding: 0 12px;
+  padding: 0;
 }
 
 /* Main Container Card (Unified List) */
