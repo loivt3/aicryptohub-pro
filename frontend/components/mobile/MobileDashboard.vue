@@ -133,7 +133,7 @@
               borderBottom: activeHorizon === 'short' ? '2px solid #a78bfa' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          ><Icon name="ph:timer-fill" class="w-3.5 h-3.5" />Short</button>
+          ><Icon name="lucide:zap" class="w-3.5 h-3.5" />Short</button>
           <button 
             @click="activeHorizon = 'medium'"
             :style="{
@@ -143,7 +143,7 @@
               borderBottom: activeHorizon === 'medium' ? '2px solid #a78bfa' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          ><Icon name="ph:hourglass-medium-fill" class="w-3.5 h-3.5" />Medium</button>
+          ><Icon name="lucide:clock" class="w-3.5 h-3.5" />Medium</button>
           <button 
             @click="activeHorizon = 'long'"
             :style="{
@@ -153,7 +153,7 @@
               borderBottom: activeHorizon === 'long' ? '2px solid #a78bfa' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          ><Icon name="ph:calendar-check-fill" class="w-3.5 h-3.5" />Long</button>
+          ><Icon name="lucide:calendar" class="w-3.5 h-3.5" />Long</button>
           <NuxtLink to="/analysis" class="m-section-link" style="margin-left: auto;">View All</NuxtLink>
         </div>
         
@@ -248,7 +248,7 @@
               borderBottom: activeMoversTab === 'gainers' ? '2px solid #4ade80' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          ><Icon name="ph:arrow-fat-up-fill" class="w-3.5 h-3.5" />Gainers</button>
+          ><Icon name="lucide:trending-up" class="w-3.5 h-3.5" />Gainers</button>
           <button 
             @click="activeMoversTab = 'losers'"
             :style="{
@@ -258,7 +258,7 @@
               borderBottom: activeMoversTab === 'losers' ? '2px solid #f87171' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          ><Icon name="ph:arrow-fat-down-fill" class="w-3.5 h-3.5" />Losers</button>
+          ><Icon name="lucide:trending-down" class="w-3.5 h-3.5" />Losers</button>
           <button 
             @click="activeMoversTab = 'traded'"
             :style="{
@@ -268,7 +268,7 @@
               borderBottom: activeMoversTab === 'traded' ? '2px solid #60a5fa' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          ><Icon name="ph:chart-bar-fill" class="w-3.5 h-3.5" />Traded</button>
+          ><Icon name="lucide:bar-chart-3" class="w-3.5 h-3.5" />Traded</button>
           <NuxtLink to="/market" class="m-section-link" style="margin-left: auto;">View All</NuxtLink>
         </div>
 
@@ -589,7 +589,7 @@
               borderBottom: activeGemTab === 'gems' ? '2px solid #4ade80' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          ><Icon name="ph:diamond-fill" class="w-3.5 h-3.5" />Gems</button>
+          ><Icon name="lucide:gem" class="w-3.5 h-3.5" />Gems</button>
           <button 
             @click="activeGemTab = 'highrich'"
             :style="{
@@ -599,7 +599,7 @@
               borderBottom: activeGemTab === 'highrich' ? '2px solid #fbbf24' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          ><Icon name="ph:rocket-fill" class="w-3.5 h-3.5" />High Rich</button>
+          ><Icon name="lucide:rocket" class="w-3.5 h-3.5" />High Rich</button>
         </div>
         
         <!-- Hidden Gems Content -->
