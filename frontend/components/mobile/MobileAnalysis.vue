@@ -221,11 +221,11 @@
 
       <!-- Trend Forecast Section -->
       <section v-if="analysisCoin && !loading" class="m-section">
-        <div class="m-card m-card--dark" style="padding: 20px; background: linear-gradient(160deg, rgba(240,250,245,0.98), rgba(235,245,240,0.98)); border-radius: 14px;">
+        <div class="m-card m-card--dark" style="padding: 20px; background: linear-gradient(160deg, rgba(20,25,40,0.98), rgba(15,18,30,0.98)); border-radius: 14px;">
           <!-- Header -->
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
             <Icon name="ph:trend-up" class="w-5 h-5" style="color: #22c55e;" />
-            <span style="font-size: 0.9rem; font-weight: 600; color: #1a1a2e; letter-spacing: 0.5px;">TREND FORECAST</span>
+            <span style="font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.8); letter-spacing: 1px;">TREND FORECAST</span>
           </div>
           
           <!-- Percentage Bar -->
@@ -237,7 +237,7 @@
             </div>
             
             <!-- Progress Bar -->
-            <div style="flex: 1; height: 12px; background: #e5e7eb; border-radius: 6px; overflow: hidden; display: flex;">
+            <div style="flex: 1; height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden; display: flex;">
               <div :style="{ width: trendForecast.bullishPercent + '%', height: '100%', background: '#22c55e', transition: 'width 0.5s ease' }"></div>
               <div :style="{ width: trendForecast.bearishPercent + '%', height: '100%', background: '#ef4444', transition: 'width 0.5s ease' }"></div>
             </div>
@@ -253,8 +253,8 @@
           <div style="display: flex; gap: 10px;">
             <button :style="{
               flex: 1, padding: '12px 16px', borderRadius: '10px',
-              background: trendForecast.bullishPercent >= 50 ? 'rgba(34,197,94,0.1)' : 'transparent',
-              border: '1.5px solid #22c55e',
+              background: trendForecast.bullishPercent >= 50 ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
+              border: '1.5px solid rgba(34,197,94,0.5)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
               cursor: 'pointer', transition: 'all 0.2s'
             }">
@@ -264,8 +264,8 @@
             
             <button :style="{
               flex: 1, padding: '12px 16px', borderRadius: '10px',
-              background: trendForecast.bearishPercent > 50 ? 'rgba(239,68,68,0.1)' : 'transparent',
-              border: '1.5px solid #ef4444',
+              background: trendForecast.bearishPercent > 50 ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)',
+              border: '1.5px solid rgba(239,68,68,0.5)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
               cursor: 'pointer', transition: 'all 0.2s'
             }">
@@ -275,6 +275,7 @@
           </div>
         </div>
       </section>
+
 
       <!-- Candlestick Pattern Detection -->
       <section v-if="analysisCoin && !loading" class="m-section">
