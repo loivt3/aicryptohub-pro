@@ -133,7 +133,7 @@
               borderBottom: activeHorizon === 'short' ? '2px solid #a78bfa' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          >1H</button>
+          ><Icon name="ph:timer-fill" class="w-3.5 h-3.5" />Short</button>
           <button 
             @click="activeHorizon = 'medium'"
             :style="{
@@ -143,7 +143,7 @@
               borderBottom: activeHorizon === 'medium' ? '2px solid #a78bfa' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          >4H</button>
+          ><Icon name="ph:hourglass-medium-fill" class="w-3.5 h-3.5" />Medium</button>
           <button 
             @click="activeHorizon = 'long'"
             :style="{
@@ -153,7 +153,7 @@
               borderBottom: activeHorizon === 'long' ? '2px solid #a78bfa' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          >1D</button>
+          ><Icon name="ph:calendar-check-fill" class="w-3.5 h-3.5" />Long</button>
           <NuxtLink to="/analysis" class="m-section-link" style="margin-left: auto;">View All</NuxtLink>
         </div>
         
@@ -246,9 +246,9 @@
               fontSize: '13px', fontWeight: activeMoversTab === 'gainers' ? '600' : '400',
               color: activeMoversTab === 'gainers' ? '#4ade80' : 'rgba(255,255,255,0.6)',
               borderBottom: activeMoversTab === 'gainers' ? '2px solid #4ade80' : '2px solid transparent',
-              cursor: 'pointer'
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          >▲ Top</button>
+          ><Icon name="ph:arrow-fat-up-fill" class="w-3.5 h-3.5" />Gainers</button>
           <button 
             @click="activeMoversTab = 'losers'"
             :style="{
@@ -256,9 +256,9 @@
               fontSize: '13px', fontWeight: activeMoversTab === 'losers' ? '600' : '400',
               color: activeMoversTab === 'losers' ? '#f87171' : 'rgba(255,255,255,0.6)',
               borderBottom: activeMoversTab === 'losers' ? '2px solid #f87171' : '2px solid transparent',
-              cursor: 'pointer'
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          >▼ Bottom</button>
+          ><Icon name="ph:arrow-fat-down-fill" class="w-3.5 h-3.5" />Losers</button>
           <button 
             @click="activeMoversTab = 'traded'"
             :style="{
@@ -266,9 +266,9 @@
               fontSize: '13px', fontWeight: activeMoversTab === 'traded' ? '600' : '400',
               color: activeMoversTab === 'traded' ? '#60a5fa' : 'rgba(255,255,255,0.6)',
               borderBottom: activeMoversTab === 'traded' ? '2px solid #60a5fa' : '2px solid transparent',
-              cursor: 'pointer'
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          >$ Volume</button>
+          ><Icon name="ph:chart-bar-fill" class="w-3.5 h-3.5" />Traded</button>
           <NuxtLink to="/market" class="m-section-link" style="margin-left: auto;">View All</NuxtLink>
         </div>
 
@@ -587,9 +587,9 @@
               fontSize: '13px', fontWeight: activeGemTab === 'gems' ? '600' : '400',
               color: activeGemTab === 'gems' ? '#4ade80' : 'rgba(255,255,255,0.6)',
               borderBottom: activeGemTab === 'gems' ? '2px solid #4ade80' : '2px solid transparent',
-              cursor: 'pointer'
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          >◆ Gems</button>
+          ><Icon name="ph:diamond-fill" class="w-3.5 h-3.5" />Gems</button>
           <button 
             @click="activeGemTab = 'highrich'"
             :style="{
@@ -597,9 +597,9 @@
               fontSize: '13px', fontWeight: activeGemTab === 'highrich' ? '600' : '400',
               color: activeGemTab === 'highrich' ? '#fbbf24' : 'rgba(255,255,255,0.6)',
               borderBottom: activeGemTab === 'highrich' ? '2px solid #fbbf24' : '2px solid transparent',
-              cursor: 'pointer'
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          >⚡ Surge</button>
+          ><Icon name="ph:rocket-fill" class="w-3.5 h-3.5" />High Rich</button>
         </div>
         
         <!-- Hidden Gems Content -->
