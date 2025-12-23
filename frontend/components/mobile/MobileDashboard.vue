@@ -133,7 +133,7 @@
               borderBottom: activeHorizon === 'short' ? '2px solid #8b5cf6' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
             }"
-          ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="activeHorizon === 'short' ? '#8b5cf6' : 'rgba(255,255,255,0.5)'" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Short</button>
+          ><Icon name="ph:clock" class="w-3 h-3" />Short</button>
           <button 
             @click="activeHorizon = 'medium'"
             :style="{
@@ -143,7 +143,7 @@
               borderBottom: activeHorizon === 'medium' ? '2px solid #8b5cf6' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
             }"
-          ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="activeHorizon === 'medium' ? '#8b5cf6' : 'rgba(255,255,255,0.5)'" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Medium</button>
+          ><Icon name="ph:clock-afternoon" class="w-3 h-3" />Medium</button>
           <button 
             @click="activeHorizon = 'long'"
             :style="{
@@ -153,7 +153,7 @@
               borderBottom: activeHorizon === 'long' ? '2px solid #8b5cf6' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
             }"
-          ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="activeHorizon === 'long' ? '#8b5cf6' : 'rgba(255,255,255,0.5)'" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Long</button>
+          ><Icon name="ph:calendar" class="w-3 h-3" />Long</button>
           <NuxtLink to="/analysis" class="m-section-link" style="margin-left: auto;">View All</NuxtLink>
         </div>
         
@@ -248,7 +248,7 @@
               borderBottom: activeMoversTab === 'gainers' ? '2px solid #22c55e' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
             }"
-          ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="activeMoversTab === 'gainers' ? '#22c55e' : 'rgba(255,255,255,0.5)'" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Gainers</button>
+          ><Icon name="ph:trend-up" class="w-3 h-3" />Gainers</button>
           <button 
             @click="activeMoversTab = 'losers'"
             :style="{
@@ -258,7 +258,7 @@
               borderBottom: activeMoversTab === 'losers' ? '2px solid #ef4444' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
             }"
-          ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="activeMoversTab === 'losers' ? '#ef4444' : 'rgba(255,255,255,0.5)'" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>Losers</button>
+          ><Icon name="ph:trend-down" class="w-3 h-3" />Losers</button>
           <button 
             @click="activeMoversTab = 'traded'"
             :style="{
@@ -268,7 +268,7 @@
               borderBottom: activeMoversTab === 'traded' ? '2px solid #3b82f6' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
             }"
-          ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="activeMoversTab === 'traded' ? '#3b82f6' : 'rgba(255,255,255,0.5)'" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Traded</button>
+          ><Icon name="ph:currency-dollar" class="w-3 h-3" />Traded</button>
           <NuxtLink to="/market" class="m-section-link" style="margin-left: auto;">View All</NuxtLink>
         </div>
 
@@ -589,7 +589,7 @@
               borderBottom: activeGemTab === 'gems' ? '2px solid #22c55e' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
             }"
-          ><svg width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="activeGemTab === 'gems' ? '#22c55e' : 'rgba(255,255,255,0.5)'" stroke-width="2"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M11 3l1 6h8"/><path d="M2 9h20"/><path d="M13 3l-1 6H4"/></svg>Gems</button>
+          ><Icon name="ph:diamond" class="w-3 h-3" />Gems</button>
           <button 
             @click="activeGemTab = 'highrich'"
             :style="{
@@ -599,7 +599,7 @@
               borderBottom: activeGemTab === 'highrich' ? '2px solid #f59e0b' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
             }"
-          ><svg width="14" height="14" viewBox="0 0 24 24" fill="none" :stroke="activeGemTab === 'highrich' ? '#f59e0b' : 'rgba(255,255,255,0.5)'" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>High Rich</button>
+          ><Icon name="ph:rocket-launch" class="w-3 h-3" />High Rich</button>
         </div>
         
         <!-- Hidden Gems Content -->
