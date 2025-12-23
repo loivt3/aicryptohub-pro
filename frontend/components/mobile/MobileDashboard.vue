@@ -133,7 +133,7 @@
               borderBottom: activeHorizon === 'short' ? '2px solid #a78bfa' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          ><Icon name="lucide:zap" class="w-3.5 h-3.5" />Short</button>
+          ><Icon name="lucide:gauge" class="w-3.5 h-3.5" />Short</button>
           <button 
             @click="activeHorizon = 'medium'"
             :style="{
@@ -143,7 +143,7 @@
               borderBottom: activeHorizon === 'medium' ? '2px solid #a78bfa' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          ><Icon name="lucide:clock" class="w-3.5 h-3.5" />Medium</button>
+          ><Icon name="lucide:timer" class="w-3.5 h-3.5" />Medium</button>
           <button 
             @click="activeHorizon = 'long'"
             :style="{
@@ -153,7 +153,7 @@
               borderBottom: activeHorizon === 'long' ? '2px solid #a78bfa' : '2px solid transparent',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          ><Icon name="lucide:calendar" class="w-3.5 h-3.5" />Long</button>
+          ><Icon name="lucide:target" class="w-3.5 h-3.5" />Long</button>
           <NuxtLink to="/analysis" class="m-section-link" style="margin-left: auto;">View All</NuxtLink>
         </div>
         
