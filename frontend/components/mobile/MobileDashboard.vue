@@ -588,6 +588,7 @@
             }"
           >
             <div class="m-treemap-tile-inner" :style="getTreemapTileStyle(tile.asi_score, tile.change_24h)">
+              <img v-if="tile.image" :src="tile.image" class="treemap-bg-icon" />
               <span class="treemap-symbol">{{ tile.symbol?.toUpperCase() }}</span>
               <span class="treemap-asi">{{ tile.asi_score || '--' }}</span>
             </div>
@@ -1924,6 +1925,17 @@ const toggleFavorite = (coinId: string) => {
   overflow: hidden;
   padding: 2px;
   box-sizing: border-box;
+  position: relative;
+}
+
+.treemap-bg-icon {
+  position: absolute;
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 0;
 }
 
 
@@ -1946,6 +1958,8 @@ const toggleFavorite = (coinId: string) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  position: relative;
+  z-index: 1;
 }
 
 .treemap-symbol-small {
@@ -1956,7 +1970,9 @@ const toggleFavorite = (coinId: string) => {
   font-size: 11px;
   font-weight: 700;
   color: rgba(255,255,255,0.95);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  position: relative;
+  z-index: 1;
   margin-top: 1px;
   max-width: 100%;
   overflow: hidden;
