@@ -346,21 +346,21 @@ async def get_technical_signals(
             result = conn.execute(text(f"""
                 SELECT 
                     mds.coin_id, mds.symbol, mds.name, mds.image,
-                    COALESCE(ad.price, mds.price) as price,
-                    COALESCE(ad.change_1h, mds.change_1h) as change_1h,
-                    COALESCE(ad.change_24h, mds.change_24h) as change_24h,
+                    COALESCE(ac.price, mds.price) as price,
+                    COALESCE(ac.price_change_1h, mds.change_1h) as change_1h,
+                    COALESCE(ac.change_24h, mds.change_24h) as change_24h,
                     mds.pattern_name, mds.pattern_direction, mds.pattern_reliability,
                     mds.divergence_type, mds.rsi_14,
                     mds.macd_signal_type, mds.macd_histogram,
                     mds.bb_position, mds.bb_squeeze, mds.bb_width,
                     mds.confirmation_count, mds.confirmation_score,
                     mds.signal_strength, mds.discovery_score,
-                    COALESCE(ad.volume_24h, mds.volume_24h) as volume_24h,
-                    COALESCE(ad.market_cap_rank, mds.market_cap_rank) as market_cap_rank
+                    COALESCE(ac.volume_24h, mds.volume_24h) as volume_24h,
+                    COALESCE(ac.rank, mds.market_cap_rank) as market_cap_rank
                 FROM market_discovery_snapshot mds
-                LEFT JOIN aihub_data ad ON mds.coin_id = ad.coin_id
+                LEFT JOIN aihub_coins ac ON UPPER(mds.symbol) = ac.symbol
                 WHERE (mds.pattern_name IS NOT NULL OR mds.divergence_type IS NOT NULL)
-                  AND COALESCE(ad.volume_24h, mds.volume_24h) > 100000
+                  AND COALESCE(ac.volume_24h, mds.volume_24h) > 100000
                   {direction_filter}
                 ORDER BY mds.confirmation_count DESC, mds.discovery_score DESC
                 LIMIT :limit
@@ -420,10 +420,10 @@ async def get_hidden_gems(
             result = conn.execute(text("""
                 SELECT 
                     mds.coin_id, mds.symbol, mds.name, mds.image,
-                    COALESCE(ad.price, mds.price) as price,
-                    COALESCE(ad.change_1h, mds.change_1h) as change_1h,
-                    COALESCE(ad.change_24h, mds.change_24h) as change_24h,
-                    COALESCE(ad.change_7d, mds.change_7d) as change_7d,
+                    COALESCE(ac.price, mds.price) as price,
+                    COALESCE(ac.price_change_1h, mds.change_1h) as change_1h,
+                    COALESCE(ac.change_24h, mds.change_24h) as change_24h,
+                    COALESCE(ac.price_change_7d, mds.change_7d) as change_7d,
                     mds.momentum_score, mds.rs_score, mds.discovery_score,
                     mds.rs_vs_btc, mds.rs_vs_market,
                     mds.pattern_name, mds.pattern_direction,
@@ -431,16 +431,16 @@ async def get_hidden_gems(
                     mds.bb_position, mds.macd_signal_type,
                     mds.confirmation_count, mds.signal_strength,
                     mds.is_accumulating, mds.accumulation_score,
-                    COALESCE(ad.volume_24h, mds.volume_24h) as volume_24h,
+                    COALESCE(ac.volume_24h, mds.volume_24h) as volume_24h,
                     mds.volume_ratio, 
-                    COALESCE(ad.market_cap, mds.market_cap) as market_cap,
-                    COALESCE(ad.market_cap_rank, mds.market_cap_rank) as market_cap_rank
+                    COALESCE(ac.market_cap, mds.market_cap) as market_cap,
+                    COALESCE(ac.rank, mds.market_cap_rank) as market_cap_rank
                 FROM market_discovery_snapshot mds
-                LEFT JOIN aihub_data ad ON mds.coin_id = ad.coin_id
+                LEFT JOIN aihub_coins ac ON UPPER(mds.symbol) = ac.symbol
                 WHERE mds.discovery_score >= 70
                   AND mds.market_cap_rank > 50
-                  AND COALESCE(ad.change_24h, mds.change_24h) < 30
-                  AND COALESCE(ad.volume_24h, mds.volume_24h) > 100000
+                  AND COALESCE(ac.change_24h, mds.change_24h) < 30
+                  AND COALESCE(ac.volume_24h, mds.volume_24h) > 100000
                 ORDER BY 
                     CASE WHEN mds.is_accumulating THEN 1 ELSE 0 END DESC,
                     mds.discovery_score DESC, 
