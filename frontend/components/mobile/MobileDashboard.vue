@@ -127,33 +127,33 @@
           <button 
             @click="activeHorizon = 'short'"
             :style="{
-              background: 'none', border: 'none', padding: '4px 8px',
-              fontSize: '12px', fontWeight: activeHorizon === 'short' ? '600' : '400',
-              color: activeHorizon === 'short' ? '#8b5cf6' : 'rgba(255,255,255,0.5)',
-              borderBottom: activeHorizon === 'short' ? '2px solid #8b5cf6' : '2px solid transparent',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+              background: 'none', border: 'none', padding: '6px 10px',
+              fontSize: '13px', fontWeight: activeHorizon === 'short' ? '600' : '400',
+              color: activeHorizon === 'short' ? '#a78bfa' : 'rgba(255,255,255,0.6)',
+              borderBottom: activeHorizon === 'short' ? '2px solid #a78bfa' : '2px solid transparent',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          ><Icon name="ph:clock" class="w-3 h-3" />Short</button>
+          >1H</button>
           <button 
             @click="activeHorizon = 'medium'"
             :style="{
-              background: 'none', border: 'none', padding: '4px 8px',
-              fontSize: '12px', fontWeight: activeHorizon === 'medium' ? '600' : '400',
-              color: activeHorizon === 'medium' ? '#8b5cf6' : 'rgba(255,255,255,0.5)',
-              borderBottom: activeHorizon === 'medium' ? '2px solid #8b5cf6' : '2px solid transparent',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+              background: 'none', border: 'none', padding: '6px 10px',
+              fontSize: '13px', fontWeight: activeHorizon === 'medium' ? '600' : '400',
+              color: activeHorizon === 'medium' ? '#a78bfa' : 'rgba(255,255,255,0.6)',
+              borderBottom: activeHorizon === 'medium' ? '2px solid #a78bfa' : '2px solid transparent',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          ><Icon name="ph:clock-afternoon" class="w-3 h-3" />Medium</button>
+          >4H</button>
           <button 
             @click="activeHorizon = 'long'"
             :style="{
-              background: 'none', border: 'none', padding: '4px 8px',
-              fontSize: '12px', fontWeight: activeHorizon === 'long' ? '600' : '400',
-              color: activeHorizon === 'long' ? '#8b5cf6' : 'rgba(255,255,255,0.5)',
-              borderBottom: activeHorizon === 'long' ? '2px solid #8b5cf6' : '2px solid transparent',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+              background: 'none', border: 'none', padding: '6px 10px',
+              fontSize: '13px', fontWeight: activeHorizon === 'long' ? '600' : '400',
+              color: activeHorizon === 'long' ? '#a78bfa' : 'rgba(255,255,255,0.6)',
+              borderBottom: activeHorizon === 'long' ? '2px solid #a78bfa' : '2px solid transparent',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
             }"
-          ><Icon name="ph:calendar" class="w-3 h-3" />Long</button>
+          >1D</button>
           <NuxtLink to="/analysis" class="m-section-link" style="margin-left: auto;">View All</NuxtLink>
         </div>
         
@@ -242,33 +242,33 @@
           <button 
             @click="activeMoversTab = 'gainers'"
             :style="{
-              background: 'none', border: 'none', padding: '4px 8px',
-              fontSize: '12px', fontWeight: activeMoversTab === 'gainers' ? '600' : '400',
-              color: activeMoversTab === 'gainers' ? '#22c55e' : 'rgba(255,255,255,0.5)',
-              borderBottom: activeMoversTab === 'gainers' ? '2px solid #22c55e' : '2px solid transparent',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+              background: 'none', border: 'none', padding: '6px 10px',
+              fontSize: '13px', fontWeight: activeMoversTab === 'gainers' ? '600' : '400',
+              color: activeMoversTab === 'gainers' ? '#4ade80' : 'rgba(255,255,255,0.6)',
+              borderBottom: activeMoversTab === 'gainers' ? '2px solid #4ade80' : '2px solid transparent',
+              cursor: 'pointer'
             }"
-          ><Icon name="ph:trend-up" class="w-3 h-3" />Gainers</button>
+          >▲ Top</button>
           <button 
             @click="activeMoversTab = 'losers'"
             :style="{
-              background: 'none', border: 'none', padding: '4px 8px',
-              fontSize: '12px', fontWeight: activeMoversTab === 'losers' ? '600' : '400',
-              color: activeMoversTab === 'losers' ? '#ef4444' : 'rgba(255,255,255,0.5)',
-              borderBottom: activeMoversTab === 'losers' ? '2px solid #ef4444' : '2px solid transparent',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+              background: 'none', border: 'none', padding: '6px 10px',
+              fontSize: '13px', fontWeight: activeMoversTab === 'losers' ? '600' : '400',
+              color: activeMoversTab === 'losers' ? '#f87171' : 'rgba(255,255,255,0.6)',
+              borderBottom: activeMoversTab === 'losers' ? '2px solid #f87171' : '2px solid transparent',
+              cursor: 'pointer'
             }"
-          ><Icon name="ph:trend-down" class="w-3 h-3" />Losers</button>
+          >▼ Bottom</button>
           <button 
             @click="activeMoversTab = 'traded'"
             :style="{
-              background: 'none', border: 'none', padding: '4px 8px',
-              fontSize: '12px', fontWeight: activeMoversTab === 'traded' ? '600' : '400',
-              color: activeMoversTab === 'traded' ? '#3b82f6' : 'rgba(255,255,255,0.5)',
-              borderBottom: activeMoversTab === 'traded' ? '2px solid #3b82f6' : '2px solid transparent',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+              background: 'none', border: 'none', padding: '6px 10px',
+              fontSize: '13px', fontWeight: activeMoversTab === 'traded' ? '600' : '400',
+              color: activeMoversTab === 'traded' ? '#60a5fa' : 'rgba(255,255,255,0.6)',
+              borderBottom: activeMoversTab === 'traded' ? '2px solid #60a5fa' : '2px solid transparent',
+              cursor: 'pointer'
             }"
-          ><Icon name="ph:currency-dollar" class="w-3 h-3" />Traded</button>
+          >$ Volume</button>
           <NuxtLink to="/market" class="m-section-link" style="margin-left: auto;">View All</NuxtLink>
         </div>
 
@@ -583,23 +583,23 @@
           <button 
             @click="activeGemTab = 'gems'"
             :style="{
-              background: 'none', border: 'none', padding: '4px 8px',
-              fontSize: '12px', fontWeight: activeGemTab === 'gems' ? '600' : '400',
-              color: activeGemTab === 'gems' ? '#22c55e' : 'rgba(255,255,255,0.5)',
-              borderBottom: activeGemTab === 'gems' ? '2px solid #22c55e' : '2px solid transparent',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+              background: 'none', border: 'none', padding: '6px 10px',
+              fontSize: '13px', fontWeight: activeGemTab === 'gems' ? '600' : '400',
+              color: activeGemTab === 'gems' ? '#4ade80' : 'rgba(255,255,255,0.6)',
+              borderBottom: activeGemTab === 'gems' ? '2px solid #4ade80' : '2px solid transparent',
+              cursor: 'pointer'
             }"
-          ><Icon name="ph:diamond" class="w-3 h-3" />Gems</button>
+          >◆ Gems</button>
           <button 
             @click="activeGemTab = 'highrich'"
             :style="{
-              background: 'none', border: 'none', padding: '4px 8px',
-              fontSize: '12px', fontWeight: activeGemTab === 'highrich' ? '600' : '400',
-              color: activeGemTab === 'highrich' ? '#f59e0b' : 'rgba(255,255,255,0.5)',
-              borderBottom: activeGemTab === 'highrich' ? '2px solid #f59e0b' : '2px solid transparent',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+              background: 'none', border: 'none', padding: '6px 10px',
+              fontSize: '13px', fontWeight: activeGemTab === 'highrich' ? '600' : '400',
+              color: activeGemTab === 'highrich' ? '#fbbf24' : 'rgba(255,255,255,0.6)',
+              borderBottom: activeGemTab === 'highrich' ? '2px solid #fbbf24' : '2px solid transparent',
+              cursor: 'pointer'
             }"
-          ><Icon name="ph:rocket-launch" class="w-3 h-3" />High Rich</button>
+          >⚡ Surge</button>
         </div>
         
         <!-- Hidden Gems Content -->
