@@ -345,20 +345,24 @@ async def get_technical_signals(
         with db.engine.connect() as conn:
             result = conn.execute(text(f"""
                 SELECT 
-                    coin_id, symbol, name, image, price,
-                    change_1h, change_24h,
-                    pattern_name, pattern_direction, pattern_reliability,
-                    divergence_type, rsi_14,
-                    macd_signal_type, macd_histogram,
-                    bb_position, bb_squeeze, bb_width,
-                    confirmation_count, confirmation_score,
-                    signal_strength, discovery_score,
-                    volume_24h, market_cap_rank
-                FROM market_discovery_snapshot
-                WHERE (pattern_name IS NOT NULL OR divergence_type IS NOT NULL)
-                  AND volume_24h > 100000
+                    mds.coin_id, mds.symbol, mds.name, mds.image,
+                    COALESCE(ad.price, mds.price) as price,
+                    COALESCE(ad.change_1h, mds.change_1h) as change_1h,
+                    COALESCE(ad.change_24h, mds.change_24h) as change_24h,
+                    mds.pattern_name, mds.pattern_direction, mds.pattern_reliability,
+                    mds.divergence_type, mds.rsi_14,
+                    mds.macd_signal_type, mds.macd_histogram,
+                    mds.bb_position, mds.bb_squeeze, mds.bb_width,
+                    mds.confirmation_count, mds.confirmation_score,
+                    mds.signal_strength, mds.discovery_score,
+                    COALESCE(ad.volume_24h, mds.volume_24h) as volume_24h,
+                    COALESCE(ad.market_cap_rank, mds.market_cap_rank) as market_cap_rank
+                FROM market_discovery_snapshot mds
+                LEFT JOIN aihub_data ad ON mds.coin_id = ad.coin_id
+                WHERE (mds.pattern_name IS NOT NULL OR mds.divergence_type IS NOT NULL)
+                  AND COALESCE(ad.volume_24h, mds.volume_24h) > 100000
                   {direction_filter}
-                ORDER BY confirmation_count DESC, discovery_score DESC
+                ORDER BY mds.confirmation_count DESC, mds.discovery_score DESC
                 LIMIT :limit
             """), {"limit": limit})
             
@@ -415,25 +419,32 @@ async def get_hidden_gems(
         with db.engine.connect() as conn:
             result = conn.execute(text("""
                 SELECT 
-                    coin_id, symbol, name, image, price,
-                    change_1h, change_24h, change_7d,
-                    momentum_score, rs_score, discovery_score,
-                    rs_vs_btc, rs_vs_market,
-                    pattern_name, pattern_direction,
-                    divergence_type, rsi_14,
-                    bb_position, macd_signal_type,
-                    confirmation_count, signal_strength,
-                    is_accumulating, accumulation_score,
-                    volume_24h, volume_ratio, market_cap, market_cap_rank
-                FROM market_discovery_snapshot
-                WHERE discovery_score >= 70
-                  AND market_cap_rank > 50
-                  AND change_24h < 30
-                  AND volume_24h > 100000
+                    mds.coin_id, mds.symbol, mds.name, mds.image,
+                    COALESCE(ad.price, mds.price) as price,
+                    COALESCE(ad.change_1h, mds.change_1h) as change_1h,
+                    COALESCE(ad.change_24h, mds.change_24h) as change_24h,
+                    COALESCE(ad.change_7d, mds.change_7d) as change_7d,
+                    mds.momentum_score, mds.rs_score, mds.discovery_score,
+                    mds.rs_vs_btc, mds.rs_vs_market,
+                    mds.pattern_name, mds.pattern_direction,
+                    mds.divergence_type, mds.rsi_14,
+                    mds.bb_position, mds.macd_signal_type,
+                    mds.confirmation_count, mds.signal_strength,
+                    mds.is_accumulating, mds.accumulation_score,
+                    COALESCE(ad.volume_24h, mds.volume_24h) as volume_24h,
+                    mds.volume_ratio, 
+                    COALESCE(ad.market_cap, mds.market_cap) as market_cap,
+                    COALESCE(ad.market_cap_rank, mds.market_cap_rank) as market_cap_rank
+                FROM market_discovery_snapshot mds
+                LEFT JOIN aihub_data ad ON mds.coin_id = ad.coin_id
+                WHERE mds.discovery_score >= 70
+                  AND mds.market_cap_rank > 50
+                  AND COALESCE(ad.change_24h, mds.change_24h) < 30
+                  AND COALESCE(ad.volume_24h, mds.volume_24h) > 100000
                 ORDER BY 
-                    CASE WHEN is_accumulating THEN 1 ELSE 0 END DESC,
-                    discovery_score DESC, 
-                    confirmation_count DESC
+                    CASE WHEN mds.is_accumulating THEN 1 ELSE 0 END DESC,
+                    mds.discovery_score DESC, 
+                    mds.confirmation_count DESC
                 LIMIT :limit
             """), {"limit": limit})
             
