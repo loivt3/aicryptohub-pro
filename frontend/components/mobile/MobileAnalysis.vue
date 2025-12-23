@@ -1148,8 +1148,22 @@ const executeSearch = async (coinId?: string) => {
       // Fetch on-chain data
       try {
         const onchainRes = await api.getOnchainSignals(targetCoinId)
-        if (onchainRes && onchainRes.data) {
-          onchain.value = onchainRes.data
+        if (onchainRes) {
+          // Map from actual API response to component structure
+          onchain.value = {
+            overall: onchainRes.overall_signal || 'NEUTRAL',
+            exchangeFlow: {
+              signal: onchainRes.whale_activity?.signal || 'NEUTRAL',
+              inflow: formatCompact(onchainRes.whale_activity?.inflow_usd || 0),
+              outflow: formatCompact(onchainRes.whale_activity?.outflow_usd || 0),
+              netFlow: onchainRes.whale_activity?.net_flow_usd || 0,
+            },
+            whaleActivity: {
+              signal: onchainRes.whale_activity?.signal || 'NEUTRAL',
+              largeTxCount: onchainRes.whale_activity?.tx_count_24h || 0,
+              topHoldersChange: onchainRes.holder_signals?.top10_change_pct || 0,
+            },
+          }
         }
       } catch (e) {
         console.warn('On-chain data not available:', e)
@@ -1198,6 +1212,14 @@ const formatCurrency = (n: number) => {
   if (!n) return '$--'
   if (n >= 1) return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   return '$' + n.toFixed(6)
+}
+
+const formatCompact = (n: number) => {
+  if (!n) return '$0'
+  if (n >= 1e9) return '$' + (n / 1e9).toFixed(1) + 'B'
+  if (n >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M'
+  if (n >= 1e3) return '$' + (n / 1e3).toFixed(0) + 'K'
+  return '$' + n.toFixed(0)
 }
 
 const formatMarketCap = (n: number) => {
