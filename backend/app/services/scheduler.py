@@ -98,7 +98,7 @@ SCHEDULER_STATE = {
     # Market Discovery Engine - Top Gainers/Losers snapshot
     "discovery_engine": {
         "enabled": True,
-        "interval_minutes": 5,  # Every 5 minutes
+        "interval_minutes": 2,  # Every 2 minutes for fresher data
         "last_run": None,
         "next_run": None,
         "is_running": False,
