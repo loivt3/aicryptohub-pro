@@ -219,7 +219,7 @@
         </div>
       </section>
 
-      <!-- Trend Forecast Section -->
+      <!-- Trend Forecast Section - Multi Horizon -->
       <section v-if="analysisCoin && !loading" class="m-section">
         <div class="m-card m-card--dark" style="padding: 20px; background: linear-gradient(160deg, rgba(20,25,40,0.98), rgba(15,18,30,0.98)); border-radius: 14px;">
           <!-- Header -->
@@ -228,23 +228,48 @@
             <span style="font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.8); letter-spacing: 1px;">TREND FORECAST</span>
           </div>
           
-          <!-- Percentage Bar -->
+          <!-- Horizon Tabs -->
+          <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+            <button 
+              v-for="tab in ['short', 'medium', 'long']" 
+              :key="tab"
+              @click="activeTrendTab = tab"
+              :style="{
+                flex: 1, padding: '8px 12px', borderRadius: '8px',
+                background: activeTrendTab === tab ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
+                border: activeTrendTab === tab ? '1px solid rgba(0,212,255,0.5)' : '1px solid rgba(255,255,255,0.1)',
+                color: activeTrendTab === tab ? '#00d4ff' : 'rgba(255,255,255,0.6)',
+                fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s'
+              }"
+            >
+              {{ tab === 'short' ? 'Short-term' : tab === 'medium' ? 'Medium-term' : 'Long-term' }}
+            </button>
+          </div>
+          
+          <!-- Current Horizon Display -->
+          <div style="margin-bottom: 12px;">
+            <div style="font-size: 0.65rem; color: rgba(255,255,255,0.4); margin-bottom: 8px; text-align: center;">
+              {{ activeTrendTab === 'short' ? '1H Timeframe (Scalp/Day trade)' : activeTrendTab === 'medium' ? '4H-1D Timeframe (Swing trade)' : '1W-1M Timeframe (Position/HODL)' }}
+            </div>
+          </div>
+          
+          <!-- Percentage Bar for Active Horizon -->
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
             <!-- Bullish Percentage -->
             <div style="display: flex; align-items: center; gap: 6px;">
               <Icon name="ph:trend-up" class="w-4 h-4" style="color: #22c55e;" />
-              <span style="font-size: 1.1rem; font-weight: 700; color: #22c55e;">{{ trendForecast.bullishPercent }}%</span>
+              <span style="font-size: 1.1rem; font-weight: 700; color: #22c55e;">{{ currentHorizonForecast.bullishPercent }}%</span>
             </div>
             
             <!-- Progress Bar -->
             <div style="flex: 1; height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden; display: flex;">
-              <div :style="{ width: trendForecast.bullishPercent + '%', height: '100%', background: '#22c55e', transition: 'width 0.5s ease' }"></div>
-              <div :style="{ width: trendForecast.bearishPercent + '%', height: '100%', background: '#ef4444', transition: 'width 0.5s ease' }"></div>
+              <div :style="{ width: currentHorizonForecast.bullishPercent + '%', height: '100%', background: '#22c55e', transition: 'width 0.5s ease' }"></div>
+              <div :style="{ width: currentHorizonForecast.bearishPercent + '%', height: '100%', background: '#ef4444', transition: 'width 0.5s ease' }"></div>
             </div>
             
             <!-- Bearish Percentage -->
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-size: 1.1rem; font-weight: 700; color: #ef4444;">{{ trendForecast.bearishPercent }}%</span>
+              <span style="font-size: 1.1rem; font-weight: 700; color: #ef4444;">{{ currentHorizonForecast.bearishPercent }}%</span>
               <Icon name="ph:trend-down" class="w-4 h-4" style="color: #ef4444;" />
             </div>
           </div>
@@ -253,7 +278,7 @@
           <div style="display: flex; gap: 10px;">
             <button :style="{
               flex: 1, padding: '12px 16px', borderRadius: '10px',
-              background: trendForecast.bullishPercent >= 50 ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
+              background: currentHorizonForecast.bullishPercent >= 50 ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
               border: '1.5px solid rgba(34,197,94,0.5)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
               cursor: 'pointer', transition: 'all 0.2s'
@@ -264,7 +289,7 @@
             
             <button :style="{
               flex: 1, padding: '12px 16px', borderRadius: '10px',
-              background: trendForecast.bearishPercent > 50 ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)',
+              background: currentHorizonForecast.bearishPercent > 50 ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)',
               border: '1.5px solid rgba(239,68,68,0.5)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
               cursor: 'pointer', transition: 'all 0.2s'
@@ -272,6 +297,32 @@
               <Icon name="ph:trend-down" class="w-4 h-4" style="color: #ef4444;" />
               <span style="font-size: 0.85rem; font-weight: 600; color: #ef4444;">Bearish Trend</span>
             </button>
+          </div>
+          
+          <!-- All Horizons Summary (Mini) -->
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08);">
+            <div style="font-size: 0.65rem; color: rgba(255,255,255,0.4); margin-bottom: 10px; text-align: center;">ALL HORIZONS</div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+              <div v-for="h in ['short', 'medium', 'long']" :key="h" 
+                :style="{
+                  padding: '10px', borderRadius: '8px', textAlign: 'center',
+                  background: activeTrendTab === h ? 'rgba(0,212,255,0.1)' : 'rgba(255,255,255,0.03)',
+                  border: activeTrendTab === h ? '1px solid rgba(0,212,255,0.3)' : '1px solid transparent',
+                  cursor: 'pointer'
+                }"
+                @click="activeTrendTab = h"
+              >
+                <div style="font-size: 0.6rem; color: rgba(255,255,255,0.5); margin-bottom: 4px;">
+                  {{ h === 'short' ? 'SHORT' : h === 'medium' ? 'MEDIUM' : 'LONG' }}
+                </div>
+                <div :style="{ 
+                  fontSize: '1rem', fontWeight: '700', 
+                  color: horizonForecasts[h].bullishPercent >= 50 ? '#22c55e' : '#ef4444' 
+                }">
+                  {{ horizonForecasts[h].bullishPercent >= 50 ? '↑' : '↓' }} {{ horizonForecasts[h].bullishPercent }}%
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -1046,24 +1097,42 @@ const sentimentLabel = computed(() => {
   return 'Neutral'
 })
 
-// Trend Forecast based on ASI score
-const trendForecast = computed(() => {
-  // ASI Score 0-100: 
-  // 0-50 = bearish (100-0% bearish)
-  // 50-100 = bullish (0-100% bullish)
-  const score = asiScore.value
+// Trend Forecast - Multi Horizon
+const activeTrendTab = ref<'short' | 'medium' | 'long'>('short')
+
+// Get multi-horizon ASI data - use asiScore for all horizons until real multi-horizon data is available
+const multiHorizonData = computed(() => {
+  // For now, derive medium/long from short-term with slight adjustments
+  // In the future, this could come from multi-horizon API
+  const short = asiScore.value
+  // Medium-term slightly more conservative (closer to neutral)
+  const medium = Math.round(50 + (short - 50) * 0.85)
+  // Long-term even more conservative
+  const long = Math.round(50 + (short - 50) * 0.7)
   
-  // Calculate bullish percentage based on ASI score
-  // ASI 50 = 50/50, ASI 100 = 100% bullish, ASI 0 = 100% bearish
-  const bullishPercent = Math.round(score)
-  const bearishPercent = 100 - bullishPercent
+  return { asi_short: short, asi_medium: medium, asi_long: long }
+})
+
+// Individual horizon forecasts
+const horizonForecasts = computed(() => {
+  const short = multiHorizonData.value.asi_short || 50
+  const medium = multiHorizonData.value.asi_medium || 50
+  const long = multiHorizonData.value.asi_long || 50
   
   return {
-    bullishPercent,
-    bearishPercent,
-    trend: bullishPercent >= 50 ? 'bullish' : 'bearish',
+    short: { bullishPercent: Math.round(short), bearishPercent: 100 - Math.round(short) },
+    medium: { bullishPercent: Math.round(medium), bearishPercent: 100 - Math.round(medium) },
+    long: { bullishPercent: Math.round(long), bearishPercent: 100 - Math.round(long) },
   }
 })
+
+// Current horizon forecast based on active tab
+const currentHorizonForecast = computed(() => {
+  return horizonForecasts.value[activeTrendTab.value]
+})
+
+// Keep trendForecast for backward compatibility (uses current active tab)
+const trendForecast = computed(() => currentHorizonForecast.value)
 
 
 const signalBg = computed(() => {
