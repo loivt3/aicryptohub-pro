@@ -278,10 +278,10 @@ async def run_onchain_job():
             try:
                 coin_id = coin.get("coin_id")
                 contract = coin.get("contract_address")
-                chain_id = coin.get("chain_id", 1)
+                chain_id = int(coin.get("chain_id", 1))  # Ensure integer
                 chain_slug = coin.get("chain_slug", "ethereum")
                 price = coin.get("price", 0)
-                decimals = coin.get("decimals", 18)
+                decimals = int(coin.get("decimals", 18))  # Ensure integer
                 
                 if not coin_id:
                     continue
