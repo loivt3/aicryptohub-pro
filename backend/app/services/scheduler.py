@@ -267,7 +267,10 @@ async def run_onchain_job():
         
         stats = {
             "whale_txs_found": 0,
+            "dau_collected": 0,
+            "holders_collected": 0,
             "coins_processed": 0,
+            "signals_updated": 0,
             "errors": 0,
         }
         
@@ -276,33 +279,74 @@ async def run_onchain_job():
                 coin_id = coin.get("coin_id")
                 contract = coin.get("contract_address")
                 chain_id = coin.get("chain_id", 1)
+                chain_slug = coin.get("chain_slug", "ethereum")
                 price = coin.get("price", 0)
+                decimals = coin.get("decimals", 18)
                 
-                if not contract or not price:
+                if not coin_id:
                     continue
                 
-                # Collect whale transactions
-                whale_txs = await collector.collect_whale_transactions(
-                    coin_id=coin_id,
-                    chain_slug=coin.get("chain_slug", "ethereum"),
-                    chain_id=chain_id,
-                    contract_address=contract,
-                    token_price_usd=price,
-                    token_decimals=coin.get("decimals", 18),
-                    hours_back=24,
-                )
+                whale_txs = []
                 
-                if whale_txs:
-                    # Save whale transactions and update signals
-                    await collector.save_whale_transactions(whale_txs)
-                    await collector.update_onchain_signals(coin_id, whale_txs)
-                    stats["whale_txs_found"] += len(whale_txs)
+                # Collect whale transactions (requires contract and price)
+                if contract and price > 0:
+                    whale_txs = await collector.collect_whale_transactions(
+                        coin_id=coin_id,
+                        chain_slug=chain_slug,
+                        chain_id=chain_id,
+                        contract_address=contract,
+                        token_price_usd=price,
+                        token_decimals=decimals,
+                        hours_back=24,
+                    )
+                    
+                    if whale_txs:
+                        await collector.save_whale_transactions(whale_txs)
+                        stats["whale_txs_found"] += len(whale_txs)
+                
+                # Collect DAU (Daily Active Addresses)
+                if contract:
+                    try:
+                        dau_data = await collector.collect_daily_active_addresses(
+                            coin_id=coin_id,
+                            chain_slug=chain_slug,
+                            chain_id=chain_id,
+                            contract_address=contract,
+                        )
+                        if dau_data.get("active_addresses", 0) > 0:
+                            stats["dau_collected"] += 1
+                    except Exception as dau_err:
+                        logger.debug(f"DAU collection failed for {coin_id}: {dau_err}")
+                
+                # Collect top holders
+                if contract:
+                    try:
+                        holders = await collector.collect_top_holders(
+                            coin_id=coin_id,
+                            chain_slug=chain_slug,
+                            chain_id=chain_id,
+                            contract_address=contract,
+                            limit=50,
+                        )
+                        if holders:
+                            stats["holders_collected"] += 1
+                    except Exception as holder_err:
+                        logger.debug(f"Holder collection failed for {coin_id}: {holder_err}")
+                
+                # Always update signals (even if no new whale txs, to calculate from existing data)
+                updated = await collector.update_onchain_signals(coin_id, whale_txs if whale_txs else None)
+                if updated:
+                    stats["signals_updated"] += 1
                 
                 stats["coins_processed"] += 1
+                
+                # Small delay between coins to avoid rate limiting
+                await asyncio.sleep(0.5)
                 
             except Exception as e:
                 logger.warning(f"Failed to collect on-chain for {coin.get('coin_id')}: {e}")
                 stats["errors"] += 1
+
         
         SCHEDULER_STATE["onchain_collector"]["last_result"] = stats
         logger.info(f"Scheduler: On-chain job complete - {stats}")

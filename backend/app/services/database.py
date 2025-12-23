@@ -437,6 +437,66 @@ class DatabaseService:
             logger.error(f"Failed to get coins with contracts: {e}")
             return []
     
+    def seed_coin_contracts_from_known(self) -> int:
+        """
+        Seed the coin_contracts table with known contract addresses.
+        This ensures the table has data even if no external seeding is done.
+        
+        Returns:
+            Number of contracts inserted
+        """
+        KNOWN_CONTRACTS = [
+            # Stablecoins
+            ("tether", 1, "ethereum", "0xdac17f958d2ee523a2206206994597c13d831ec7", 6),
+            ("usd-coin", 1, "ethereum", "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", 6),
+            ("dai", 1, "ethereum", "0x6b175474e89094c44da98b954eedeac495271d0f", 18),
+            # DeFi tokens
+            ("staked-ether", 1, "ethereum", "0xae7ab96520de3a18e5e111b5eaab095312d7fe84", 18),
+            ("wrapped-bitcoin", 1, "ethereum", "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599", 8),
+            ("chainlink", 1, "ethereum", "0x514910771af9ca656af840dff83e8264ecf986ca", 18),
+            ("uniswap", 1, "ethereum", "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", 18),
+            ("matic-network", 1, "ethereum", "0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0", 18),
+            # Meme coins
+            ("shiba-inu", 1, "ethereum", "0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce", 18),
+            ("pepe", 1, "ethereum", "0x6982508145454ce325ddbe47a25d4ec3d2311933", 18),
+            # L2 tokens
+            ("arbitrum", 1, "ethereum", "0xb50721bcf8d664c30412cfbc6cf7a15145234ad1", 18),
+            ("optimism", 1, "ethereum", "0x4200000000000000000000000000000000000042", 18),
+            # Other tokens
+            ("aave", 1, "ethereum", "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9", 18),
+            ("maker", 1, "ethereum", "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2", 18),
+            ("curve-dao-token", 1, "ethereum", "0xd533a949740bb3306d119cc777fa900ba034cd52", 18),
+            # BSC tokens
+            ("pancakeswap-token", 56, "bsc", "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82", 18),
+        ]
+        
+        query = text("""
+            INSERT INTO coin_contracts (coin_id, chain_id, chain_slug, contract_address, decimals, is_primary)
+            VALUES (:coin_id, :chain_id, :chain_slug, :contract_address, :decimals, TRUE)
+            ON CONFLICT (coin_id, chain_id) DO NOTHING
+        """)
+        
+        inserted = 0
+        try:
+            with self.engine.begin() as conn:
+                for coin_id, chain_id, chain_slug, contract, decimals in KNOWN_CONTRACTS:
+                    result = conn.execute(query, {
+                        "coin_id": coin_id,
+                        "chain_id": chain_id,
+                        "chain_slug": chain_slug,
+                        "contract_address": contract,
+                        "decimals": decimals,
+                    })
+                    if result.rowcount > 0:
+                        inserted += 1
+            
+            logger.info(f"Seeded {inserted} contract addresses to coin_contracts table")
+            return inserted
+            
+        except Exception as e:
+            logger.error(f"Failed to seed coin_contracts: {e}")
+            return 0
+    
     def _get_symbol_for_coin(self, coin_id: str) -> Optional[str]:
         """
         Get trading symbol for a coin_id dynamically from coins table

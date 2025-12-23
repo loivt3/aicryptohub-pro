@@ -1538,6 +1538,112 @@ class OnChainCollector:
             logger.error(f"Failed to get active whale profiles: {e}")
             return []
         
+    async def update_onchain_signals(
+        self,
+        coin_id: str,
+        whale_txs: List[Dict] = None,
+    ) -> bool:
+        """
+        Calculate and upsert on-chain signals for a coin.
+        This is the main method called by scheduler after collecting whale transactions.
+        
+        Args:
+            coin_id: Coin identifier
+            whale_txs: Optional list of whale transactions (for reference)
+            
+        Returns:
+            True on success
+        """
+        from sqlalchemy import text
+        from datetime import datetime
+        
+        try:
+            # Calculate all signals from stored data
+            whale_signals = await self.calculate_whale_signals(coin_id)
+            dau_signals = await self.calculate_dau_signals(coin_id)
+            holder_signals = await self.calculate_holder_signals(coin_id)
+            overall = await self.calculate_overall_signal(
+                whale_signals, dau_signals, holder_signals
+            )
+            
+            # Upsert to onchain_signals table
+            query = text("""
+                INSERT INTO onchain_signals (
+                    coin_id, overall_signal, bullish_probability, confidence_score,
+                    whale_signal, whale_tx_count_24h, whale_tx_change_pct, 
+                    whale_net_flow_usd, whale_inflow_usd, whale_outflow_usd,
+                    network_signal, dau_current, dau_prev_day, dau_change_1d_pct, dau_trend,
+                    holder_signal, top10_change_pct, accumulation_score,
+                    last_whale_update, last_dau_update, updated_at
+                ) VALUES (
+                    :coin_id, :overall_signal, :bullish_probability, :confidence_score,
+                    :whale_signal, :whale_tx_count_24h, :whale_tx_change_pct,
+                    :whale_net_flow_usd, :whale_inflow_usd, :whale_outflow_usd,
+                    :network_signal, :dau_current, :dau_prev_day, :dau_change_1d_pct, :dau_trend,
+                    :holder_signal, :top10_change_pct, :accumulation_score,
+                    :last_whale_update, :last_dau_update, :updated_at
+                )
+                ON CONFLICT (coin_id) DO UPDATE SET
+                    overall_signal = EXCLUDED.overall_signal,
+                    bullish_probability = EXCLUDED.bullish_probability,
+                    confidence_score = EXCLUDED.confidence_score,
+                    whale_signal = EXCLUDED.whale_signal,
+                    whale_tx_count_24h = EXCLUDED.whale_tx_count_24h,
+                    whale_tx_change_pct = EXCLUDED.whale_tx_change_pct,
+                    whale_net_flow_usd = EXCLUDED.whale_net_flow_usd,
+                    whale_inflow_usd = EXCLUDED.whale_inflow_usd,
+                    whale_outflow_usd = EXCLUDED.whale_outflow_usd,
+                    network_signal = EXCLUDED.network_signal,
+                    dau_current = EXCLUDED.dau_current,
+                    dau_prev_day = EXCLUDED.dau_prev_day,
+                    dau_change_1d_pct = EXCLUDED.dau_change_1d_pct,
+                    dau_trend = EXCLUDED.dau_trend,
+                    holder_signal = EXCLUDED.holder_signal,
+                    top10_change_pct = EXCLUDED.top10_change_pct,
+                    accumulation_score = EXCLUDED.accumulation_score,
+                    last_whale_update = EXCLUDED.last_whale_update,
+                    last_dau_update = EXCLUDED.last_dau_update,
+                    updated_at = EXCLUDED.updated_at
+            """)
+            
+            now = datetime.now()
+            
+            with self.db.engine.begin() as conn:
+                conn.execute(query, {
+                    "coin_id": coin_id,
+                    "overall_signal": overall.get("overall_signal", "NEUTRAL"),
+                    "bullish_probability": overall.get("bullish_probability", 50),
+                    "confidence_score": overall.get("confidence_score", 0),
+                    # Whale signals
+                    "whale_signal": whale_signals.get("whale_signal", "NEUTRAL"),
+                    "whale_tx_count_24h": whale_signals.get("whale_tx_count_24h", 0),
+                    "whale_tx_change_pct": whale_signals.get("whale_tx_change_pct", 0),
+                    "whale_net_flow_usd": whale_signals.get("whale_net_flow_usd", 0),
+                    "whale_inflow_usd": whale_signals.get("whale_inflow_usd", 0),
+                    "whale_outflow_usd": whale_signals.get("whale_outflow_usd", 0),
+                    # DAU/Network signals
+                    "network_signal": dau_signals.get("network_signal", "NEUTRAL"),
+                    "dau_current": dau_signals.get("dau_current", 0),
+                    "dau_prev_day": dau_signals.get("dau_prev_day", 0),
+                    "dau_change_1d_pct": dau_signals.get("dau_change_1d_pct", 0),
+                    "dau_trend": dau_signals.get("dau_trend", "STABLE"),
+                    # Holder signals
+                    "holder_signal": holder_signals.get("holder_signal", "NEUTRAL"),
+                    "top10_change_pct": holder_signals.get("top10_change_pct", 0),
+                    "accumulation_score": holder_signals.get("accumulation_score", 50),
+                    # Timestamps
+                    "last_whale_update": now if whale_txs else None,
+                    "last_dau_update": now,
+                    "updated_at": now,
+                })
+            
+            logger.info(f"Updated onchain signals for {coin_id}: {overall.get('overall_signal')}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to update onchain signals for {coin_id}: {e}")
+            return False
+        
     async def close(self):
         """Close HTTP client"""
         if self._client:

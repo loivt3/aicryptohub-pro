@@ -131,12 +131,20 @@ class OnChainSignal(Base):
     whale_tx_count_24h = Column(Integer, default=0)
     whale_tx_change_pct = Column(Numeric(10, 2), default=0)
     whale_net_flow_usd = Column(Numeric(24, 2), default=0)
+    whale_inflow_usd = Column(Numeric(24, 2), default=0)
+    whale_outflow_usd = Column(Numeric(24, 2), default=0)
     
     # Network health
     network_signal = Column(String(20), default="NEUTRAL")
     dau_current = Column(Integer, default=0)
+    dau_prev_day = Column(Integer, default=0)
     dau_change_1d_pct = Column(Numeric(10, 2), default=0)
     dau_trend = Column(String(20), default="STABLE")
+    
+    # Holder signals
+    holder_signal = Column(String(20), default="NEUTRAL")
+    top10_change_pct = Column(Numeric(10, 2), default=0)
+    accumulation_score = Column(Numeric(5, 2), default=50)
     
     # AI analysis
     ai_prediction = Column(Text)
@@ -144,8 +152,27 @@ class OnChainSignal(Base):
     
     # Timestamps
     last_whale_update = Column(DateTime(timezone=True))
+    last_dau_update = Column(DateTime(timezone=True))
     last_ai_analysis = Column(DateTime(timezone=True))
     updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class CoinContract(Base):
+    """Coin contract addresses for on-chain tracking"""
+    __tablename__ = "coin_contracts"
+    
+    id = Column(Integer, primary_key=True)
+    coin_id = Column(String(100), nullable=False, index=True)
+    chain_id = Column(Integer, nullable=False)
+    chain_slug = Column(String(50), nullable=False)
+    contract_address = Column(String(100), nullable=False)
+    decimals = Column(Integer, default=18)
+    is_primary = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    __table_args__ = (
+        Index('idx_coin_contracts_coin_chain', 'coin_id', 'chain_id', unique=True),
+    )
 
 
 class AppSetting(Base):
@@ -155,3 +182,4 @@ class AppSetting(Base):
     key = Column(String(100), primary_key=True)
     value = Column(JSON)
     updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
