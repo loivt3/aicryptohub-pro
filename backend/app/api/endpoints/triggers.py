@@ -91,17 +91,22 @@ async def trigger_analysis(
 async def trigger_ohlcv(
     background_tasks: BackgroundTasks,
     limit: int = 500,
+    timeframe: str = "1h",
 ):
     """
     Trigger OHLCV data fetch from Binance for top coins.
+    
+    Args:
+        limit: Number of coins to fetch
+        timeframe: '1h', '4h', '1d', '1w', '1M' (default: '1h')
     """
-    job_id = f"ohlcv_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    job_id = f"ohlcv_{timeframe}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
     async def run_ohlcv():
         try:
             from app.services.data_fetcher import get_data_fetcher
             fetcher = get_data_fetcher()
-            result = await fetcher.fetch_ohlcv_for_all_coins(limit=limit)
+            result = await fetcher.fetch_ohlcv_for_all_coins(timeframe=timeframe, limit=limit)
             logger.info(f"OHLCV job {job_id} complete: {result}")
         except Exception as e:
             logger.error(f"OHLCV job {job_id} failed: {e}")
@@ -110,9 +115,44 @@ async def trigger_ohlcv(
     
     return TriggerResponse(
         success=True,
-        message=f"OHLCV fetch queued for {limit} coins",
+        message=f"OHLCV fetch queued for {limit} coins ({timeframe})",
         job_id=job_id,
         items_queued=limit,
+    )
+
+
+@router.post("/ohlcv-all-timeframes", response_model=TriggerResponse)
+async def trigger_ohlcv_all_timeframes(
+    background_tasks: BackgroundTasks,
+    limit: int = 100,
+):
+    """
+    Trigger OHLCV fetch for ALL timeframes needed by multi-horizon ASI.
+    Fetches: 1h, 4h, 1d, 1w, 1M
+    """
+    job_id = f"ohlcv_all_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    
+    async def run_ohlcv_all():
+        try:
+            from app.services.data_fetcher import get_data_fetcher
+            fetcher = get_data_fetcher()
+            timeframes = ["1h", "4h", "1d", "1w", "1M"]
+            results = {}
+            for tf in timeframes:
+                logger.info(f"Fetching OHLCV for timeframe: {tf}")
+                result = await fetcher.fetch_ohlcv_for_all_coins(timeframe=tf, limit=limit)
+                results[tf] = result
+            logger.info(f"OHLCV all-timeframes job {job_id} complete: {results}")
+        except Exception as e:
+            logger.error(f"OHLCV all-timeframes job {job_id} failed: {e}")
+    
+    background_tasks.add_task(run_ohlcv_all)
+    
+    return TriggerResponse(
+        success=True,
+        message=f"OHLCV fetch queued for {limit} coins (all timeframes: 1h,4h,1d,1w,1M)",
+        job_id=job_id,
+        items_queued=limit * 5,
     )
 
 
