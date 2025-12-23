@@ -1584,26 +1584,23 @@ const toggleFavorite = (coinId: string) => {
 .m-horizon-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  gap: 6px;
   padding: 0 12px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .m-stat-mini {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 4px;
-  padding: 8px 4px;
-  background: rgb(30 32 36 / 92%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
+  padding: 6px 2px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
 }
 
 .m-stat-mini .stat-value {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
   color: #fff;
 }
 
@@ -1612,9 +1609,9 @@ const toggleFavorite = (coinId: string) => {
 .m-stat-mini .stat-value.negative { color: #ef4444; }
 
 .m-stat-mini .stat-label {
-  font-size: 10px;
+  font-size: 9px;
   color: #888;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 /* Horizon Coin List */
