@@ -259,7 +259,7 @@
               cursor: 'pointer', transition: 'all 0.2s'
             }">
               <Icon name="ph:trend-up" class="w-4 h-4" style="color: #22c55e;" />
-              <span style="font-size: 0.85rem; font-weight: 600; color: #22c55e;">Xu hướng tăng giá</span>
+              <span style="font-size: 0.85rem; font-weight: 600; color: #22c55e;">Bullish Trend</span>
             </button>
             
             <button :style="{
@@ -270,7 +270,7 @@
               cursor: 'pointer', transition: 'all 0.2s'
             }">
               <Icon name="ph:trend-down" class="w-4 h-4" style="color: #ef4444;" />
-              <span style="font-size: 0.85rem; font-weight: 600; color: #ef4444;">Xu hướng giảm giá</span>
+              <span style="font-size: 0.85rem; font-weight: 600; color: #ef4444;">Bearish Trend</span>
             </button>
           </div>
         </div>
