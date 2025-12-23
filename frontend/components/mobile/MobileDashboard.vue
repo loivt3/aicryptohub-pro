@@ -562,33 +562,30 @@
 
       <!-- Hidden Gems & High Rich Section -->
       <section class="m-section">
-        <div class="m-section-header">
-          <h3 class="m-section-title">
+        <!-- Header with inline tabs -->
+        <div style="display: flex; align-items: center; gap: 16px; padding-bottom: 8px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+          <h3 class="m-section-title" style="margin: 0;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M6 3l6 3 6-3"/><path d="M3 8l9 4 9-4"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 12v9"/></svg>
             Discovery
           </h3>
-        </div>
-        
-        <!-- Tabs (Minimal) -->
-        <div style="display: flex; gap: 16px; margin-bottom: 12px;">
           <button 
             @click="activeGemTab = 'gems'"
             :style="{
-              background: 'none', border: 'none', padding: '4px 0',
-              fontSize: '13px', fontWeight: activeGemTab === 'gems' ? '600' : '400',
+              background: 'none', border: 'none', padding: '4px 8px',
+              fontSize: '12px', fontWeight: activeGemTab === 'gems' ? '600' : '400',
               color: activeGemTab === 'gems' ? '#22c55e' : 'rgba(255,255,255,0.5)',
               borderBottom: activeGemTab === 'gems' ? '2px solid #22c55e' : '2px solid transparent',
-              cursor: 'pointer', transition: 'all 0.2s'
+              cursor: 'pointer'
             }"
           >💎 Gems</button>
           <button 
             @click="activeGemTab = 'highrich'"
             :style="{
-              background: 'none', border: 'none', padding: '4px 0',
-              fontSize: '13px', fontWeight: activeGemTab === 'highrich' ? '600' : '400',
+              background: 'none', border: 'none', padding: '4px 8px',
+              fontSize: '12px', fontWeight: activeGemTab === 'highrich' ? '600' : '400',
               color: activeGemTab === 'highrich' ? '#f59e0b' : 'rgba(255,255,255,0.5)',
               borderBottom: activeGemTab === 'highrich' ? '2px solid #f59e0b' : '2px solid transparent',
-              cursor: 'pointer', transition: 'all 0.2s'
+              cursor: 'pointer'
             }"
           >🚀 High Rich</button>
         </div>
