@@ -219,6 +219,63 @@
         </div>
       </section>
 
+      <!-- Trend Forecast Section -->
+      <section v-if="analysisCoin && !loading" class="m-section">
+        <div class="m-card m-card--dark" style="padding: 20px; background: linear-gradient(160deg, rgba(240,250,245,0.98), rgba(235,245,240,0.98)); border-radius: 14px;">
+          <!-- Header -->
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            <Icon name="ph:trend-up" class="w-5 h-5" style="color: #22c55e;" />
+            <span style="font-size: 0.9rem; font-weight: 600; color: #1a1a2e; letter-spacing: 0.5px;">TREND FORECAST</span>
+          </div>
+          
+          <!-- Percentage Bar -->
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+            <!-- Bullish Percentage -->
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <Icon name="ph:trend-up" class="w-4 h-4" style="color: #22c55e;" />
+              <span style="font-size: 1.1rem; font-weight: 700; color: #22c55e;">{{ trendForecast.bullishPercent }}%</span>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div style="flex: 1; height: 12px; background: #e5e7eb; border-radius: 6px; overflow: hidden; display: flex;">
+              <div :style="{ width: trendForecast.bullishPercent + '%', height: '100%', background: '#22c55e', transition: 'width 0.5s ease' }"></div>
+              <div :style="{ width: trendForecast.bearishPercent + '%', height: '100%', background: '#ef4444', transition: 'width 0.5s ease' }"></div>
+            </div>
+            
+            <!-- Bearish Percentage -->
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 1.1rem; font-weight: 700; color: #ef4444;">{{ trendForecast.bearishPercent }}%</span>
+              <Icon name="ph:trend-down" class="w-4 h-4" style="color: #ef4444;" />
+            </div>
+          </div>
+          
+          <!-- Trend Buttons -->
+          <div style="display: flex; gap: 10px;">
+            <button :style="{
+              flex: 1, padding: '12px 16px', borderRadius: '10px',
+              background: trendForecast.bullishPercent >= 50 ? 'rgba(34,197,94,0.1)' : 'transparent',
+              border: '1.5px solid #22c55e',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              cursor: 'pointer', transition: 'all 0.2s'
+            }">
+              <Icon name="ph:trend-up" class="w-4 h-4" style="color: #22c55e;" />
+              <span style="font-size: 0.85rem; font-weight: 600; color: #22c55e;">Xu hướng tăng giá</span>
+            </button>
+            
+            <button :style="{
+              flex: 1, padding: '12px 16px', borderRadius: '10px',
+              background: trendForecast.bearishPercent > 50 ? 'rgba(239,68,68,0.1)' : 'transparent',
+              border: '1.5px solid #ef4444',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              cursor: 'pointer', transition: 'all 0.2s'
+            }">
+              <Icon name="ph:trend-down" class="w-4 h-4" style="color: #ef4444;" />
+              <span style="font-size: 0.85rem; font-weight: 600; color: #ef4444;">Xu hướng giảm giá</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
       <!-- Candlestick Pattern Detection -->
       <section v-if="analysisCoin && !loading" class="m-section">
         <div class="m-card m-card--dark" style="padding: 20px; background: linear-gradient(160deg, rgba(25,20,45,0.98), rgba(15,12,30,0.98));">
@@ -987,6 +1044,26 @@ const sentimentLabel = computed(() => {
   if (asiScore.value <= 40) return 'Bearish'
   return 'Neutral'
 })
+
+// Trend Forecast based on ASI score
+const trendForecast = computed(() => {
+  // ASI Score 0-100: 
+  // 0-50 = bearish (100-0% bearish)
+  // 50-100 = bullish (0-100% bullish)
+  const score = asiScore.value
+  
+  // Calculate bullish percentage based on ASI score
+  // ASI 50 = 50/50, ASI 100 = 100% bullish, ASI 0 = 100% bearish
+  const bullishPercent = Math.round(score)
+  const bearishPercent = 100 - bullishPercent
+  
+  return {
+    bullishPercent,
+    bearishPercent,
+    trend: bullishPercent >= 50 ? 'bullish' : 'bearish',
+  }
+})
+
 
 const signalBg = computed(() => {
   if (signal.value.includes('BUY')) return 'rgba(34, 197, 94, 0.15)'
