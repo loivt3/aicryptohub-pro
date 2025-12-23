@@ -569,22 +569,28 @@
           </h3>
         </div>
         
-        <!-- Tabs -->
-        <div class="m-horizon-tabs" style="margin-bottom: 12px;">
+        <!-- Tabs (Minimal) -->
+        <div style="display: flex; gap: 16px; margin-bottom: 12px;">
           <button 
-            class="m-horizon-tab" 
-            :class="{ active: activeGemTab === 'gems' }"
             @click="activeGemTab = 'gems'"
-          >
-            <span class="tab-label">💎 Hidden Gems</span>
-          </button>
+            :style="{
+              background: 'none', border: 'none', padding: '4px 0',
+              fontSize: '13px', fontWeight: activeGemTab === 'gems' ? '600' : '400',
+              color: activeGemTab === 'gems' ? '#22c55e' : 'rgba(255,255,255,0.5)',
+              borderBottom: activeGemTab === 'gems' ? '2px solid #22c55e' : '2px solid transparent',
+              cursor: 'pointer', transition: 'all 0.2s'
+            }"
+          >💎 Gems</button>
           <button 
-            class="m-horizon-tab" 
-            :class="{ active: activeGemTab === 'highrich' }"
             @click="activeGemTab = 'highrich'"
-          >
-            <span class="tab-label">🚀 High Rich</span>
-          </button>
+            :style="{
+              background: 'none', border: 'none', padding: '4px 0',
+              fontSize: '13px', fontWeight: activeGemTab === 'highrich' ? '600' : '400',
+              color: activeGemTab === 'highrich' ? '#f59e0b' : 'rgba(255,255,255,0.5)',
+              borderBottom: activeGemTab === 'highrich' ? '2px solid #f59e0b' : '2px solid transparent',
+              cursor: 'pointer', transition: 'all 0.2s'
+            }"
+          >🚀 High Rich</button>
         </div>
         
         <!-- Hidden Gems Content -->
