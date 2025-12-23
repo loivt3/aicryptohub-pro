@@ -558,54 +558,7 @@
         </div>
       </section>
 
-      <!-- AI Signals Treemap Section -->
-      <section class="m-section">
-        <div class="m-section-header">
-          <h3 class="m-section-title">
-            <Icon name="ph:squares-four" class="w-4 h-4" style="color: #8b5cf6;" />
-            Market Heatmap
-          </h3>
-          <NuxtLink to="/analysis" class="m-section-link">View All</NuxtLink>
-        </div>
-        
-        <!-- Treemap Container - Sorted by ASI (5x4 grid) -->
-        <div class="m-treemap-container" ref="treemapContainer">
-          <div 
-            v-for="(tile, idx) in treemapLayout" 
-            :key="tile.coin_id" 
-            class="m-treemap-tile"
-            :style="{
-              left: tile.x + '%',
-              top: tile.y + '%',
-              width: tile.w + '%',
-              height: tile.h + '%',
-            }"
-          >
-            <div class="m-treemap-tile-inner" :style="getTreemapTileStyle(tile.asi_score, tile.change_24h)">
-              <img v-if="tile.image" :src="tile.image" class="treemap-bg-icon" />
-              <span class="treemap-symbol">{{ tile.symbol?.toUpperCase() }}</span>
-              <span class="treemap-asi">{{ tile.asi_score || '--' }}</span>
-            </div>
-          </div>
-        </div>
 
-        
-        <!-- Legend - ASI based -->
-        <div class="m-heatmap-legend">
-          <div class="legend-item">
-            <span class="legend-color" style="background: #b71c1c;"></span>
-            <span class="legend-text">Sell (&lt;40)</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-color" style="background: #546e7a;"></span>
-            <span class="legend-text">Neutral</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-color" style="background: #00897b;"></span>
-            <span class="legend-text">Buy (&gt;60)</span>
-          </div>
-        </div>
-      </section>
 
       <!-- Hidden Gems Section (ENHANCED for Mobile) -->
       <section class="m-section">
