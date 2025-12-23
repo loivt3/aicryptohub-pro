@@ -6,36 +6,46 @@
       <p class="m-text-muted" style="font-size: 12px;">Blockchain analytics & whale tracking</p>
     </section>
 
+    <!-- Loading State -->
+    <section v-if="loading" class="m-section">
+      <div class="m-loading-indicator">Loading on-chain data...</div>
+    </section>
+
     <!-- Network Stats -->
-    <section class="m-section">
+    <section v-else class="m-section">
       <div class="m-stats-scroll">
         <div class="m-stats-container">
           <div class="m-stat-card-pro">
             <div class="m-stat-header">
-              <span class="m-stat-label">BTC NETFLOW</span>
-              <span class="m-stat-change" :class="netflowBtc >= 0 ? 'positive' : 'negative'">
-                {{ netflowBtc >= 0 ? '↑ Inflow' : '↓ Outflow' }}
+              <span class="m-stat-label">NET FLOW</span>
+              <span class="m-stat-change" :class="netFlow >= 0 ? 'negative' : 'positive'">
+                {{ netFlow >= 0 ? '↑ Inflow' : '↓ Outflow' }}
               </span>
             </div>
-            <div class="m-stat-value-large" :class="netflowBtc >= 0 ? 'm-text-danger' : 'm-text-success'">
-              {{ Math.abs(netflowBtc).toLocaleString() }} BTC
+            <div class="m-stat-value-large" :class="netFlow >= 0 ? 'm-text-danger' : 'm-text-success'">
+              ${{ formatValue(Math.abs(netFlow)) }}
             </div>
           </div>
           
           <div class="m-stat-card-pro">
             <div class="m-stat-header">
-              <span class="m-stat-label">ETH GAS</span>
+              <span class="m-stat-label">BULLISH</span>
             </div>
-            <div class="m-stat-value-large">{{ gasPrice }} Gwei</div>
-            <div class="m-gas-indicator" :class="gasLevel"></div>
+            <div class="m-stat-value-large m-text-success">{{ stats.bullish_count || 0 }}</div>
           </div>
           
           <div class="m-stat-card-pro">
             <div class="m-stat-header">
-              <span class="m-stat-label">ACTIVE ADDR</span>
-              <span class="m-stat-change positive">↑ 12%</span>
+              <span class="m-stat-label">BEARISH</span>
             </div>
-            <div class="m-stat-value-large">1.2M</div>
+            <div class="m-stat-value-large m-text-danger">{{ stats.bearish_count || 0 }}</div>
+          </div>
+          
+          <div class="m-stat-card-pro">
+            <div class="m-stat-header">
+              <span class="m-stat-label">NEUTRAL</span>
+            </div>
+            <div class="m-stat-value-large" style="color: #94a3b8;">{{ stats.neutral_count || 0 }}</div>
           </div>
         </div>
       </div>
@@ -48,21 +58,26 @@
         <span class="m-badge-info">Last 24h</span>
       </div>
       
-      <div class="m-list">
-        <div v-for="tx in whaleTransactions" :key="tx.id" class="m-list-item m-whale-item">
-          <div class="m-whale-icon" :class="tx.type">
-            {{ tx.type === 'buy' ? '🟢' : '🔴' }}
+      <div class="m-list" v-if="whaleTransactions.length > 0">
+        <div v-for="(tx, idx) in whaleTransactions" :key="idx" class="m-list-item m-whale-item">
+          <div class="m-whale-icon" :class="tx.tx_type?.includes('withdraw') ? 'buy' : 'sell'">
+            {{ tx.tx_type?.includes('withdraw') ? '🟢' : '🔴' }}
           </div>
           <div class="m-info">
-            <span class="m-info-title">{{ tx.symbol }}</span>
-            <span class="m-info-subtitle">{{ tx.time }}</span>
+            <span class="m-info-title">{{ tx.coin_id?.toUpperCase() }}</span>
+            <span class="m-info-subtitle">{{ formatTime(tx.tx_timestamp) }}</span>
           </div>
           <div class="m-whale-amount">
-            <span class="m-info-title">{{ tx.amount }}</span>
-            <span class="m-info-subtitle">${{ tx.value }}</span>
+            <span class="m-info-title">${{ formatValue(tx.value_usd) }}</span>
+            <span class="m-info-subtitle">{{ tx.exchange_name || 'Unknown' }}</span>
           </div>
-          <span class="m-whale-type" :class="tx.type">{{ tx.type.toUpperCase() }}</span>
+          <span class="m-whale-type" :class="tx.tx_type?.includes('withdraw') ? 'buy' : 'sell'">
+            {{ tx.tx_type?.includes('withdraw') ? 'OUT' : 'IN' }}
+          </span>
         </div>
+      </div>
+      <div v-else class="m-empty-state">
+        <span>No whale transactions in last 24h</span>
       </div>
     </section>
 
@@ -75,55 +90,37 @@
           <div class="m-flow-icon">📥</div>
           <div class="m-flow-info">
             <span class="m-flow-label">Exchange Inflow</span>
-            <span class="m-flow-value m-text-danger">+$1.2B</span>
+            <span class="m-flow-value m-text-danger">+${{ formatValue(totalInflow) }}</span>
           </div>
-          <span class="m-flow-signal">Bearish</span>
+          <span class="m-flow-signal">{{ totalInflow > totalOutflow ? 'Bearish' : 'Neutral' }}</span>
         </div>
         
         <div class="m-flow-card outflow">
           <div class="m-flow-icon">📤</div>
           <div class="m-flow-info">
             <span class="m-flow-label">Exchange Outflow</span>
-            <span class="m-flow-value m-text-success">-$2.8B</span>
+            <span class="m-flow-value m-text-success">-${{ formatValue(totalOutflow) }}</span>
           </div>
-          <span class="m-flow-signal">Bullish</span>
+          <span class="m-flow-signal">{{ totalOutflow > totalInflow ? 'Bullish' : 'Neutral' }}</span>
         </div>
       </div>
     </section>
 
-    <!-- Top Accumulation -->
-    <section class="m-section">
-      <h3 class="m-section-title">📈 Top Accumulation</h3>
+    <!-- Top Signals -->
+    <section class="m-section" v-if="topSignals.length > 0">
+      <h3 class="m-section-title">📈 Top On-Chain Signals</h3>
       
       <div class="m-list">
-        <div v-for="coin in topAccumulation" :key="coin.symbol" class="m-list-item">
-          <img :src="coin.image" class="m-avatar" />
+        <div v-for="coin in topSignals" :key="coin.coin_id" class="m-list-item">
+          <img :src="coin.image || `https://assets.coingecko.com/coins/images/1/small/bitcoin.png`" class="m-avatar" />
           <div class="m-info">
-            <span class="m-info-title">{{ coin.symbol }}</span>
-            <span class="m-info-subtitle">{{ coin.name }}</span>
+            <span class="m-info-title">{{ coin.coin_id?.toUpperCase() }}</span>
+            <span class="m-info-subtitle">Signal: {{ coin.overall_signal || 'NEUTRAL' }}</span>
           </div>
-          <div class="m-acc-bar">
-            <div class="m-acc-fill" :style="{ width: coin.score + '%' }"></div>
-          </div>
-          <span class="m-acc-score m-text-success">{{ coin.score }}</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Contract Addresses -->
-    <section class="m-section">
-      <h3 class="m-section-title">📋 Smart Contract Activity</h3>
-      
-      <div class="m-contract-list">
-        <div v-for="contract in contracts" :key="contract.address" class="m-contract-item">
-          <div class="m-contract-header">
-            <span class="m-contract-name">{{ contract.name }}</span>
-            <span class="m-contract-chain">{{ contract.chain }}</span>
-          </div>
-          <div class="m-contract-address">{{ contract.address }}</div>
-          <div class="m-contract-stats">
-            <span>Txns: {{ contract.txns }}</span>
-            <span>Vol: ${{ contract.volume }}</span>
+          <div class="m-signal-col">
+            <span class="m-signal-badge" :class="getSignalClass(coin.overall_signal)">
+              {{ coin.bullish_probability?.toFixed(0) || 50 }}%
+            </span>
           </div>
         </div>
       </div>
@@ -134,31 +131,71 @@
 </template>
 
 <script setup lang="ts">
-const netflowBtc = ref(-2450)
-const gasPrice = ref(28)
-const gasLevel = computed(() => {
-  if (gasPrice.value < 20) return 'low'
-  if (gasPrice.value < 50) return 'medium'
-  return 'high'
+const loading = ref(true)
+const stats = ref<any>({})
+const whaleTransactions = ref<any[]>([])
+const topSignals = ref<any[]>([])
+const totalInflow = ref(0)
+const totalOutflow = ref(0)
+
+const netFlow = computed(() => totalInflow.value - totalOutflow.value)
+
+// Fetch on-chain data
+const fetchOnChainData = async () => {
+  loading.value = true
+  const config = useRuntimeConfig()
+  const apiBase = config.public.apiBase || '/api/v1'
+  
+  try {
+    const response = await $fetch<any>(`${apiBase}/onchain/summary`)
+    
+    if (response) {
+      stats.value = response.stats || {}
+      whaleTransactions.value = response.recent_whale_txs || []
+      topSignals.value = response.signals || []
+      totalInflow.value = response.total_inflow || 0
+      totalOutflow.value = response.total_outflow || 0
+    }
+  } catch (error) {
+    console.error('[OnChain] Failed to fetch data:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Format large numbers
+const formatValue = (value: number) => {
+  if (!value) return '0'
+  if (value >= 1e9) return (value / 1e9).toFixed(2) + 'B'
+  if (value >= 1e6) return (value / 1e6).toFixed(2) + 'M'
+  if (value >= 1e3) return (value / 1e3).toFixed(2) + 'K'
+  return value.toFixed(0)
+}
+
+// Format timestamp
+const formatTime = (timestamp: string) => {
+  if (!timestamp) return '--'
+  const date = new Date(timestamp)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffHrs = Math.floor(diffMs / (1000 * 60 * 60))
+  if (diffHrs < 1) return 'Just now'
+  if (diffHrs < 24) return `${diffHrs}h ago`
+  return `${Math.floor(diffHrs / 24)}d ago`
+}
+
+// Get signal class
+const getSignalClass = (signal: string) => {
+  if (!signal) return ''
+  const s = signal.toLowerCase()
+  if (s.includes('bull') || s.includes('buy')) return 'm-signal-buy'
+  if (s.includes('bear') || s.includes('sell')) return 'm-signal-sell'
+  return 'm-signal-neutral'
+}
+
+onMounted(() => {
+  fetchOnChainData()
 })
-
-const whaleTransactions = ref([
-  { id: 1, symbol: 'BTC', type: 'buy', amount: '500 BTC', value: '49.2M', time: '2h ago' },
-  { id: 2, symbol: 'ETH', type: 'sell', amount: '15,000 ETH', value: '51.7M', time: '4h ago' },
-  { id: 3, symbol: 'SOL', type: 'buy', amount: '250,000 SOL', value: '46.2M', time: '5h ago' },
-  { id: 4, symbol: 'BTC', type: 'buy', amount: '320 BTC', value: '31.5M', time: '8h ago' },
-])
-
-const topAccumulation = ref([
-  { symbol: 'BTC', name: 'Bitcoin', image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png', score: 92 },
-  { symbol: 'ETH', name: 'Ethereum', image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png', score: 78 },
-  { symbol: 'SOL', name: 'Solana', image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png', score: 85 },
-])
-
-const contracts = ref([
-  { name: 'Uniswap V3', chain: 'ETH', address: '0x1F98...C2d6', txns: '125K', volume: '892M' },
-  { name: 'Raydium', chain: 'SOL', address: 'DvN3...9xq4', txns: '89K', volume: '456M' },
-])
 </script>
 
 <style scoped>
@@ -166,9 +203,33 @@ const contracts = ref([
   padding: 0;
 }
 
+.m-loading-indicator {
+  text-align: center;
+  padding: 40px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.m-empty-state {
+  text-align: center;
+  padding: 24px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 13px;
+}
+
+.m-stats-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.m-stats-container {
+  display: flex;
+  gap: 10px;
+  padding-bottom: 8px;
+}
+
 .m-stat-card-pro {
   flex: 0 0 auto;
-  min-width: 140px;
+  min-width: 120px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
@@ -201,16 +262,6 @@ const contracts = ref([
   font-weight: 700;
   color: #ffffff;
 }
-
-.m-gas-indicator {
-  height: 4px;
-  border-radius: 2px;
-  margin-top: 8px;
-}
-
-.m-gas-indicator.low { background: #22c55e; width: 30%; }
-.m-gas-indicator.medium { background: #f97316; width: 60%; }
-.m-gas-indicator.high { background: #ef4444; width: 100%; }
 
 /* Whale Transactions */
 .m-whale-item {
@@ -294,75 +345,31 @@ const contracts = ref([
   color: rgba(255, 255, 255, 0.7);
 }
 
-/* Accumulation Bar */
-.m-acc-bar {
-  width: 60px;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.m-acc-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #22c55e, #4ade80);
-  border-radius: 3px;
-}
-
-.m-acc-score {
-  font-size: 14px;
-  font-weight: 700;
-  min-width: 30px;
+/* Signals */
+.m-signal-col {
   text-align: right;
 }
 
-/* Contract List */
-.m-contract-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.m-contract-item {
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-}
-
-.m-contract-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.m-contract-name {
-  font-size: 14px;
+.m-signal-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 600;
-  color: #ffffff;
 }
 
-.m-contract-chain {
-  font-size: 10px;
-  padding: 2px 6px;
-  background: rgba(56, 239, 235, 0.15);
-  color: #38efeb;
-  border-radius: 4px;
+.m-signal-buy {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
 }
 
-.m-contract-address {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
-  font-family: monospace;
-  margin-bottom: 8px;
+.m-signal-sell {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
 }
 
-.m-contract-stats {
-  display: flex;
-  gap: 16px;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
+.m-signal-neutral {
+  background: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
 }
 
 .m-badge-info {
