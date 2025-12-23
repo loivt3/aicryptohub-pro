@@ -61,7 +61,7 @@ SCHEDULER_STATE = {
     },
     "ohlcv_1w": {
         "enabled": True,
-        "interval_minutes": 10080,  # 7 days
+        "interval_minutes": 360,  # 6 hours (faster population, stable data)
         "timeframe": "1w",
         "last_run": None,
         "next_run": None,
@@ -70,7 +70,7 @@ SCHEDULER_STATE = {
     },
     "ohlcv_1M": {
         "enabled": True,
-        "interval_minutes": 43200,  # 30 days (1 month)
+        "interval_minutes": 1440,  # 24 hours (faster population)
         "timeframe": "1M",
         "last_run": None,
         "next_run": None,
