@@ -49,12 +49,16 @@ class Settings(BaseSettings):
     # External APIs
     COINGECKO_API_KEY: str = ""
     ETHERSCAN_API_KEY: str = ""
+    COVALENT_API_KEY: str = ""  # For top holder data
+    MORALIS_API_KEY: str = ""   # Fallback provider
     COINMARKETCAP_API_KEY: str = ""
     CRYPTOPANIC_TOKEN: str = ""
     
     # Alias for legacy services (lowercase)
     coingecko_api_key: str = ""
     etherscan_api_key: str = ""
+    covalent_api_key: str = ""
+    moralis_api_key: str = ""
     cryptopanic_token: str = ""
     
     # JWT

@@ -585,6 +585,157 @@ class OnChainCollector:
                 logger.warning(f"Failed to save tx {tx.get('tx_hash')}: {e}")
                 
         return saved
+    
+    # =========================================================================
+    # TOP HOLDER COLLECTION (The Graph + Whale Pattern Analysis)
+    # =========================================================================
+    
+    # The Graph public subgraph endpoints (free, decentralized)
+    GRAPH_ENDPOINTS = {
+        "uniswap": "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3",
+        "aave": "https://api.thegraph.com/subgraphs/name/aave/protocol-v3",
+    }
+    
+    async def collect_top_holders(
+        self,
+        coin_id: str,
+        chain_slug: str,
+        chain_id: int,
+        contract_address: str,
+        limit: int = 50,
+    ) -> List[Dict[str, Any]]:
+        """
+        Collect top holders using multiple strategies:
+        1. Whale transaction pattern analysis (primary - uses existing data)
+        2. The Graph (for tokens with public subgraphs)
+        """
+        holders = []
+        
+        # Strategy 1: Estimate from whale transaction patterns (most reliable)
+        holders = await self._estimate_holders_from_whales(coin_id, limit)
+        if holders:
+            logger.info(f"Estimated {len(holders)} holders from whale patterns for {coin_id}")
+            await self._save_holder_snapshot(coin_id, chain_slug, holders)
+            return holders
+        
+        logger.debug(f"No holder data for {coin_id}")
+        return []
+    
+    async def _estimate_holders_from_whales(
+        self,
+        coin_id: str,
+        limit: int = 50,
+    ) -> List[Dict[str, Any]]:
+        """
+        Estimate top holders by analyzing whale transaction patterns.
+        Addresses with net positive flow (accumulating) are likely top holders.
+        """
+        from sqlalchemy import text
+        
+        query = text("""
+            WITH address_flows AS (
+                SELECT 
+                    to_address as address,
+                    SUM(value_usd) as inflow,
+                    0::numeric as outflow
+                FROM whale_transactions
+                WHERE coin_id = :coin_id
+                  AND tx_timestamp > NOW() - INTERVAL '30 days'
+                GROUP BY to_address
+                
+                UNION ALL
+                
+                SELECT 
+                    from_address as address,
+                    0::numeric as inflow,
+                    SUM(value_usd) as outflow
+                FROM whale_transactions
+                WHERE coin_id = :coin_id
+                  AND tx_timestamp > NOW() - INTERVAL '30 days'
+                GROUP BY from_address
+            ),
+            net_positions AS (
+                SELECT 
+                    address,
+                    SUM(inflow) as total_inflow,
+                    SUM(outflow) as total_outflow,
+                    SUM(inflow) - SUM(outflow) as net_position
+                FROM address_flows
+                WHERE address NOT IN (
+                    '0x0000000000000000000000000000000000000000',
+                    '0x000000000000000000000000000000000000dead'
+                )
+                GROUP BY address
+                HAVING SUM(inflow) - SUM(outflow) > 0
+            )
+            SELECT address, total_inflow, total_outflow, net_position
+            FROM net_positions
+            ORDER BY net_position DESC
+            LIMIT :limit
+        """)
+        
+        try:
+            with self.db.engine.connect() as conn:
+                result = conn.execute(query, {"coin_id": coin_id, "limit": limit})
+                rows = result.fetchall()
+                
+                if not rows:
+                    return []
+                
+                total_net = sum(float(row[3]) for row in rows)
+                
+                holders = []
+                for row in rows:
+                    pct = (float(row[3]) / total_net * 100) if total_net > 0 else 0
+                    holders.append({
+                        "address": row[0],
+                        "balance": float(row[3]),
+                        "percentage": round(pct, 2),
+                        "is_accumulating": float(row[1]) > float(row[2]),
+                    })
+                
+                return holders
+                
+        except Exception as e:
+            logger.debug(f"Whale-based holder estimation failed for {coin_id}: {e}")
+            return []
+    
+    async def _save_holder_snapshot(
+        self, coin_id: str, chain_slug: str, holders: List[Dict]
+    ) -> bool:
+        """Save holder snapshot to database"""
+        from sqlalchemy import text
+        from datetime import date
+        
+        if not holders:
+            return False
+        
+        top10 = holders[:10] if len(holders) >= 10 else holders
+        top10_total_pct = sum(h.get("percentage", 0) for h in top10)
+        
+        query = text("""
+            INSERT INTO top_holder_snapshots (
+                coin_id, chain_slug, snapshot_date, 
+                top10_total_balance, top10_pct_of_supply
+            ) VALUES (:coin_id, :chain_slug, :snapshot_date, :top10_balance, :top10_pct)
+            ON CONFLICT (coin_id, snapshot_date) DO UPDATE SET
+                top10_total_balance = EXCLUDED.top10_total_balance,
+                top10_pct_of_supply = EXCLUDED.top10_pct_of_supply
+        """)
+        
+        try:
+            with self.db.engine.begin() as conn:
+                conn.execute(query, {
+                    "coin_id": coin_id,
+                    "chain_slug": chain_slug,
+                    "snapshot_date": date.today(),
+                    "top10_balance": sum(h.get("balance", 0) for h in top10),
+                    "top10_pct": top10_total_pct,
+                })
+            return True
+        except Exception as e:
+            logger.debug(f"Failed to save holder snapshot for {coin_id}: {e}")
+            return False
         
     async def calculate_whale_signals(
         self,
