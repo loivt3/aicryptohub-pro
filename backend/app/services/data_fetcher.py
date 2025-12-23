@@ -50,7 +50,7 @@ class CoinGeckoFetcher:
                 "per_page": per_page,
                 "page": page,
                 "sparkline": "false",
-                "price_change_percentage": "1h,24h,7d"
+                "price_change_percentage": "1h,24h,7d,30d"
             })
             if response.status_code == 200:
                 return response.json()
@@ -477,6 +477,7 @@ class MultiSourceFetcher:
                     "price_change_percentage_24h": coin.get("price_change_percentage_24h"),
                     "price_change_percentage_1h": coin.get("price_change_percentage_1h_in_currency"),
                     "price_change_percentage_7d": coin.get("price_change_percentage_7d_in_currency"),
+                    "price_change_percentage_30d": coin.get("price_change_percentage_30d_in_currency"),
                     "total_volume": coin.get("total_volume"),
                     "high_24h": coin.get("high_24h"),
                     "low_24h": coin.get("low_24h"),
@@ -545,10 +546,12 @@ class MultiSourceFetcher:
         query = text("""
             INSERT INTO aihub_coins (
                 symbol, name, image_url, price, change_24h, volume_24h,
-                market_cap, rank, high_24h, low_24h, coin_id, last_updated
+                market_cap, rank, high_24h, low_24h, coin_id, last_updated,
+                price_change_1h, price_change_7d, price_change_30d
             ) VALUES (
                 :symbol, :name, :image_url, :price, :change_24h, :volume_24h,
-                :market_cap, :rank, :high_24h, :low_24h, :coin_id, :last_updated
+                :market_cap, :rank, :high_24h, :low_24h, :coin_id, :last_updated,
+                :price_change_1h, :price_change_7d, :price_change_30d
             )
             ON CONFLICT (symbol) DO UPDATE SET
                 name = COALESCE(NULLIF(EXCLUDED.name, ''), aihub_coins.name),
@@ -561,7 +564,10 @@ class MultiSourceFetcher:
                 high_24h = EXCLUDED.high_24h,
                 low_24h = EXCLUDED.low_24h,
                 coin_id = COALESCE(NULLIF(EXCLUDED.coin_id, ''), aihub_coins.coin_id),
-                last_updated = EXCLUDED.last_updated
+                last_updated = EXCLUDED.last_updated,
+                price_change_1h = EXCLUDED.price_change_1h,
+                price_change_7d = EXCLUDED.price_change_7d,
+                price_change_30d = EXCLUDED.price_change_30d
         """)
         
         try:
@@ -580,7 +586,10 @@ class MultiSourceFetcher:
                         "high_24h": coin_data.get("high_24h", 0) or 0,
                         "low_24h": coin_data.get("low_24h", 0) or 0,
                         "coin_id": coin_data.get("coin_id", ""),
-                        "last_updated": datetime.now()
+                        "last_updated": datetime.now(),
+                        "price_change_1h": coin_data.get("price_change_percentage_1h", 0) or 0,
+                        "price_change_7d": coin_data.get("price_change_percentage_7d", 0) or 0,
+                        "price_change_30d": coin_data.get("price_change_percentage_30d", 0) or 0,
                     })
                     stats["saved"] += 1
         except Exception as e:
