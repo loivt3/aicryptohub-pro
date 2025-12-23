@@ -95,22 +95,108 @@
 </template>
 
 <script setup lang="ts">
-const netflow = ref(-2450)
-const gasPrice = ref(28)
+const { getOnchainSummary, getOnchainSignals } = useApi()
+
+// Reactive state
+const loading = ref(true)
+const error = ref<string | null>(null)
+const netflow = ref(0)
+const gasPrice = ref(0)
 const gasLevel = computed(() => gasPrice.value < 20 ? 'low' : gasPrice.value < 50 ? 'medium' : 'high')
+const totalInflow = ref(0)
+const totalOutflow = ref(0)
+const activeAddresses = ref(0)
+const stablecoinInflow = ref(0)
 
-const whaleTransactions = ref([
-  { id: 1, symbol: 'BTC', type: 'buy', amount: '500 BTC', value: '49.2M', from: '0x1a2b...3c4d', to: 'Binance', time: '2h ago' },
-  { id: 2, symbol: 'ETH', type: 'sell', amount: '15,000 ETH', value: '51.7M', from: 'Coinbase', to: '0x5e6f...7g8h', time: '4h ago' },
-  { id: 3, symbol: 'SOL', type: 'buy', amount: '250,000 SOL', value: '46.2M', from: '0x9i0j...1k2l', to: 'FTX', time: '5h ago' },
-  { id: 4, symbol: 'BTC', type: 'buy', amount: '320 BTC', value: '31.5M', from: '0x3m4n...5o6p', to: 'Kraken', time: '8h ago' },
-])
+const whaleTransactions = ref<any[]>([])
+const topAccumulation = ref<any[]>([])
+const coinSignals = ref<any[]>([])
 
-const topAccumulation = ref([
-  { symbol: 'BTC', image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png', score: 92 },
-  { symbol: 'ETH', image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png', score: 78 },
-  { symbol: 'SOL', image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png', score: 85 },
-])
+// Format large numbers
+const formatValue = (val: number) => {
+  if (val >= 1e9) return `$${(val / 1e9).toFixed(1)}B`
+  if (val >= 1e6) return `$${(val / 1e6).toFixed(1)}M`
+  if (val >= 1e3) return `$${(val / 1e3).toFixed(1)}K`
+  return `$${val.toFixed(0)}`
+}
+
+const formatAddress = (addr: string) => {
+  if (!addr) return 'Unknown'
+  if (addr.length > 12) return `${addr.slice(0, 6)}...${addr.slice(-4)}`
+  return addr
+}
+
+const timeAgo = (dateStr: string) => {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffHrs = Math.floor(diffMs / (1000 * 60 * 60))
+  if (diffHrs < 1) return 'Just now'
+  if (diffHrs < 24) return `${diffHrs}h ago`
+  return `${Math.floor(diffHrs / 24)}d ago`
+}
+
+// Fetch data on mount
+onMounted(async () => {
+  try {
+    loading.value = true
+    
+    // Fetch summary data
+    const summary = await getOnchainSummary()
+    if (summary) {
+      totalInflow.value = summary.total_inflow_24h || 0
+      totalOutflow.value = summary.total_outflow_24h || 0
+      netflow.value = (summary.total_inflow_24h || 0) - (summary.total_outflow_24h || 0)
+      gasPrice.value = summary.gas_price_gwei || 28
+      activeAddresses.value = summary.active_addresses_24h || 0
+      stablecoinInflow.value = summary.stablecoin_inflow_24h || 0
+      
+      // Whale transactions from summary
+      if (summary.recent_whale_txs?.length) {
+        whaleTransactions.value = summary.recent_whale_txs.map((tx: any, idx: number) => ({
+          id: idx,
+          symbol: tx.coin_id?.toUpperCase() || 'UNKNOWN',
+          type: tx.tx_type === 'exchange_deposit' ? 'sell' : 'buy',
+          amount: formatValue(tx.value_usd || 0),
+          value: formatValue(tx.value_usd || 0),
+          from: formatAddress(tx.from_address),
+          to: formatAddress(tx.to_address),
+          time: timeAgo(tx.tx_timestamp),
+        }))
+      }
+      
+      // Top accumulation from signals
+      if (summary.top_signals?.length) {
+        topAccumulation.value = summary.top_signals.slice(0, 5).map((s: any) => ({
+          symbol: s.coin_id?.toUpperCase() || 'UNKNOWN',
+          image: `https://assets.coingecko.com/coins/images/1/small/bitcoin.png`, // Default
+          score: s.accumulation_score || s.bullish_probability || 50,
+        }))
+      }
+    }
+    
+    // Fetch individual coin signals for display
+    const coins = ['bitcoin', 'ethereum', 'chainlink', 'aave', 'pepe']
+    const signalsPromises = coins.map(coin => getOnchainSignals(coin).catch(() => null))
+    const signalsResults = await Promise.all(signalsPromises)
+    
+    coinSignals.value = signalsResults
+      .filter(s => s !== null)
+      .map((s: any) => ({
+        coinId: s.coin_id,
+        signal: s.overall_signal,
+        whaleSignal: s.whale_activity?.signal,
+        netFlow: s.whale_activity?.net_flow_usd || 0,
+      }))
+    
+  } catch (e: any) {
+    error.value = e.message || 'Failed to load data'
+    console.error('Failed to fetch onchain data:', e)
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <style scoped>
