@@ -1486,6 +1486,20 @@ const toggleFavorite = (coinId: string) => {
   color: #fbbf24;
 }
 
+/* Monospace font for numbers - tabular figures for alignment */
+.m-price-col,
+.m-info-title,
+.stat-value,
+.m-horizon-score,
+.m-mcap,
+.m-volume,
+.m-asi-score,
+.m-change,
+.m-metric-value {
+  font-family: 'SF Mono', 'Roboto Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Multi-Horizon ASI Cards */
 .m-horizon-cards {
   display: grid;
