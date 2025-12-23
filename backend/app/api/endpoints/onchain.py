@@ -51,42 +51,93 @@ class OnChainSignals(BaseModel):
 
 @router.get("/summary")
 async def get_onchain_summary():
-    """Get on-chain summary for top coins"""
+    """Get on-chain summary for top coins including whale transactions"""
     try:
         db = get_database_service()
-        data = db.get_onchain_summary()
+        from sqlalchemy import text
         
-        # Group by signal type
-        summary = {
-            "btc": None,
-            "eth": None,
-            "coins": [],
-            "stats": {
-                "bullish_count": 0,
-                "bearish_count": 0,
-                "neutral_count": 0,
-            }
-        }
+        # Get signals summary
+        signals_data = db.get_onchain_summary()
         
-        for coin in data:
+        # Get recent whale transactions
+        whale_query = text("""
+            SELECT coin_id, tx_type, value_usd, from_address, to_address, 
+                   exchange_name, tx_timestamp
+            FROM whale_transactions
+            WHERE tx_timestamp > NOW() - INTERVAL '24 hours'
+            ORDER BY tx_timestamp DESC
+            LIMIT 20
+        """)
+        
+        recent_whale_txs = []
+        try:
+            with db.engine.connect() as conn:
+                result = conn.execute(whale_query)
+                for row in result.fetchall():
+                    recent_whale_txs.append({
+                        "coin_id": row[0],
+                        "tx_type": row[1],
+                        "value_usd": float(row[2]) if row[2] else 0,
+                        "from_address": row[3],
+                        "to_address": row[4],
+                        "exchange_name": row[5],
+                        "tx_timestamp": row[6].isoformat() if row[6] else None,
+                    })
+        except Exception as e:
+            print(f"Error fetching whale txs: {e}")
+        
+        # Calculate aggregates
+        total_inflow = sum(
+            t["value_usd"] for t in recent_whale_txs 
+            if t.get("tx_type") == "exchange_deposit"
+        )
+        total_outflow = sum(
+            t["value_usd"] for t in recent_whale_txs 
+            if t.get("tx_type") == "exchange_withdraw"
+        )
+        
+        # Group signals by type
+        stats = {"bullish_count": 0, "bearish_count": 0, "neutral_count": 0}
+        btc_data = None
+        eth_data = None
+        other_coins = []
+        
+        for coin in signals_data:
             signal = coin.get("overall_signal", "NEUTRAL")
             if signal == "BULLISH":
-                summary["stats"]["bullish_count"] += 1
+                stats["bullish_count"] += 1
             elif signal == "BEARISH":
-                summary["stats"]["bearish_count"] += 1
+                stats["bearish_count"] += 1
             else:
-                summary["stats"]["neutral_count"] += 1
+                stats["neutral_count"] += 1
             
             if coin.get("coin_id") == "bitcoin":
-                summary["btc"] = coin
+                btc_data = coin
             elif coin.get("coin_id") == "ethereum":
-                summary["eth"] = coin
+                eth_data = coin
             else:
-                summary["coins"].append(coin)
+                other_coins.append(coin)
+        
+        # Top signals by accumulation score
+        top_signals = sorted(
+            signals_data, 
+            key=lambda x: x.get("bullish_probability", 50), 
+            reverse=True
+        )[:10]
         
         return {
             "success": True,
-            "data": summary,
+            "btc": btc_data,
+            "eth": eth_data,
+            "coins": other_coins,
+            "stats": stats,
+            "recent_whale_txs": recent_whale_txs,
+            "top_signals": top_signals,
+            "total_inflow_24h": total_inflow,
+            "total_outflow_24h": total_outflow,
+            "gas_price_gwei": 28,  # TODO: fetch from API
+            "active_addresses_24h": 0,  # TODO: calculate
+            "stablecoin_inflow_24h": 0,  # TODO: calculate
             "timestamp": datetime.now().isoformat(),
         }
     except Exception as e:
