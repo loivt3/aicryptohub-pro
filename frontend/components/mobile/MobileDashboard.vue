@@ -283,9 +283,7 @@
                       <path :d="generateSparkline(coin, 50, 24)" fill="none" stroke="#22c55e" stroke-width="1.5"/>
                     </svg>
                   </div>
-                  <span class="m-signal-badge m-signal-badge--compact" :class="'m-signal-' + (coin.ai_signal || 'buy').toLowerCase().replace('_', '-')">
-                    {{ coin.ai_signal || 'BUY' }}
-                  </span>
+
                   <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" :class="{ 'rotate-90': expandedCoin === coin.coin_id }" />
                 </div>
                 <div class="m-list-item-meta">
@@ -383,9 +381,7 @@
                       <path :d="generateSparkline(coin, 50, 24)" fill="none" stroke="#ef4444" stroke-width="1.5"/>
                     </svg>
                   </div>
-                  <span class="m-signal-badge m-signal-badge--compact" :class="'m-signal-' + (coin.ai_signal || 'sell').toLowerCase().replace('_', '-')">
-                    {{ coin.ai_signal || 'SELL' }}
-                  </span>
+
                   <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" />
                 </div>
                 <div class="m-list-item-meta">
@@ -483,9 +479,7 @@
                       <path :d="generateSparkline(coin, 50, 24)" fill="none" :stroke="coin.change_24h >= 0 ? '#22c55e' : '#ef4444'" stroke-width="1.5"/>
                     </svg>
                   </div>
-                  <span class="m-signal-badge m-signal-badge--compact" :class="'m-signal-' + (coin.ai_signal || 'hold').toLowerCase().replace('_', '-')">
-                    {{ coin.ai_signal || 'HOLD' }}
-                  </span>
+
                   <Icon name="ph:caret-right" class="w-4 h-4 opacity-30" />
                 </div>
                 <div class="m-list-item-meta">
