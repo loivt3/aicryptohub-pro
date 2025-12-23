@@ -987,3 +987,250 @@
         transform: rotate(360deg);
     }
 }
+
+/* ===========================================
+   17. GLASSMORPHISM DESIGN SYSTEM
+   =========================================== */
+
+/* Base Glass Effect - Dark Frosted Glass */
+.glass,
+.m-stat-card-pro,
+.m-list,
+.m-list--dark,
+.m-filter-chip,
+.m-card {
+    background: rgba(15, 20, 30, 0.75) !important;
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Stronger Glass for standout elements */
+.glass-strong {
+    background: rgba(20, 25, 35, 0.85) !important;
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Subtle Glass for nested elements */
+.glass-subtle,
+.m-stat-mini,
+.m-accordion-panel {
+    background: rgba(255, 255, 255, 0.03) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+/* Glassmorphism shine effect on hover */
+.m-stat-card-pro:hover,
+.m-list-item:hover,
+.m-filter-chip:hover {
+    background: rgba(25, 30, 45, 0.8) !important;
+    border-color: rgba(56, 239, 235, 0.15) !important;
+}
+
+/* Glow accent for active states */
+.glass-glow {
+    box-shadow:
+        0 0 40px rgba(56, 239, 235, 0.1),
+        0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* ===========================================
+   18. BENTO GRID LAYOUT SYSTEM
+   =========================================== */
+
+/* Bento Container - Responsive Grid */
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 0 4px;
+}
+
+/* Full width item (spans 2 columns) */
+.bento-full {
+    grid-column: span 2;
+}
+
+/* Bento Cell Base */
+.bento-cell {
+    background: rgba(15, 20, 30, 0.75);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.bento-cell:hover {
+    transform: translateY(-2px);
+    border-color: rgba(56, 239, 235, 0.2);
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.3),
+        0 0 20px rgba(56, 239, 235, 0.05);
+}
+
+/* Bento Featured (larger cell) */
+.bento-featured {
+    grid-column: span 2;
+    padding: 18px;
+    background: linear-gradient(135deg, rgba(15, 20, 30, 0.85), rgba(25, 35, 50, 0.75));
+}
+
+/* Bento Header */
+.bento-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.bento-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.bento-badge {
+    padding: 3px 8px;
+    background: rgba(56, 239, 235, 0.15);
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #38efeb;
+}
+
+/* Bento Value Display */
+.bento-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    font-family: 'SF Mono', 'Roboto Mono', monospace;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+}
+
+.bento-value.positive {
+    color: #22c55e;
+}
+
+.bento-value.negative {
+    color: #ef4444;
+}
+
+.bento-value.accent {
+    color: #38efeb;
+}
+
+.bento-sublabel {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 4px;
+}
+
+/* Bento with gradient accent */
+.bento-accent-green::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #22c55e, #4ade80);
+    border-radius: 16px 16px 0 0;
+}
+
+.bento-accent-red::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #ef4444, #f87171);
+    border-radius: 16px 16px 0 0;
+}
+
+.bento-accent-cyan::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #38efeb, #0ea5e9);
+    border-radius: 16px 16px 0 0;
+}
+
+/* Bento Mini Stats Row */
+.bento-stats-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.bento-stats-row .bento-stat {
+    flex: 1;
+    text-align: center;
+}
+
+.bento-stat-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    font-family: 'SF Mono', monospace;
+}
+
+.bento-stat-label {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    margin-top: 2px;
+}
+
+/* ===========================================
+   19. Dark Gradient Overlays
+   =========================================== */
+.gradient-overlay-dark {
+    background: linear-gradient(180deg,
+            rgba(11, 15, 25, 0) 0%,
+            rgba(11, 15, 25, 0.8) 70%,
+            rgba(11, 15, 25, 1) 100%);
+}
+
+/* Noise texture overlay for premium feel */
+.noise-overlay::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+/* Update existing stat cards for glass effect */
+.m-stat-card-pro {
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+.m-list {
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+}
