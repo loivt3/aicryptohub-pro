@@ -26,107 +26,111 @@
         
         <!-- Bento Grid Heatmap -->
         <div class="heatmap-grid">
-          <!-- BTC - Large cell -->
-          <div 
-            class="heatmap-cell heatmap-cell--large"
-            :class="getHeatmapCellClass(topCoins[0])"
-            v-if="topCoins[0]"
-          >
-            <div class="heatmap-cell-header">
-              <div class="heatmap-coin-info">
-                <span class="heatmap-symbol">{{ topCoins[0].symbol }}</span>
-                <span class="heatmap-name">{{ topCoins[0].name }}</span>
+          <!-- Row 1: BTC and ETH large cells -->
+          <div class="heatmap-row-large">
+            <!-- BTC - Large cell -->
+            <div 
+              class="heatmap-cell heatmap-cell--large"
+              :class="getHeatmapCellClass(topCoins[0])"
+              v-if="topCoins[0]"
+            >
+              <div class="heatmap-cell-header">
+                <div class="heatmap-coin-info">
+                  <span class="heatmap-symbol">{{ topCoins[0].symbol }}</span>
+                  <span class="heatmap-name">{{ topCoins[0].name }}</span>
+                </div>
+                <span class="heatmap-badge" :class="getChangeClass(topCoins[0])">
+                  {{ formatChange(topCoins[0]) }}
+                </span>
               </div>
-              <span class="heatmap-badge" :class="getChangeClass(topCoins[0])">
-                {{ formatChange(topCoins[0]) }}
-              </span>
-            </div>
-            <div class="heatmap-price-center">
-              {{ formatPriceLarge(topCoins[0].price) }}
-            </div>
-            <div class="heatmap-cell-bottom">
-              <div class="heatmap-sparkline" :class="getChangeClass(topCoins[0])">
-                <svg viewBox="0 0 100 25" preserveAspectRatio="none">
+              <div class="heatmap-price-center">
+                {{ formatPriceLarge(topCoins[0].price) }}
+              </div>
+              <!-- Sparkline from center, gradient fills bottom -->
+              <div class="heatmap-spark-area">
+                <svg viewBox="0 0 100 40" preserveAspectRatio="none">
                   <defs>
-                    <linearGradient :id="'grad-0'" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" :stop-color="getChangeValue(topCoins[0]) >= 0 ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'" />
-                      <stop offset="100%" stop-color="transparent" />
+                    <linearGradient id="grad-0" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" :stop-color="getChangeValue(topCoins[0]) >= 0 ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)'" />
+                      <stop offset="100%" :stop-color="getChangeValue(topCoins[0]) >= 0 ? 'rgba(16,185,129,0)' : 'rgba(239,68,68,0)'" />
                     </linearGradient>
                   </defs>
-                  <path :d="getSparklinePath(0)" :fill="'url(#grad-0)'" />
-                  <path :d="getSparklineLinePath(0)" fill="none" 
+                  <path :d="getSparkAreaPath(0)" fill="url(#grad-0)" />
+                  <path :d="getSparkLinePath(0)" fill="none" 
                         :stroke="getChangeValue(topCoins[0]) >= 0 ? '#10b981' : '#ef4444'" 
-                        stroke-width="1.5" />
+                        stroke-width="2" />
                 </svg>
               </div>
               <span class="heatmap-vol">VOL {{ formatVolume(topCoins[0].volume_24h) }}</span>
             </div>
-          </div>
-          
-          <!-- ETH - Large cell -->
-          <div 
-            class="heatmap-cell heatmap-cell--large"
-            :class="getHeatmapCellClass(topCoins[1])"
-            v-if="topCoins[1]"
-          >
-            <div class="heatmap-cell-header">
-              <div class="heatmap-coin-info">
-                <span class="heatmap-symbol">{{ topCoins[1].symbol }}</span>
-                <span class="heatmap-name">{{ topCoins[1].name }}</span>
+            
+            <!-- ETH - Large cell -->
+            <div 
+              class="heatmap-cell heatmap-cell--large"
+              :class="getHeatmapCellClass(topCoins[1])"
+              v-if="topCoins[1]"
+            >
+              <div class="heatmap-cell-header">
+                <div class="heatmap-coin-info">
+                  <span class="heatmap-symbol">{{ topCoins[1].symbol }}</span>
+                  <span class="heatmap-name">{{ topCoins[1].name }}</span>
+                </div>
+                <span class="heatmap-badge" :class="getChangeClass(topCoins[1])">
+                  {{ formatChange(topCoins[1]) }}
+                </span>
               </div>
-              <span class="heatmap-badge" :class="getChangeClass(topCoins[1])">
-                {{ formatChange(topCoins[1]) }}
-              </span>
-            </div>
-            <div class="heatmap-price-center">
-              {{ formatPriceLarge(topCoins[1].price) }}
-            </div>
-            <div class="heatmap-cell-bottom">
-              <div class="heatmap-sparkline" :class="getChangeClass(topCoins[1])">
-                <svg viewBox="0 0 100 25" preserveAspectRatio="none">
+              <div class="heatmap-price-center">
+                {{ formatPriceLarge(topCoins[1].price) }}
+              </div>
+              <!-- Sparkline from center, gradient fills bottom -->
+              <div class="heatmap-spark-area">
+                <svg viewBox="0 0 100 40" preserveAspectRatio="none">
                   <defs>
-                    <linearGradient :id="'grad-1'" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" :stop-color="getChangeValue(topCoins[1]) >= 0 ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'" />
-                      <stop offset="100%" stop-color="transparent" />
+                    <linearGradient id="grad-1" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" :stop-color="getChangeValue(topCoins[1]) >= 0 ? 'rgba(59,130,246,0.5)' : 'rgba(239,68,68,0.5)'" />
+                      <stop offset="100%" :stop-color="getChangeValue(topCoins[1]) >= 0 ? 'rgba(59,130,246,0)' : 'rgba(239,68,68,0)'" />
                     </linearGradient>
                   </defs>
-                  <path :d="getSparklinePath(1)" :fill="'url(#grad-1)'" />
-                  <path :d="getSparklineLinePath(1)" fill="none" 
-                        :stroke="getChangeValue(topCoins[1]) >= 0 ? '#10b981' : '#ef4444'" 
-                        stroke-width="1.5" />
+                  <path :d="getSparkAreaPath(1)" fill="url(#grad-1)" />
+                  <path :d="getSparkLinePath(1)" fill="none" 
+                        :stroke="getChangeValue(topCoins[1]) >= 0 ? '#3b82f6' : '#ef4444'" 
+                        stroke-width="2" />
                 </svg>
               </div>
               <span class="heatmap-vol">VOL {{ formatVolume(topCoins[1].volume_24h) }}</span>
             </div>
           </div>
           
-          <!-- SOL, BNB, XRP, DOGE - 4 Small cells -->
-          <div 
-            v-for="(coin, idx) in topCoins.slice(2, 6)" 
-            :key="coin.coin_id"
-            class="heatmap-cell heatmap-cell--small"
-            :class="getHeatmapCellClass(coin)"
-          >
-            <div class="heatmap-sm-header">
-              <span class="heatmap-symbol-sm">{{ coin.symbol }}</span>
-              <span class="heatmap-change-sm" :class="getChangeClass(coin)">
-                {{ formatChange(coin) }}
-              </span>
-            </div>
-            <div class="heatmap-sm-price">{{ formatPrice(coin.price) }}</div>
-            <div class="heatmap-sparkline-sm" :class="getChangeClass(coin)">
-              <svg viewBox="0 0 100 20" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient :id="'grad-sm-' + idx" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" :stop-color="getChangeValue(coin) >= 0 ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'" />
-                    <stop offset="100%" stop-color="transparent" />
-                  </linearGradient>
-                </defs>
-                <path :d="getSparklinePath(idx + 2)" :fill="'url(#grad-sm-' + idx + ')'" />
-                <path :d="getSparklineLinePath(idx + 2)" fill="none" 
-                      :stroke="getChangeValue(coin) >= 0 ? '#10b981' : '#ef4444'" 
-                      stroke-width="1.2" />
-              </svg>
+          <!-- Row 2: 4 Small cells in one row -->
+          <div class="heatmap-row-small">
+            <div 
+              v-for="(coin, idx) in topCoins.slice(2, 6)" 
+              :key="coin.coin_id"
+              class="heatmap-cell heatmap-cell--small"
+              :class="getHeatmapCellClass(coin)"
+            >
+              <div class="heatmap-sm-header">
+                <span class="heatmap-symbol-sm">{{ coin.symbol }}</span>
+                <span class="heatmap-change-sm" :class="getChangeClass(coin)">
+                  {{ formatChange(coin) }}
+                </span>
+              </div>
+              <div class="heatmap-sm-price">{{ formatPrice(coin.price) }}</div>
+              <!-- Small sparkline with gradient -->
+              <div class="heatmap-spark-sm">
+                <svg viewBox="0 0 100 30" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient :id="'grad-sm-' + idx" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" :stop-color="getChangeValue(coin) >= 0 ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'" />
+                      <stop offset="100%" stop-color="transparent" />
+                    </linearGradient>
+                  </defs>
+                  <path :d="getSparkAreaPath(idx + 2)" :fill="'url(#grad-sm-' + idx + ')'" />
+                  <path :d="getSparkLinePath(idx + 2)" fill="none" 
+                        :stroke="getChangeValue(coin) >= 0 ? '#10b981' : '#ef4444'" 
+                        stroke-width="1.5" />
+                </svg>
+              </div>
             </div>
           </div>
         </div>
@@ -322,42 +326,44 @@ const getAsiBadgeClass = (score: number | undefined) => {
   return 'asi-low'
 }
 
-// Sparkline path generator - creates smooth curve based on coin index
-const getSparklinePath = (index: number) => {
+// Sparkline area path - creates filled area under the curve (for gradient fill)
+const getSparkAreaPath = (index: number) => {
   const coin = topCoins.value[index]
   if (!coin) return ''
   const change = getChangeValue(coin)
   const isUp = change >= 0
-  const base = 20
-  const variance = Math.min(Math.abs(change) * 1.5, 12)
   
-  // Create wave pattern with some randomness based on index
-  const seed = index * 7
-  const p1 = isUp ? base + variance * 0.2 : base - variance * 0.2
-  const p2 = isUp ? base - variance * 0.6 : base + variance * 0.6
-  const p3 = isUp ? base + variance * 0.4 : base - variance * 0.4
-  const p4 = isUp ? base - variance * 0.3 : base + variance * 0.3
-  const p5 = isUp ? base - variance * 0.8 : base + variance * 0.5
+  // Generate smooth wave points - curve starts from top, goes to bottom
+  const seed = (index + 1) * 13
+  const amp = Math.min(Math.abs(change) * 2, 15) + 5
   
-  return `M0,${p1} C${15 + seed % 5},${p2} ${30 + seed % 8},${p3} 50,${p4} S75,${p5} 100,${isUp ? base - variance : base + variance * 0.3} L100,25 L0,25 Z`
+  // Points for smooth bezier curve
+  const y1 = isUp ? 15 : 25
+  const y2 = isUp ? 8 : 32
+  const y3 = isUp ? 12 : 28
+  const y4 = isUp ? 5 : 35
+  const y5 = isUp ? 10 : 30
+  
+  // Create path with curve and fill to bottom
+  return `M0,${y1} C${20 + seed % 10},${y2} ${40 + seed % 5},${y3} 60,${y4} S80,${y5} 100,${isUp ? 8 : 32} L100,40 L0,40 Z`
 }
 
-const getSparklineLinePath = (index: number) => {
+// Sparkline line path - just the stroke line (no fill)
+const getSparkLinePath = (index: number) => {
   const coin = topCoins.value[index]
   if (!coin) return ''
   const change = getChangeValue(coin)
   const isUp = change >= 0
-  const base = 20
-  const variance = Math.min(Math.abs(change) * 1.5, 12)
   
-  const seed = index * 7
-  const p1 = isUp ? base + variance * 0.2 : base - variance * 0.2
-  const p2 = isUp ? base - variance * 0.6 : base + variance * 0.6
-  const p3 = isUp ? base + variance * 0.4 : base - variance * 0.4
-  const p4 = isUp ? base - variance * 0.3 : base + variance * 0.3
-  const p5 = isUp ? base - variance * 0.8 : base + variance * 0.5
+  const seed = (index + 1) * 13
   
-  return `M0,${p1} C${15 + seed % 5},${p2} ${30 + seed % 8},${p3} 50,${p4} S75,${p5} 100,${isUp ? base - variance : base + variance * 0.3}`
+  const y1 = isUp ? 15 : 25
+  const y2 = isUp ? 8 : 32
+  const y3 = isUp ? 12 : 28
+  const y4 = isUp ? 5 : 35
+  const y5 = isUp ? 10 : 30
+  
+  return `M0,${y1} C${20 + seed % 10},${y2} ${40 + seed % 5},${y3} 60,${y4} S80,${y5} 100,${isUp ? 8 : 32}`
 }
 
 // Fetch data
@@ -470,15 +476,26 @@ onMounted(() => {
 
 /* Heatmap Grid - Bento Layout */
 .heatmap-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.heatmap-row-large {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto auto auto;
   gap: 10px;
+}
+
+.heatmap-row-small {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
 }
 
 .heatmap-cell {
   border-radius: 16px;
-  padding: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -505,20 +522,15 @@ onMounted(() => {
 }
 
 .heatmap-cell--large {
-  grid-column: span 1;
-  min-height: 130px;
-}
-
-.heatmap-cell--medium {
-  min-height: 75px;
+  min-height: 180px;
 }
 
 .heatmap-cell--small {
-  min-height: 55px;
-  padding: 12px 14px;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
+  min-height: 110px;
+  padding: 10px;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
 }
 
 /* Heatmap Colors - Glassmorphism with Glow */
@@ -589,84 +601,77 @@ onMounted(() => {
 }
 
 .heatmap-badge {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 8px;
+  padding: 4px 10px;
+  border-radius: 6px;
   backdrop-filter: blur(4px);
 }
 
 .heatmap-badge.positive {
-  background: rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.3);
   color: #22c55e;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  border: 1px solid rgba(16, 185, 129, 0.4);
 }
 
 .heatmap-badge.negative {
-  background: rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.3);
   color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  border: 1px solid rgba(239, 68, 68, 0.4);
 }
 
 /* Price center display */
 .heatmap-price-center {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   color: #fff;
   font-family: 'SF Mono', ui-monospace, monospace;
   letter-spacing: -0.5px;
-  margin: 8px 0;
+  margin: 4px 0;
 }
 
-/* Bottom section with sparkline and Vol */
-.heatmap-cell-bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 100%;
+/* Sparkline area - takes more vertical space like mockup */
+.heatmap-spark-area {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  height: 70px;
 }
 
-.heatmap-sparkline {
-  width: 100%;
-  height: 35px;
-  overflow: visible;
-}
-
-.heatmap-sparkline svg {
+.heatmap-spark-area svg {
   width: 100%;
   height: 100%;
 }
 
+/* Volume text at bottom */
 .heatmap-vol {
   font-size: 11px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.5);
   letter-spacing: 0.3px;
+  position: relative;
+  z-index: 1;
 }
 
-/* Small cells - vertical layout */
-.heatmap-cell--small {
-  min-height: 100px;
-  padding: 12px;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: stretch;
-}
+/* Remove duplicate heatmap-vol */
 
+/* Small cells - vertical layout matching mockup */
 .heatmap-sm-header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
+  margin-bottom: 4px;
 }
 
 .heatmap-symbol-sm {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: #fff;
 }
 
 .heatmap-change-sm {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
 }
 
@@ -679,19 +684,22 @@ onMounted(() => {
 }
 
 .heatmap-sm-price {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #fff;
   font-family: 'SF Mono', ui-monospace, monospace;
+  margin-bottom: 4px;
 }
 
-.heatmap-sparkline-sm {
-  width: 100%;
-  height: 25px;
-  margin-top: auto;
+.heatmap-spark-sm {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
 }
 
-.heatmap-sparkline-sm svg {
+.heatmap-spark-sm svg {
   width: 100%;
   height: 100%;
 }
