@@ -533,15 +533,15 @@ async def get_high_rich(
                     mds.volume_ratio, mds.rsi_14, mds.momentum_score
                 FROM aihub_coins ac
                 LEFT JOIN market_discovery_snapshot mds ON UPPER(mds.symbol) = ac.symbol
-                WHERE ac.price_change_1h > 1
-                  AND ac.asi_score >= 60
-                  AND COALESCE(mds.volume_ratio, 1) > 1.0
-                  AND ac.change_24h < 50
-                  AND ac.change_24h > -10
-                  AND ac.rank > 30
+                WHERE ac.price_change_1h > 0.3
+                  AND ac.asi_score >= 55
+                  AND COALESCE(mds.volume_ratio, 1) > 0.8
+                  AND ac.change_24h < 80
+                  AND ac.change_24h > -15
+                  AND ac.rank > 20
                 ORDER BY 
-                    ac.price_change_1h DESC,
-                    ac.asi_score DESC
+                    ac.asi_score DESC,
+                    ac.price_change_1h DESC
                 LIMIT :limit
             """), {"limit": limit})
             
