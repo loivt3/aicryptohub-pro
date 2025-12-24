@@ -48,7 +48,7 @@
               </div>
               <!-- Sparkline from center, gradient fills bottom -->
               <div class="heatmap-spark-area">
-                <svg viewBox="0 0 100 40" preserveAspectRatio="none">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none">
                   <defs>
                     <linearGradient id="grad-0" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" :stop-color="getChangeValue(topCoins[0]) >= 0 ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)'" />
@@ -84,7 +84,7 @@
               </div>
               <!-- Sparkline from center, gradient fills bottom -->
               <div class="heatmap-spark-area">
-                <svg viewBox="0 0 100 40" preserveAspectRatio="none">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none">
                   <defs>
                     <linearGradient id="grad-1" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" :stop-color="getChangeValue(topCoins[1]) >= 0 ? 'rgba(59,130,246,0.5)' : 'rgba(239,68,68,0.5)'" />
@@ -118,7 +118,7 @@
               <div class="heatmap-sm-price">{{ formatPrice(coin.price) }}</div>
               <!-- Small sparkline with gradient -->
               <div class="heatmap-spark-sm">
-                <svg viewBox="0 0 100 30" preserveAspectRatio="none">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none">
                   <defs>
                     <linearGradient :id="'grad-sm-' + idx" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" :stop-color="getChangeValue(coin) >= 0 ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'" />
@@ -326,26 +326,24 @@ const getAsiBadgeClass = (score: number | undefined) => {
   return 'asi-low'
 }
 
-// Sparkline area path - creates filled area under the curve (for gradient fill)
+// Sparkline area path - UP: starts at 2/3 (low), curves UP; DOWN: starts at 1/2 (mid), curves DOWN
 const getSparkAreaPath = (index: number) => {
   const coin = topCoins.value[index]
   if (!coin) return ''
   const change = getChangeValue(coin)
   const isUp = change >= 0
   
-  // Generate smooth wave points - curve starts from top, goes to bottom
-  const seed = (index + 1) * 13
-  const amp = Math.min(Math.abs(change) * 2, 15) + 5
+  // SVG viewBox is 0 0 100 100
+  // UP trend: starts at y=70 (2/3 down), curves up to y=15
+  // DOWN trend: starts at y=40 (1/2), curves down to y=85
   
-  // Points for smooth bezier curve
-  const y1 = isUp ? 15 : 25
-  const y2 = isUp ? 8 : 32
-  const y3 = isUp ? 12 : 28
-  const y4 = isUp ? 5 : 35
-  const y5 = isUp ? 10 : 30
-  
-  // Create path with curve and fill to bottom
-  return `M0,${y1} C${20 + seed % 10},${y2} ${40 + seed % 5},${y3} 60,${y4} S80,${y5} 100,${isUp ? 8 : 32} L100,40 L0,40 Z`
+  if (isUp) {
+    // Upward curve - starts low (2/3), ends high
+    return `M0,70 C20,65 35,40 50,25 S75,15 100,10 L100,100 L0,100 Z`
+  } else {
+    // Downward curve - starts mid (1/2), ends low
+    return `M0,35 C20,45 35,60 50,70 S75,80 100,85 L100,100 L0,100 Z`
+  }
 }
 
 // Sparkline line path - just the stroke line (no fill)
@@ -355,15 +353,13 @@ const getSparkLinePath = (index: number) => {
   const change = getChangeValue(coin)
   const isUp = change >= 0
   
-  const seed = (index + 1) * 13
-  
-  const y1 = isUp ? 15 : 25
-  const y2 = isUp ? 8 : 32
-  const y3 = isUp ? 12 : 28
-  const y4 = isUp ? 5 : 35
-  const y5 = isUp ? 10 : 30
-  
-  return `M0,${y1} C${20 + seed % 10},${y2} ${40 + seed % 5},${y3} 60,${y4} S80,${y5} 100,${isUp ? 8 : 32}`
+  if (isUp) {
+    // Upward curve
+    return `M0,70 C20,65 35,40 50,25 S75,15 100,10`
+  } else {
+    // Downward curve
+    return `M0,35 C20,45 35,60 50,70 S75,80 100,85`
+  }
 }
 
 // Fetch data
