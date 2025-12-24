@@ -380,59 +380,90 @@ onMounted(() => {
   color: #000;
 }
 
-/* Heatmap Grid */
+/* Heatmap Grid - Bento Layout */
 .heatmap-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: auto auto auto;
-  gap: 8px;
+  gap: 10px;
 }
 
 .heatmap-cell {
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 16px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  /* Glassmorphism base */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.heatmap-cell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.02));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .heatmap-cell--large {
   grid-column: span 1;
-  min-height: 120px;
+  min-height: 130px;
 }
 
 .heatmap-cell--medium {
-  min-height: 70px;
+  min-height: 75px;
 }
 
 .heatmap-cell--small {
-  min-height: 50px;
-  padding: 12px;
+  min-height: 55px;
+  padding: 12px 14px;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
 }
 
-/* Heatmap Colors */
+/* Heatmap Colors - Glassmorphism with Glow */
 .heatmap-strong-up {
-  background: linear-gradient(135deg, #0d4a3d 0%, #0a3d32 100%);
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.15) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  box-shadow: 
+    0 4px 24px -1px rgba(16, 185, 129, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .heatmap-up {
-  background: linear-gradient(135deg, #0d3d35 0%, #0a302a 100%);
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  box-shadow: 
+    0 4px 16px -1px rgba(16, 185, 129, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .heatmap-down {
-  background: linear-gradient(135deg, #3d1a1a 0%, #301515 100%);
+  background: linear-gradient(145deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.08) 100%);
   border: 1px solid rgba(239, 68, 68, 0.2);
+  box-shadow: 
+    0 4px 16px -1px rgba(239, 68, 68, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .heatmap-strong-down {
-  background: linear-gradient(135deg, #4a1515 0%, #3d1111 100%);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: linear-gradient(145deg, rgba(239, 68, 68, 0.25) 0%, rgba(220, 38, 38, 0.15) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  box-shadow: 
+    0 4px 24px -1px rgba(239, 68, 68, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .heatmap-cell-top {
@@ -505,7 +536,7 @@ onMounted(() => {
   font-family: 'SF Mono', monospace;
 }
 
-/* Screener Section */
+/* Screener Section - Glassmorphism Container */
 .screener-title {
   font-size: 18px;
   font-weight: 600;
@@ -530,27 +561,37 @@ onMounted(() => {
 .screener-tab {
   flex-shrink: 0;
   padding: 8px 16px;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
   color: rgba(255, 255, 255, 0.6);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.25s ease;
+}
+
+.screener-tab:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .screener-tab.active {
-  background: rgba(56, 239, 235, 0.1);
-  border-color: #38efeb;
+  background: rgba(56, 239, 235, 0.12);
+  border-color: rgba(56, 239, 235, 0.4);
   color: #38efeb;
+  box-shadow: 0 0 16px -4px rgba(56, 239, 235, 0.3);
 }
 
-/* Screener Table */
+/* Screener Table - Glass Card */
 .screener-header {
   display: flex;
   align-items: center;
-  padding: 12px 0;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px 12px 0 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -558,6 +599,8 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .screener-col--asset {
@@ -577,13 +620,29 @@ onMounted(() => {
 .screener-list {
   display: flex;
   flex-direction: column;
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 0 0 16px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: none;
+  overflow: hidden;
 }
 
 .screener-row {
   display: flex;
   align-items: center;
-  padding: 14px 0;
+  padding: 14px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.2s ease;
+}
+
+.screener-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.screener-row:last-child {
+  border-bottom: none;
 }
 
 .screener-asset {
