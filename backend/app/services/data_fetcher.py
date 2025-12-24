@@ -49,7 +49,7 @@ class CoinGeckoFetcher:
                 "order": "market_cap_desc",
                 "per_page": per_page,
                 "page": page,
-                "sparkline": "false",
+                "sparkline": "true",
                 "price_change_percentage": "1h,24h,7d,30d"
             })
             if response.status_code == 200:
@@ -465,6 +465,9 @@ class MultiSourceFetcher:
         for coin in data.get("coingecko", []):
             coin_id = coin.get("id")
             if coin_id:
+                # Extract sparkline data (7-day prices array)
+                sparkline_data = coin.get("sparkline_in_7d", {}).get("price", [])
+                
                 coins_map[coin_id] = {
                     "coin_id": coin_id,
                     "symbol": coin.get("symbol", "").upper(),
@@ -481,6 +484,7 @@ class MultiSourceFetcher:
                     "total_volume": coin.get("total_volume"),
                     "high_24h": coin.get("high_24h"),
                     "low_24h": coin.get("low_24h"),
+                    "sparkline_7d": sparkline_data if sparkline_data else None,
                     "source": "coingecko",
                 }
         
@@ -547,11 +551,11 @@ class MultiSourceFetcher:
             INSERT INTO aihub_coins (
                 symbol, name, image_url, price, change_24h, volume_24h,
                 market_cap, rank, high_24h, low_24h, coin_id, last_updated,
-                price_change_1h, price_change_7d, price_change_30d
+                price_change_1h, price_change_7d, price_change_30d, sparkline_7d
             ) VALUES (
                 :symbol, :name, :image_url, :price, :change_24h, :volume_24h,
                 :market_cap, :rank, :high_24h, :low_24h, :coin_id, :last_updated,
-                :price_change_1h, :price_change_7d, :price_change_30d
+                :price_change_1h, :price_change_7d, :price_change_30d, :sparkline_7d
             )
             ON CONFLICT (symbol) DO UPDATE SET
                 name = COALESCE(NULLIF(EXCLUDED.name, ''), aihub_coins.name),
@@ -567,12 +571,18 @@ class MultiSourceFetcher:
                 last_updated = EXCLUDED.last_updated,
                 price_change_1h = EXCLUDED.price_change_1h,
                 price_change_7d = EXCLUDED.price_change_7d,
-                price_change_30d = EXCLUDED.price_change_30d
+                price_change_30d = EXCLUDED.price_change_30d,
+                sparkline_7d = COALESCE(EXCLUDED.sparkline_7d, aihub_coins.sparkline_7d)
         """)
         
         try:
             with self.db.engine.begin() as conn:
                 for coin_data in coins_map.values():
+                    # Convert sparkline_7d list to JSON for PostgreSQL
+                    import json
+                    sparkline = coin_data.get("sparkline_7d")
+                    sparkline_json = json.dumps(sparkline) if sparkline else None
+                    
                     # Map from CoinGecko format to DB schema
                     conn.execute(query, {
                         "symbol": coin_data.get("symbol", "").upper(),
@@ -590,6 +600,7 @@ class MultiSourceFetcher:
                         "price_change_1h": coin_data.get("price_change_percentage_1h", 0) or 0,
                         "price_change_7d": coin_data.get("price_change_percentage_7d", 0) or 0,
                         "price_change_30d": coin_data.get("price_change_percentage_30d", 0) or 0,
+                        "sparkline_7d": sparkline_json,
                     })
                     stats["saved"] += 1
         except Exception as e:
