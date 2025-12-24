@@ -277,7 +277,7 @@ const fetchData = async () => {
   loading.value = true
   try {
     const config = useRuntimeConfig()
-    const res = await $fetch<any>(`${config.public.apiBase}/coins?limit=100`)
+    const res = await $fetch<any>(`${config.public.apiBase}/market?limit=100`)
     if (res?.data) {
       allCoins.value = res.data.map((c: any) => ({
         coin_id: c.coin_id,
@@ -285,9 +285,9 @@ const fetchData = async () => {
         name: c.name,
         image: c.image,
         price: c.price,
-        change_1h: c.price_change_1h,
+        change_1h: c.change_1h || c.price_change_1h,
         change_24h: c.change_24h,
-        change_7d: c.price_change_7d,
+        change_7d: c.change_7d || c.price_change_7d,
         volume_24h: c.volume_24h,
         market_cap: c.market_cap,
         asi_score: c.asi_score,
