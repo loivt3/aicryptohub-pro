@@ -190,29 +190,8 @@
       <div class="m-bottom-spacer"></div>
     </main>
 
-    <!-- Bottom Navigation - Keep Original -->
-    <nav class="m-bottom-nav">
-      <button class="m-nav-item" :class="{ active: activeTab === 'dashboard' }" @click="$emit('setTab', 'dashboard')">
-        <Icon name="ph:squares-four" class="m-nav-icon" />
-        <span class="m-nav-label">Dashboard</span>
-      </button>
-      <button class="m-nav-item" :class="{ active: activeTab === 'market' }" @click="$emit('setTab', 'market')">
-        <Icon name="ph:trend-up" class="m-nav-icon" />
-        <span class="m-nav-label">Market</span>
-      </button>
-      <button class="m-nav-item" :class="{ active: activeTab === 'analysis' }" @click="$emit('setTab', 'analysis')">
-        <Icon name="ph:chart-line-up" class="m-nav-icon" />
-        <span class="m-nav-label">Analysis</span>
-      </button>
-      <button class="m-nav-item" :class="{ active: activeTab === 'shadow' }" @click="$emit('setTab', 'shadow')">
-        <Icon name="ph:eye" class="m-nav-icon" />
-        <span class="m-nav-label">Shadow</span>
-      </button>
-      <button class="m-nav-item" :class="{ active: activeTab === 'aichat' }" @click="$emit('setTab', 'aichat')">
-        <Icon name="ph:chat-dots" class="m-nav-icon" />
-        <span class="m-nav-label">AI Chat</span>
-      </button>
-    </nav>
+    <!-- Bottom Navigation (using SharedMobileFooter for consistent NuxtLink routing) -->
+    <SharedMobileFooter />
   </div>
 </template>
 

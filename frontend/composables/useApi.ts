@@ -41,6 +41,10 @@ export const useApi = () => {
         getMarketRealtime: () =>
             apiFetch<{ success: boolean; data: any[] }>('/market/realtime'),
 
+        // Categories
+        getCategories: () =>
+            apiFetch<{ success: boolean; data: any[] }>('/market/categories'),
+
         getCoin: (coinId: string) =>
             apiFetch<{ success: boolean; data: any }>(`/market/${coinId}`),
 
@@ -74,6 +78,10 @@ export const useApi = () => {
 
         getCoinSentiment: (coinId: string) =>
             apiFetch<any>(`/sentiment/${coinId}`),
+
+        // Market Discovery (Gems)
+        getHiddenGems: (limit = 10) =>
+            apiFetch<{ success: boolean; data: any[] }>('/discovery/hidden-gems', { query: { limit } }),
 
 
 

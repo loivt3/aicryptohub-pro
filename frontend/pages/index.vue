@@ -2,14 +2,14 @@
   <div class="app-container" :class="{ 'mobile': isMobile }">
     <!-- Mobile Layout -->
     <template v-if="isMobile">
-      <MobileDashboard 
+      <MobileHome 
         v-if="activeTab === 'dashboard'"
         :activeTab="activeTab"
         :alertCount="alertCount"
         @setTab="activeTab = $event"
         @openSearch="showSearch = true"
       />
-      <MobileMarket 
+      <MobileDashboard 
         v-else-if="activeTab === 'market'" 
         :activeTab="activeTab"
         @setTab="activeTab = $event"

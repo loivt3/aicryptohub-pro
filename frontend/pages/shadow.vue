@@ -1,6 +1,6 @@
 <template>
   <div class="shadow-page">
-    <MobileShadow />
+    <MobileShadow active-tab="shadow" />
   </div>
 </template>
 

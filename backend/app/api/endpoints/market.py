@@ -179,6 +179,33 @@ async def get_global_market_stats():
         }
 
 
+@router.get("/categories")
+async def get_categories():
+    """Get market categories from CoinGecko"""
+    from app.services.data_fetcher import CoinGeckoFetcher
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    try:
+        fetcher = CoinGeckoFetcher()
+        categories = await fetcher.fetch_categories()
+        
+        return {
+            "success": True,
+            "data": categories,
+            "count": len(categories),
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Failed to fetch categories: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "data": []
+        }
+
+
 @router.get("/{coin_id}")
 async def get_single_coin(
     coin_id: str,

@@ -5,8 +5,7 @@
       :key="item.id"
       :to="item.to"
       class="m-nav-item"
-      :class="{ active: activeTab === item.id }"
-      @click="$emit('setTab', item.id)"
+      :class="{ active: route.path === item.to }"
     >
       <Icon :name="item.icon" class="m-nav-icon" />
       <span class="m-nav-label">{{ item.label }}</span>
@@ -15,20 +14,12 @@
 </template>
 
 <script setup lang="ts">
-// Props
-defineProps<{
-  activeTab?: string
-}>()
+const route = useRoute()
 
-// Emits
-defineEmits<{
-  (e: 'setTab', tab: string): void
-}>()
-
-// Navigation items - matching WordPress mobile nav
+// Navigation items - reorganized as requested
 const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: 'ph:squares-four', to: '/' },
-  { id: 'market', label: 'Market', icon: 'ph:trend-up', to: '/market' },
+  { id: 'dashboard', label: 'Dashboard', icon: 'ph:house', to: '/' },
+  { id: 'market', label: 'Market', icon: 'ph:squares-four', to: '/market' },
   { id: 'analysis', label: 'Analysis', icon: 'ph:chart-line-up', to: '/analysis' },
   { id: 'shadow', label: 'Shadow', icon: 'ph:eye', to: '/shadow' },
   { id: 'aichat', label: 'AI Chat', icon: 'ph:chat-dots', to: '/aichat' },

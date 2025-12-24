@@ -7,7 +7,7 @@
       </main>
     </template>
     <template v-else>
-      <MobileAnalysis />
+      <MobileAnalysis active-tab="analysis" />
     </template>
   </div>
 </template>

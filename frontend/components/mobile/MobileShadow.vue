@@ -328,29 +328,8 @@
       <div class="m-bottom-spacer"></div>
     </main>
 
-    <!-- Bottom Navigation -->
-    <nav class="m-bottom-nav">
-      <NuxtLink to="/" class="m-nav-item">
-        <Icon name="ph:squares-four" class="m-nav-icon" />
-        <span class="m-nav-label">Dashboard</span>
-      </NuxtLink>
-      <NuxtLink to="/market" class="m-nav-item">
-        <Icon name="ph:trend-up" class="m-nav-icon" />
-        <span class="m-nav-label">Market</span>
-      </NuxtLink>
-      <NuxtLink to="/analysis" class="m-nav-item">
-        <Icon name="ph:chart-line-up" class="m-nav-icon" />
-        <span class="m-nav-label">Analysis</span>
-      </NuxtLink>
-      <NuxtLink to="/shadow" class="m-nav-item active">
-        <Icon name="ph:eye" class="m-nav-icon" />
-        <span class="m-nav-label">Shadow</span>
-      </NuxtLink>
-      <NuxtLink to="/aichat" class="m-nav-item">
-        <Icon name="ph:chat-dots" class="m-nav-icon" />
-        <span class="m-nav-label">AI Chat</span>
-      </NuxtLink>
-    </nav>
+    <!-- Bottom Navigation (using SharedMobileFooter for consistent routing) -->
+    <SharedMobileFooter />
 
     <!-- Intent Alert Toast -->
     <IntentAlert

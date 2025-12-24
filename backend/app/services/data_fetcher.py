@@ -58,6 +58,19 @@ class CoinGeckoFetcher:
             logger.error(f"CoinGecko error: {e}")
         return []
     
+    async def fetch_categories(self) -> List[Dict]:
+        """Fetch list of categories with market data"""
+        client = await self.get_session()
+        try:
+            response = await client.get(f"{self.BASE_URL}/coins/categories", params={
+                "order": "market_cap_desc"
+            })
+            if response.status_code == 200:
+                return response.json()
+        except Exception as e:
+            logger.error(f"CoinGecko categories error: {e}")
+        return []
+
     async def fetch_all_markets(self, max_coins: int = 500) -> List[Dict]:
         """Fetch pages with rate limiting - faster for initial load"""
         pages_needed = (max_coins // 250) + 1

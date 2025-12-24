@@ -1,39 +1,32 @@
 <template>
-  <header class="m-header">
-    <div class="m-header-content">
-      <!-- Left: Home Icon -->
-      <div class="m-header-left">
-        <a href="https://aicryptohub.io" class="m-action-btn" title="Home">
-          <Icon name="ph:house" class="m-icon" />
-        </a>
+  <header class="glass-header">
+    <div class="header-content">
+      <!-- Left: Avatar + Logo + Page Title -->
+      <div class="header-left">
+        <!-- User Avatar (clickable for Portfolio) -->
+        <button class="avatar-btn" @click="$emit('setTab', 'portfolio')" title="Portfolio">
+          <Icon name="ph:user" class="avatar-icon" />
+        </button>
+        
+        <!-- Logo + Page Title -->
+        <div class="brand-info">
+          <span class="brand-name">COINXSIGHT</span>
+          <span class="page-title">{{ pageTitle }}</span>
+        </div>
       </div>
       
-      <!-- Center: Logo -->
-      <div class="m-logo">
-        <img :src="logoSrc" alt="CoinSight" class="m-logo-img" />
-      </div>
-      
-      <!-- Right: Actions -->
-      <div class="m-header-right">
-        <button class="m-action-btn" @click="$emit('openSearch')" title="Search">
-          <Icon name="ph:magnifying-glass" class="m-icon" />
+      <!-- Right: Actions (plain icons, no borders) -->
+      <div class="header-right">
+        <button class="icon-btn" @click="$emit('openSearch')" title="Search">
+          <Icon name="ph:magnifying-glass" class="icon" />
         </button>
         <button 
-          class="m-action-btn"
-          :class="{ active: activeTab === 'alerts' }"
+          class="icon-btn"
           @click="$emit('setTab', 'alerts')"
-          title="Alerts"
+          title="Notifications"
         >
-          <Icon name="ph:bell" class="m-icon" />
-          <span v-if="alertCount > 0" class="m-alert-badge">{{ alertCount > 9 ? '9+' : alertCount }}</span>
-        </button>
-        <button 
-          class="m-action-btn"
-          :class="{ active: activeTab === 'portfolio' }"
-          @click="$emit('setTab', 'portfolio')"
-          title="Portfolio"
-        >
-          <Icon name="ph:briefcase" class="m-icon" />
+          <Icon name="ph:bell" class="icon" />
+          <span v-if="alertCount > 0" class="badge">{{ alertCount > 9 ? '9+' : alertCount }}</span>
         </button>
       </div>
     </div>
@@ -41,162 +34,148 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
-// Props
-defineProps<{
+const props = defineProps<{
   activeTab?: string
 }>()
 
-// Emits
 defineEmits<{
   (e: 'setTab', tab: string): void
   (e: 'openSearch'): void
 }>()
 
-// State
-const btcPrice = ref(98500)
-const btcChange = ref(2.4)
-const alertCount = ref(3)
+const alertCount = ref(0)
 
-// Logo path - use explicit path to avoid hydration issues
-const logoSrc = '/images/coinsight-logo-v2.png'
-
-// Format currency
-const formatCurrency = (n: number, decimals = 2) => {
-  if (!n) return '$--'
-  if (n >= 1e12) return '$' + (n / 1e12).toFixed(decimals) + 'T'
-  if (n >= 1e9) return '$' + (n / 1e9).toFixed(decimals) + 'B'
-  if (n >= 1e6) return '$' + (n / 1e6).toFixed(decimals) + 'M'
-  if (n >= 1) return '$' + n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
-  return '$' + n.toFixed(6)
-}
-
-// TODO: Fetch real BTC price from API
-onMounted(async () => {
-  try {
-    const api = useApi()
-    const res = await api.getCoin('bitcoin')
-    if (res.success && res.data) {
-      btcPrice.value = res.data.price || 98500
-      btcChange.value = res.data.change_24h || 0
-    }
-  } catch (e) {
-    console.warn('Failed to fetch BTC price:', e)
+// Page title based on active tab
+const pageTitle = computed(() => {
+  switch (props.activeTab) {
+    case 'dashboard': return 'Dashboard'
+    case 'market': return 'Market'
+    case 'analysis': return 'Analysis'
+    case 'portfolio': return 'Portfolio'
+    case 'aichat': return 'AI Chat'
+    case 'shadow': return 'Shadow'
+    default: return 'Dashboard'
   }
 })
+
+// Handle avatar image error (fallback to icon)
+const handleAvatarError = (e: Event) => {
+  const img = e.target as HTMLImageElement
+  img.style.display = 'none'
+}
 </script>
 
 <style scoped>
-.m-header {
+.glass-header {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(20, 28, 43, 0.95);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(10, 15, 20, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  /* No bottom border */
 }
 
-.m-header-content {
+.header-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: 10px 16px;
 }
 
-.m-header-left,
-.m-header-right {
+.header-left {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 10px;
 }
 
-.m-header-left {
-  min-width: 40px;
-}
-
-.m-logo {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-}
-
-.m-logo-img {
-  height: 80px;
-  width: auto;
-}
-
-.m-ticker {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.75rem;
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 6px;
-}
-
-.m-ticker-label {
-  color: rgba(255, 255, 255, 0.5);
-  font-weight: 500;
-}
-
-.m-ticker-value {
-  color: #22c55e;
-  font-weight: 600;
-}
-
-.m-ticker-value.negative {
-  color: #ef4444;
-}
-
-.m-actions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.m-action-btn {
-  position: relative;
+/* Avatar button - circular, clickable, MEDIUM size */
+.avatar-btn {
   width: 36px;
   height: 36px;
+  border-radius: 50%;
+  border: 2px solid #10b981;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(56, 239, 235, 0.2));
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-icon {
+  width: 20px;
+  height: 20px;
+  color: #10b981;
+}
+
+.brand-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-name {
+  font-size: 9px;
+  font-weight: 600;
+  color: #10b981;
+  letter-spacing: 1.2px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.page-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Plain icon buttons - no background, no border, MEDIUM */
+.icon-btn {
+  position: relative;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.6);
   cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s;
-  text-decoration: none;
+  transition: opacity 0.2s;
 }
 
-.m-action-btn:hover,
-.m-action-btn.active {
-  color: #38efeb;
-  background: rgba(56, 239, 235, 0.1);
+.icon-btn:hover,
+.icon-btn:active {
+  opacity: 0.7;
 }
 
-.m-icon {
+.icon {
   width: 20px;
   height: 20px;
+  color: rgba(255, 255, 255, 0.8);
 }
 
-.m-alert-badge {
+.badge {
   position: absolute;
   top: 2px;
   right: 2px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
   background: #ef4444;
   color: white;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
-  border-radius: 8px;
+  border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;

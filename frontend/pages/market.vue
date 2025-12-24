@@ -7,7 +7,7 @@
       </main>
     </template>
     <template v-else>
-      <MobileMarket />
+      <MobileDashboard active-tab="market" />
     </template>
   </div>
 </template>
@@ -34,6 +34,11 @@ useSeoMeta({
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 24px;
+}
+
+.mobile-wrapper {
+  min-height: 100vh;
+  padding-bottom: 70px;
 }
 </style>
 

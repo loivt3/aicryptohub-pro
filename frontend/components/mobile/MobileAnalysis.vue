@@ -808,29 +808,8 @@
       <div class="m-bottom-spacer"></div>
     </main>
 
-    <!-- Bottom Navigation -->
-    <nav class="m-bottom-nav">
-      <button class="m-nav-item" @click="$emit('setTab', 'dashboard')">
-        <Icon name="ph:squares-four" class="m-nav-icon" />
-        <span class="m-nav-label">Dashboard</span>
-      </button>
-      <button class="m-nav-item" @click="$emit('setTab', 'market')">
-        <Icon name="ph:trend-up" class="m-nav-icon" />
-        <span class="m-nav-label">Market</span>
-      </button>
-      <button class="m-nav-item active">
-        <Icon name="ph:chart-line-up" class="m-nav-icon" />
-        <span class="m-nav-label">Analysis</span>
-      </button>
-      <button class="m-nav-item" @click="$emit('setTab', 'shadow')">
-        <Icon name="ph:eye" class="m-nav-icon" />
-        <span class="m-nav-label">Shadow</span>
-      </button>
-      <button class="m-nav-item" @click="$emit('setTab', 'aichat')">
-        <Icon name="ph:chat-dots" class="m-nav-icon" />
-        <span class="m-nav-label">AI Chat</span>
-      </button>
-    </nav>
+    <!-- Bottom Navigation (using SharedMobileFooter for consistent NuxtLink routing) -->
+    <SharedMobileFooter />
   </div>
 </template>
 
