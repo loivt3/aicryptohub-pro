@@ -134,7 +134,10 @@
           <div class="signals-list">
             <div v-for="coin in aiSignals" :key="coin.coin_id" class="signal-row">
               <div class="signal-left">
-                <span class="signal-symbol-badge">{{ coin.symbol?.toUpperCase().slice(0, 4) }}</span>
+                <div class="coin-icon-ring" v-if="coin.image">
+                  <img :src="coin.image" class="coin-icon" :alt="coin.symbol" />
+                </div>
+                <span class="signal-symbol-badge" v-else>{{ coin.symbol?.toUpperCase().slice(0, 4) }}</span>
                 <div class="signal-info">
                   <span class="signal-name">{{ coin.name }}</span>
                   <div class="signal-asi-row">
@@ -253,6 +256,7 @@ const aiSignals = computed(() => {
           coin_id: g.coin_id,
           symbol: g.symbol,
           name: g.name,
+          image: g.image,
           asi_score: g.discovery_score || 0,
           signal: g.signal_strength || 'HOLD',
           expected_return: g.change_24h || 0 // Using 24h change as proxy for now
@@ -415,11 +419,16 @@ const fetchData = async () => {
 
     // Fallback if no real whale data found
     if (!hasWhaleData && allCoins.value.length > 0) {
-         const topVol = [...allCoins.value].sort((a,b) => b.volume_24h - a.volume_24h).slice(0, 4)
+         const topVol = [...allCoins.value]
+             .filter(c => c.volume_24h > 0 && c.current_price > 0) // Filter invalid data
+             .sort((a,b) => b.volume_24h - a.volume_24h)
+             .slice(0, 4)
+             
          whaleTransactions.value = topVol.map((c, idx) => ({
              id: idx,
              symbol: c.symbol.toUpperCase(),
-             amount: (c.volume_24h / c.current_price / 100).toFixed(0) + 'K', // Simulating large amounts
+             // Safety check for calculation to avoid NaNK
+             amount: c.current_price ? (c.volume_24h / c.current_price / 1000).toFixed(1) + 'K' : '10K',
              usd_value: c.volume_24h / 24, // Simulating 1H volume
              image: c.image,
              time_ago: ['2m ago', '5m ago', '12m ago', '15m ago'][idx],
