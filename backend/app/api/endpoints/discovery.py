@@ -526,22 +526,25 @@ async def get_high_rich(
             result = conn.execute(text("""
                 SELECT 
                     ac.coin_id, ac.symbol, ac.name, ac.image,
-                    ac.price, ac.price_change_1h as change_1h,
-                    ac.change_24h, ac.price_change_7d as change_7d,
-                    ac.asi_score, ac.ai_signal,
-                    ac.volume_24h, ac.market_cap, ac.rank as market_cap_rank,
-                    mds.volume_ratio, mds.rsi_14, mds.momentum_score
+                    ac.price, 
+                    COALESCE(ac.price_change_1h, mds.change_1h, 0) as change_1h,
+                    COALESCE(ac.change_24h, mds.change_24h, 0) as change_24h, 
+                    COALESCE(ac.price_change_7d, mds.change_7d, 0) as change_7d,
+                    COALESCE(ac.asi_score, 50) as asi_score, 
+                    ac.ai_signal,
+                    COALESCE(ac.volume_24h, mds.volume_24h, 0) as volume_24h, 
+                    COALESCE(ac.market_cap, mds.market_cap, 0) as market_cap, 
+                    COALESCE(ac.rank, mds.market_cap_rank, 500) as market_cap_rank,
+                    mds.volume_ratio, mds.rsi_14, mds.momentum_score,
+                    mds.discovery_score
                 FROM aihub_coins ac
                 LEFT JOIN market_discovery_snapshot mds ON UPPER(mds.symbol) = ac.symbol
-                WHERE ac.price_change_1h > 0.3
-                  AND ac.asi_score >= 55
-                  AND COALESCE(mds.volume_ratio, 1) > 0.8
-                  AND ac.change_24h < 80
-                  AND ac.change_24h > -15
-                  AND ac.rank > 20
+                WHERE COALESCE(ac.price_change_1h, mds.change_1h, 0) > 0
+                  AND COALESCE(ac.rank, mds.market_cap_rank, 500) > 20
+                  AND COALESCE(ac.volume_24h, mds.volume_24h, 0) > 50000
                 ORDER BY 
-                    ac.asi_score DESC,
-                    ac.price_change_1h DESC
+                    COALESCE(mds.discovery_score, 0) DESC,
+                    COALESCE(ac.price_change_1h, mds.change_1h, 0) DESC
                 LIMIT :limit
             """), {"limit": limit})
             
