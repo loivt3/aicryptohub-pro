@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 # Columns that should remain as strings (not converted to float)
-STRING_COLUMNS = {'coin_id', 'symbol', 'name', 'image', 'last_updated', 'provider', 'reason', 'signal', 'analyzed_at'}
+STRING_COLUMNS = {'coin_id', 'symbol', 'name', 'image', 'last_updated', 'provider', 'reason', 'signal', 'analyzed_at', 'sparkline_7d'}
 
 
 def convert_db_value(col: str, val: Any) -> Any:
@@ -26,7 +26,9 @@ def convert_db_value(col: str, val: Any) -> Any:
     if val is None:
         return None
     if col in STRING_COLUMNS:
-        return str(val) if val else val
+        return val  # Keep as-is (for strings and arrays like sparkline_7d)
+    if isinstance(val, (list, dict)):
+        return val  # Keep JSON types as-is
     if isinstance(val, Decimal):
         return float(val)
     if isinstance(val, (int, float)):
@@ -127,6 +129,7 @@ class DatabaseService:
                 volume_24h,
                 high_24h,
                 low_24h,
+                sparkline_7d,
                 last_updated
             FROM aihub_coins
             WHERE price > 0

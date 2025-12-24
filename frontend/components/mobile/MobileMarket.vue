@@ -230,6 +230,7 @@ interface Coin {
   market_cap?: number
   asi_score?: number
   category?: string
+  sparkline_7d?: number[]  // Real 7-day price history for sparkline
 }
 
 defineProps<{
@@ -326,40 +327,82 @@ const getAsiBadgeClass = (score: number | undefined) => {
   return 'asi-low'
 }
 
-// Sparkline area path - UP: starts at 2/3 (low), curves UP; DOWN: starts at 1/2 (mid), curves DOWN
+// Generate sparkline path from real data (sparkline_7d)
 const getSparkAreaPath = (index: number) => {
   const coin = topCoins.value[index]
   if (!coin) return ''
-  const change = getChangeValue(coin)
-  const isUp = change >= 0
   
-  // SVG viewBox is 0 0 100 100
-  // UP trend: starts at y=70 (2/3 down), curves up to y=15
-  // DOWN trend: starts at y=40 (1/2), curves down to y=85
+  const data = coin.sparkline_7d
   
-  if (isUp) {
-    // Upward curve - starts low (2/3), ends high
-    return `M0,70 C20,65 35,40 50,25 S75,15 100,10 L100,100 L0,100 Z`
-  } else {
-    // Downward curve - starts mid (1/2), ends low
-    return `M0,35 C20,45 35,60 50,70 S75,80 100,85 L100,100 L0,100 Z`
+  // If no real data, fallback to fake curve based on change
+  if (!data || data.length < 2) {
+    const change = getChangeValue(coin)
+    const isUp = change >= 0
+    if (isUp) {
+      return `M0,70 C20,65 35,40 50,25 S75,15 100,10 L100,100 L0,100 Z`
+    } else {
+      return `M0,35 C20,45 35,60 50,70 S75,80 100,85 L100,100 L0,100 Z`
+    }
   }
+  
+  // Use last 24-48 data points for recent trend
+  const points = data.slice(-48)
+  const min = Math.min(...points)
+  const max = Math.max(...points)
+  const range = max - min || 1
+  
+  // Normalize points to SVG coordinates (y: 10-90, x: 0-100)
+  const normalized = points.map((val, i) => ({
+    x: (i / (points.length - 1)) * 100,
+    y: 90 - ((val - min) / range) * 80  // Invert Y axis, keep within 10-90 range
+  }))
+  
+  // Create smooth path using line segments
+  let path = `M${normalized[0].x.toFixed(1)},${normalized[0].y.toFixed(1)}`
+  for (let i = 1; i < normalized.length; i++) {
+    path += ` L${normalized[i].x.toFixed(1)},${normalized[i].y.toFixed(1)}`
+  }
+  
+  // Close path to bottom for fill
+  path += ` L100,100 L0,100 Z`
+  
+  return path
 }
 
 // Sparkline line path - just the stroke line (no fill)
 const getSparkLinePath = (index: number) => {
   const coin = topCoins.value[index]
   if (!coin) return ''
-  const change = getChangeValue(coin)
-  const isUp = change >= 0
   
-  if (isUp) {
-    // Upward curve
-    return `M0,70 C20,65 35,40 50,25 S75,15 100,10`
-  } else {
-    // Downward curve
-    return `M0,35 C20,45 35,60 50,70 S75,80 100,85`
+  const data = coin.sparkline_7d
+  
+  // If no real data, fallback to fake curve
+  if (!data || data.length < 2) {
+    const change = getChangeValue(coin)
+    const isUp = change >= 0
+    if (isUp) {
+      return `M0,70 C20,65 35,40 50,25 S75,15 100,10`
+    } else {
+      return `M0,35 C20,45 35,60 50,70 S75,80 100,85`
+    }
   }
+  
+  const points = data.slice(-48)
+  const min = Math.min(...points)
+  const max = Math.max(...points)
+  const range = max - min || 1
+  
+  const normalized = points.map((val, i) => ({
+    x: (i / (points.length - 1)) * 100,
+    y: 90 - ((val - min) / range) * 80
+  }))
+  
+  let path = `M${normalized[0].x.toFixed(1)},${normalized[0].y.toFixed(1)}`
+  for (let i = 1; i < normalized.length; i++) {
+    path += ` L${normalized[i].x.toFixed(1)},${normalized[i].y.toFixed(1)}`
+  }
+  
+  return path
 }
 
 // Fetch data
