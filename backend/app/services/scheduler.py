@@ -726,7 +726,15 @@ def start_scheduler():
         logger.warning("Scheduler already started")
         return
     
-    _scheduler = AsyncIOScheduler()
+    # Increase misfire_grace_time to 60 seconds to prevent jobs from being skipped
+    # when delayed due to other jobs running concurrently
+    _scheduler = AsyncIOScheduler(
+        job_defaults={
+            'coalesce': True,  # Combine multiple missed runs into one
+            'max_instances': 1,  # Only one instance of each job at a time
+            'misfire_grace_time': 60  # Allow 60 seconds delay before marking as missed
+        }
+    )
     
     # Add Fetcher job - every 3 minutes
     if SCHEDULER_STATE["fetcher"]["enabled"]:
@@ -750,11 +758,15 @@ def start_scheduler():
         )
         logger.info(f"Scheduled AI Workers job: every {SCHEDULER_STATE['ai_workers']['interval_minutes']} minutes")
     
-    # Add On-chain Collector job - every 30 minutes
+    # Add On-chain Collector job - every 30 minutes (staggered by 5 seconds to avoid collision)
     if SCHEDULER_STATE["onchain_collector"]["enabled"]:
+        from datetime import timedelta
         _scheduler.add_job(
             run_onchain_job,
-            trigger=IntervalTrigger(minutes=SCHEDULER_STATE["onchain_collector"]["interval_minutes"]),
+            trigger=IntervalTrigger(
+                minutes=SCHEDULER_STATE["onchain_collector"]["interval_minutes"],
+                start_date=datetime.now() + timedelta(seconds=15)  # Start 15 seconds after other jobs
+            ),
             id="onchain_collector_job",
             name="On-chain Collector",
             replace_existing=True,
