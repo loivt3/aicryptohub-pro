@@ -179,6 +179,41 @@ async def get_global_market_stats():
         }
 
 
+@router.get("/stats/ai-mood")
+async def get_ai_market_mood(
+    db: DatabaseService = Depends(get_db_service),
+):
+    """
+    Get AI Market Mood - a proprietary indicator combining:
+    - Fear & Greed Index (30%)
+    - Average ASI of top coins (25%)
+    - Market Trend (20%)
+    - Volume Momentum (15%)
+    - Whale Activity (10%)
+    """
+    from app.services.ai_mood import AIMarketMoodService
+    
+    try:
+        service = AIMarketMoodService(db.session)
+        mood = await service.calculate_mood()
+        
+        return {
+            "success": True,
+            "data": mood,
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "data": {
+                "score": 50,
+                "label": "Neutral",
+                "components": {},
+            },
+        }
+
+
 @router.get("/categories")
 async def get_categories():
     """Get market categories from CoinGecko"""

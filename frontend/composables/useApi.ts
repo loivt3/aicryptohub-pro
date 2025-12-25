@@ -83,7 +83,23 @@ export const useApi = () => {
         getHiddenGems: (limit = 10) =>
             apiFetch<{ success: boolean; data: any[] }>('/discovery/hidden-gems', { query: { limit } }),
 
-
+        // AI Market Mood - Proprietary indicator
+        getAIMood: () =>
+            apiFetch<{
+                success: boolean;
+                data: {
+                    score: number;
+                    label: string;
+                    components: {
+                        fear_greed: number;
+                        asi_average: number;
+                        market_trend: number;
+                        volume_momentum: number;
+                        whale_activity: number;
+                    };
+                    weights: Record<string, number>;
+                };
+            }>('/market/stats/ai-mood'),
 
         // Portfolio endpoints (auth required)
         getPortfolio: () =>

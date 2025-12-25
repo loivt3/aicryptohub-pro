@@ -348,17 +348,25 @@ const formatSignal = (signal: string | null) => {
 // Fetch data
 const fetchData = async () => {
   try {
-    // 1. Fetch Global Stats (Fear & Greed)
+    // 1. Fetch AI Market Mood (proprietary indicator)
     try {
-        const globalRes = await api.getGlobalStats()
-        if (globalRes.success && globalRes.data) {
-            fearGreedValue.value = globalRes.data.fear_greed_index
-            if (globalRes.data.fear_greed_classification) {
-                fearGreedClassification.value = globalRes.data.fear_greed_classification
-            }
+        const moodRes = await api.getAIMood()
+        if (moodRes.success && moodRes.data) {
+            fearGreedValue.value = moodRes.data.score
+            fearGreedClassification.value = moodRes.data.label
         }
     } catch (e) {
-        console.warn('Failed to fetch global stats:', e)
+        // Fallback to Fear & Greed if AI Mood fails
+        console.warn('Failed to fetch AI Mood, falling back to Fear & Greed:', e)
+        try {
+            const globalRes = await api.getGlobalStats()
+            if (globalRes.success && globalRes.data) {
+                fearGreedValue.value = globalRes.data.fear_greed_index
+                fearGreedClassification.value = globalRes.data.fear_greed_classification || 'Neutral'
+            }
+        } catch (e2) {
+            console.warn('Failed to fetch global stats:', e2)
+        }
     }
 
     // 2. Fetch Market Data (Top 50)
@@ -395,45 +403,63 @@ const fetchData = async () => {
         console.warn('Failed to fetch gems:', e)
     }
 
-    // 6. Fetch Whale Stream (On-chain Summary)
+    // 6. Fetch Whale Stream (On-chain Summary) with timeout
     let hasWhaleData = false
     try {
-        const onchainRes = await api.getOnchainSummary()
-        if (onchainRes && Array.isArray(onchainRes.recent_whale_txs) && onchainRes.recent_whale_txs.length > 0) {
-             whaleTransactions.value = onchainRes.recent_whale_txs.map((tx: any) => ({
-                 id: tx.from_address + tx.tx_timestamp || Math.random(),
-                 symbol: 'WHALE', // Onchain summary doesn't always have symbol PER tx in simple list, but let's check
-                 amount: formatNumber(tx.value_usd),
-                 usd_value: tx.value_usd,
-                 image: `https://assets.coingecko.com/coins/images/1/small/bitcoin.png`, // Placeholder as raw tx might not have coin image
-                 time_ago: 'Just now',
-                 type: tx.tx_type === 'exchange_deposit' ? 'dump' : 'accum'
-             }))
-             hasWhaleData = true
+        // Use AbortController for timeout (5 seconds max)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 5000)
+        
+        try {
+            const onchainRes = await api.getOnchainSummary()
+            clearTimeout(timeoutId)
+            
+            if (onchainRes && Array.isArray(onchainRes.recent_whale_txs) && onchainRes.recent_whale_txs.length > 0) {
+                whaleTransactions.value = onchainRes.recent_whale_txs.slice(0, 4).map((tx: any) => ({
+                    id: tx.from_address + tx.tx_timestamp || Math.random(),
+                    symbol: tx.coin_id?.toUpperCase() || 'WHALE',
+                    amount: formatNumber(tx.value_usd),
+                    usd_value: tx.value_usd,
+                    image: `https://assets.coingecko.com/coins/images/1/small/bitcoin.png`,
+                    time_ago: 'Just now',
+                    type: tx.tx_type === 'exchange_deposit' ? 'dump' : 'accum'
+                }))
+                hasWhaleData = true
+            }
+        } catch (fetchError) {
+            clearTimeout(timeoutId)
+            console.warn('On-chain fetch failed, using fallback:', fetchError)
         }
-        // Fallback: Check if onchainRes returned top coins and we can simulate from there? 
-        // No, user requested strictly "module on chain". If empty, let it fallback to volume simulation if needed or just empty.
     } catch (e) {
-         console.warn('Failed to fetch on-chain summary:', e)
+        console.warn('Failed to fetch on-chain summary:', e)
     }
 
-    // Fallback if no real whale data found
+    // Generate simulated whale data from top volume coins (always runs if no real data)
     if (!hasWhaleData && allCoins.value.length > 0) {
-         const topVol = [...allCoins.value]
-             .filter(c => c.volume_24h > 0 && c.current_price > 0) // Filter invalid data
-             .sort((a,b) => b.volume_24h - a.volume_24h)
-             .slice(0, 4)
-             
-         whaleTransactions.value = topVol.map((c, idx) => ({
-             id: idx,
-             symbol: c.symbol.toUpperCase(),
-             // Safety check for calculation to avoid NaNK
-             amount: c.current_price ? (c.volume_24h / c.current_price / 1000).toFixed(1) + 'K' : '10K',
-             usd_value: c.volume_24h / 24, // Simulating 1H volume
-             image: c.image,
-             time_ago: ['2m ago', '5m ago', '12m ago', '15m ago'][idx],
-             type: c.price_change_percentage_24h < 0 ? 'dump' : 'accum'
-         }))
+        console.log('Generating whale fallback from', allCoins.value.length, 'coins')
+        const topVol = [...allCoins.value]
+            .filter(c => c.volume_24h > 0) // Only filter by volume, price may be 0 temporarily
+            .sort((a, b) => (b.volume_24h || 0) - (a.volume_24h || 0))
+            .slice(0, 4)
+        
+        console.log('Top volume coins for whale:', topVol.map(c => c.symbol))
+            
+        if (topVol.length > 0) {
+            whaleTransactions.value = topVol.map((c, idx) => ({
+                id: idx,
+                symbol: c.symbol?.toUpperCase() || 'BTC',
+                amount: (c.price || c.current_price) ? 
+                    ((c.volume_24h / (c.price || c.current_price || 1)) / 1000).toFixed(1) + 'K' : 
+                    '100K',
+                usd_value: c.volume_24h / 24,
+                image: c.image || 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
+                time_ago: ['2m ago', '5m ago', '12m ago', '15m ago'][idx],
+                type: (c.change_24h || c.price_change_percentage_24h || 0) < 0 ? 'dump' : 'accum'
+            }))
+            console.log('Whale transactions generated:', whaleTransactions.value.length)
+        }
+    } else if (allCoins.value.length === 0) {
+        console.warn('Whale fallback skipped: allCoins is empty')
     }
 
   } catch (error) {

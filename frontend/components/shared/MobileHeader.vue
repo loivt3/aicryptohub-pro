@@ -56,6 +56,8 @@ const pageTitle = computed(() => {
     case 'portfolio': return 'Portfolio'
     case 'aichat': return 'AI Chat'
     case 'shadow': return 'Shadow'
+    case 'aichat': return 'AI Chat'
+    case 'alerts': return 'News & Alerts'
     default: return 'Dashboard'
   }
 })

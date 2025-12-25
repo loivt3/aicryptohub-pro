@@ -1,150 +1,257 @@
 <template>
   <div class="mobile-alerts">
     <!-- Header -->
-    <section class="m-section">
-      <div class="m-section-header">
-        <h3 class="m-section-title">🔔 Alerts</h3>
-        <button class="m-btn-small" @click="openAddAlert">+ New Alert</button>
-      </div>
-    </section>
+    <SharedMobileHeader active-tab="alerts" />
 
-    <!-- Active Alerts -->
-    <section class="m-section">
-      <h3 class="m-section-title">Active ({{ activeAlerts.length }})</h3>
+    <!-- MAIN SINGLE FEED CONTENT -->
+    <main class="content-main">
       
-      <div v-if="activeAlerts.length === 0" class="m-empty-state">
-        <span class="m-empty-icon">🔔</span>
-        <p class="m-empty-text">No active alerts</p>
-        <button class="m-btn-primary" @click="openAddAlert">Create Alert</button>
-      </div>
-
-      <div v-else class="m-list">
-        <div v-for="alert in activeAlerts" :key="alert.id" class="m-list-item">
-          <img :src="alert.image" class="m-avatar" />
-          <div class="m-info">
-            <span class="m-info-title">{{ alert.symbol }}</span>
-            <span class="m-info-subtitle">
-              {{ alert.condition === 'above' ? '↑' : '↓' }} ${{ alert.target_price.toLocaleString() }}
-            </span>
-          </div>
-          <div class="m-price-col">
-            <span class="m-info-title">${{ alert.current_price.toLocaleString() }}</span>
-            <span class="m-info-subtitle m-text-muted">
-              {{ ((alert.target_price - alert.current_price) / alert.current_price * 100).toFixed(1) }}% away
-            </span>
-          </div>
-          <button class="m-action-btn" @click="removeAlert(alert.id)">🗑️</button>
+      <!-- 1. ACTIVE MONITORING (Moved to Top as requested) -->
+      <section class="mb-6">
+        <div class="flex justify-between items-center mb-4 px-1">
+            <h3 class="flex items-center gap-2 text-lg font-bold text-white">
+                <Icon name="ph:target" class="text-emerald-400" /> Active Monitoring
+            </h3>
+             <button class="bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 border border-emerald-500/30">
+                <Icon name="ph:plus-bold" /> New Alert
+            </button>
         </div>
-      </div>
-    </section>
 
-    <!-- Triggered Alerts -->
-    <section v-if="triggeredAlerts.length > 0" class="m-section">
-      <h3 class="m-section-title">Triggered ({{ triggeredAlerts.length }})</h3>
-      
-      <div class="m-list">
-        <div v-for="alert in triggeredAlerts" :key="alert.id" class="m-list-item m-list-item--triggered">
-          <img :src="alert.image" class="m-avatar" />
-          <div class="m-info">
-            <span class="m-info-title">{{ alert.symbol }}</span>
-            <span class="m-info-subtitle m-text-success">✓ Triggered</span>
-          </div>
-          <div class="m-price-col">
-            <span class="m-info-title">${{ alert.target_price.toLocaleString() }}</span>
-            <span class="m-info-subtitle m-text-muted">{{ alert.triggered_at }}</span>
-          </div>
-          <button class="m-action-btn" @click="dismissAlert(alert.id)">×</button>
+        <div class="grid grid-cols-2 gap-3">
+            <!-- Price Alerts -->
+            <div class="bg-slate-800/60 border border-white/5 rounded-2xl p-4 flex flex-col justify-between h-[180px]">
+                <div class="flex justify-between items-start">
+                    <div class="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center text-emerald-400">
+                        <Icon name="ph:bell-ringing-bold" size="20" />
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase block">Active</span>
+                        <span class="text-xl font-bold text-white">3</span>
+                    </div>
+                </div>
+                <div>
+                     <span class="text-sm font-bold text-white block mb-3">Price Alerts</span>
+                     <div class="space-y-2">
+                        <div class="flex justify-between items-center bg-slate-700/30 rounded-lg p-2 border border-white/5">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+                                <span class="text-xs font-bold text-white">BTC</span>
+                            </div>
+                            <span class="text-xs font-mono text-emerald-400">> $100k</span>
+                        </div>
+                         <div class="flex justify-between items-center bg-slate-700/30 rounded-lg p-2 border border-white/5">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                                <span class="text-xs font-bold text-white">ETH</span>
+                            </div>
+                            <span class="text-xs font-mono text-emerald-400">< $3.2k</span>
+                        </div>
+                     </div>
+                </div>
+            </div>
+
+            <!-- AI Watchdog -->
+            <div class="bg-slate-800/60 border border-white/5 rounded-2xl p-4 flex flex-col h-[180px] relative overflow-hidden">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400">
+                        <Icon name="ph:robot-bold" size="20" />
+                    </div>
+                    <span class="bg-purple-500/20 text-purple-300 px-2 py-1 rounded text-[10px] font-bold border border-purple-500/30">NEW SIGNAL</span>
+                </div>
+                
+                <span class="text-sm font-bold text-white mb-1">AI Watchdog</span>
+                <p class="text-[10px] text-slate-400 mb-3">Based on predictive models</p>
+
+                <div class="mt-auto bg-purple-500/10 border border-purple-500/20 rounded-xl p-3">
+                    <div class="flex gap-2">
+                         <Icon name="ph:trend-up-bold" class="text-purple-400 shrink-0 mt-0.5" />
+                         <p class="text-[10px] text-slate-200 leading-tight">
+                            Abnormal volatility detected in <span class="text-purple-400 font-bold">DeFi Sector</span>.
+                         </p>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </section>
-    
-    <div class="m-bottom-spacer"></div>
+      </section>
+
+      <!-- 2. ON-CHAIN ALERTS (Timeline) -->
+      <section class="mb-6">
+        <div class="flex justify-between items-center mb-4 px-1">
+            <h3 class="flex items-center gap-2 text-lg font-bold text-white">
+                <Icon name="ph:circles-three-plus" class="text-cyan-400" /> On-Chain Alerts
+            </h3>
+            <span class="text-xs text-slate-400 flex items-center gap-1">Filter <Icon name="ph:funnel" /></span>
+        </div>
+
+        <div class="relative pl-4">
+            <!-- Timeline Line -->
+            <div class="absolute left-[27px] top-4 bottom-0 w-[2px] bg-slate-700"></div>
+
+            <div v-for="event in onChainEvents" :key="event.id" class="relative mb-6 last:mb-0">
+                <!-- Icon -->
+                <div class="absolute left-0 top-0 w-14 h-14 flex items-center justify-start z-10">
+                    <div class="w-10 h-10 rounded-full border-4 border-[#131b2c] flex items-center justify-center bg-slate-800 text-cyan-400 shrink-0 shadow-lg">
+                        <Icon :name="getEventIcon(event.action)" size="20" />
+                    </div>
+                </div>
+
+                <!-- Card -->
+                <div class="ml-14 bg-slate-800/60 border border-white/5 rounded-2xl p-4 backdrop-blur-sm">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-cyan-400 uppercase tracking-wider">{{ event.title }}</span>
+                            <span class="text-xs text-slate-500">{{ event.time }}</span>
+                        </div>
+                        <Icon name="ph:arrow-square-out" class="text-slate-500 text-sm" />
+                    </div>
+                    
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="flex -space-x-2">
+                            <img :src="event.icon1" class="w-6 h-6 rounded-full border border-slate-700" />
+                            <Icon name="ph:arrow-right" class="w-6 h-6 p-1 bg-slate-700 rounded-full text-white/50" />
+                            <img :src="event.icon2" class="w-6 h-6 rounded-full border border-slate-700" />
+                        </div>
+                        <span class="text-sm font-semibold text-white">
+                            {{ event.entity }} <span class="text-slate-500">→</span> {{ event.target }}
+                        </span>
+                    </div>
+
+                    <div class="text-xl font-bold text-white mb-2">
+                        {{ event.amount }} <span class="text-emerald-400 text-sm font-bold">{{ event.currency }}</span>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed">{{ event.desc }}</p>
+                </div>
+            </div>
+        </div>
+      </section>
+
+      <!-- 3. AI NEWS FEED -->
+      <section class="mb-4">
+        <div class="flex justify-between items-center mb-4 px-1">
+            <h3 class="flex items-center gap-2 text-lg font-bold text-white">
+                <Icon name="ph:sparkle-fill" class="text-emerald-400" /> AI News Feed
+            </h3>
+            <span class="text-xs text-slate-400 font-semibold">View All</span>
+        </div>
+
+        <!-- Hero Card -->
+        <div class="relative w-full aspect-[4/3] rounded-3xl overflow-hidden mb-4 group shadow-xl shadow-black/50">
+            <img src="https://images.unsplash.com/photo-1642104704074-907c0698cbd9?q=80&w=2832&auto=format&fit=crop" class="absolute inset-0 w-full h-full object-cover" />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
+            
+            <div class="absolute bottom-0 left-0 right-0 p-5">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="bg-emerald-500 text-black text-xs font-extrabold px-3 py-1 rounded-full">FOMO</span>
+                    <span class="text-xs text-slate-300 font-medium">2m ago • Coindesk</span>
+                </div>
+                <h2 class="text-2xl font-bold text-white leading-tight mb-4">Bitcoin ETF Approval Imminent?</h2>
+                
+                <div class="bg-slate-800/80 backdrop-blur-md border border-white/10 rounded-xl p-3 flex gap-3">
+                    <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                         <Icon name="ph:brain-bold" />
+                    </div>
+                    <p class="text-xs text-slate-200 leading-relaxed">
+                        SEC hints at positive outcome in latest filing reviews. Analysts predict <span class="font-bold text-emerald-300">90% chance</span> of approval by Tuesday.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feed List -->
+        <div class="space-y-3">
+            <div v-for="news in aiNewsFeed" :key="news.id" class="bg-slate-800/40 border border-white/5 rounded-2xl p-4 flex gap-4">
+                 <div class="w-12 h-12 rounded-xl bg-slate-700/50 shrink-0 overflow-hidden">
+                    <img :src="news.image" class="w-full h-full object-cover opacity-80" />
+                 </div>
+                 <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded" :class="getTagStyle(news.tag)">{{ news.tag }}</span>
+                        <span class="text-[10px] text-slate-500">{{ news.time_ago }}</span>
+                    </div>
+                    <h4 class="text-sm font-bold text-white leading-tight">{{ news.title }}</h4>
+                 </div>
+            </div>
+        </div>
+      </section>
+
+    </main>
+
+    <SharedMobileFooter active-tab="alerts" />
   </div>
 </template>
 
 <script setup lang="ts">
-// Mock data
-const activeAlerts = ref([
-  { id: 1, symbol: 'BTC', image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png', condition: 'above', target_price: 100000, current_price: 98500 },
-  { id: 2, symbol: 'ETH', image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png', condition: 'below', target_price: 3000, current_price: 3450 },
+import { ref } from 'vue'
+
+const onChainEvents = ref([
+    { 
+        id: 1, 
+        title: 'WHALE MOVE',
+        time: '10:45 AM', 
+        entity: 'Justin Sun', 
+        target: 'Binance',
+        action: 'transfer',
+        amount: '50,000,000',
+        currency: 'USDT',
+        desc: 'Large exchange inflow detected. Potential sell pressure.',
+        icon1: 'https://assets.coingecko.com/coins/images/20220/small/justin_sun.jpg?1635308693',
+        icon2: 'https://assets.coingecko.com/markets/images/52/small/binance.jpg'
+    },
+    { 
+        id: 2, 
+        title: 'DEX SWAP',
+        time: '10:30 AM', 
+        entity: 'vitalik.eth', 
+        target: 'Uniswap',
+        action: 'swap',
+        amount: '200',
+        currency: 'ETH',
+        desc: 'Swap executed for USDC via Uniswap V3.',
+        icon1: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
+        icon2: 'https://assets.coingecko.com/markets/images/57/small/uniswap_v3.png'
+    },
+     { 
+        id: 3, 
+        title: 'MINT EVENT',
+        time: '09:15 AM', 
+        entity: 'Tether', 
+        target: 'Treasury',
+        action: 'mint',
+        amount: '1,000,000,000',
+        currency: 'USDT',
+        desc: 'Treasury minted new USDT. Bullish signal.',
+        icon1: 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
+        icon2: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png'
+    }
 ])
 
-const triggeredAlerts = ref([
-  { id: 3, symbol: 'SOL', image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png', target_price: 180, triggered_at: '2 hours ago' },
+const aiNewsFeed = ref([
+    { id: 102, tag: 'LEGIT', title: 'Ethereum Pectra Upgrade Confirmed for Q1', time_ago: '30m ago', image: 'https://images.unsplash.com/photo-1620321023374-d1a68fdd720d?q=80&w=2697&auto=format&fit=crop' },
+    { id: 103, tag: 'FUD', title: 'SEC investigation rumors causing panic', time_ago: '45m ago', image: 'https://plus.unsplash.com/premium_photo-1681487767138-ddf2d67b35c1?q=80&w=2555&auto=format&fit=crop' },
 ])
 
-const openAddAlert = () => {
-  console.log('Open add alert modal')
+const getEventIcon = (action: string) => {
+    if (action === 'transfer') return 'ph:arrows-left-right-bold'
+    if (action === 'swap') return 'ph:swap-bold'
+    return 'ph:coins-bold'
 }
 
-const removeAlert = (id: number) => {
-  activeAlerts.value = activeAlerts.value.filter(a => a.id !== id)
+const getTagStyle = (tag: string) => {
+    if (tag === 'LEGIT') return 'bg-blue-500/20 text-blue-400'
+    if (tag === 'FUD') return 'bg-red-500/20 text-red-400'
+    return 'bg-slate-700 text-slate-300'
 }
 
-const dismissAlert = (id: number) => {
-  triggeredAlerts.value = triggeredAlerts.value.filter(a => a.id !== id)
-}
 </script>
 
 <style scoped>
 .mobile-alerts {
-  padding: 0;
+  min-height: 100vh;
+  /* Exact gradient match from MobileHome.vue */
+  background: linear-gradient(180deg, #0a0f14 0%, #0d1117 50%, #0a0f14 100%);
+  padding-bottom: 90px;
+  font-family: 'Inter', sans-serif;
+  color: #f8fafc;
 }
-
-.m-btn-small {
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.m-empty-state {
-  text-align: center;
-  padding: 40px 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 12px;
-}
-
-.m-empty-icon {
-  font-size: 48px;
-  display: block;
-  margin-bottom: 12px;
-}
-
-.m-empty-text {
-  color: rgba(255, 255, 255, 0.5);
-  margin-bottom: 16px;
-}
-
-.m-btn-primary {
-  padding: 12px 24px;
-  background: linear-gradient(135deg, #38efeb, #0066ff);
-  border: none;
-  border-radius: 8px;
-  color: #000;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.m-list-item--triggered {
-  background: rgba(34, 197, 94, 0.05);
-}
-
-.m-action-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-}
+.content-main { padding: 16px; margin-top: 8px; }
 </style>
