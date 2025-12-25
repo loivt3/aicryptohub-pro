@@ -134,5 +134,12 @@ export const useApi = () => {
 
         getDivergenceHistory: (coinId?: string, limit = 10) =>
             apiFetch<any[]>('/intent-divergence/history', { query: { coin_id: coinId, limit } }),
+
+        // News endpoints
+        getNews: (limit = 10) =>
+            apiFetch<{ success: boolean; articles: any[]; total: number }>('/news', { query: { limit } }),
+
+        getHeroNews: () =>
+            apiFetch<{ success: boolean; article: any }>('/news/hero'),
     }
 }

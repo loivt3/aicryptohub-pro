@@ -181,54 +181,129 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useApi } from '~/composables/useApi'
 
-const onChainEvents = ref([
-    { 
-        id: 1, 
-        title: 'WHALE MOVE',
-        time: '10:45 AM', 
-        entity: 'Justin Sun', 
-        target: 'Binance',
-        action: 'transfer',
-        amount: '50,000,000',
-        currency: 'USDT',
-        desc: 'Large exchange inflow detected. Potential sell pressure.',
-        icon1: 'https://assets.coingecko.com/coins/images/20220/small/justin_sun.jpg?1635308693',
-        icon2: 'https://assets.coingecko.com/markets/images/52/small/binance.jpg'
-    },
-    { 
-        id: 2, 
-        title: 'DEX SWAP',
-        time: '10:30 AM', 
-        entity: 'vitalik.eth', 
-        target: 'Uniswap',
-        action: 'swap',
-        amount: '200',
-        currency: 'ETH',
-        desc: 'Swap executed for USDC via Uniswap V3.',
-        icon1: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
-        icon2: 'https://assets.coingecko.com/markets/images/57/small/uniswap_v3.png'
-    },
-     { 
-        id: 3, 
-        title: 'MINT EVENT',
-        time: '09:15 AM', 
-        entity: 'Tether', 
-        target: 'Treasury',
-        action: 'mint',
-        amount: '1,000,000,000',
-        currency: 'USDT',
-        desc: 'Treasury minted new USDT. Bullish signal.',
-        icon1: 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
-        icon2: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png'
+const api = useApi()
+
+const onChainEvents = ref<any[]>([])
+const aiNewsFeed = ref<any[]>([])
+const heroNews = ref<any>(null)
+const isLoading = ref(true)
+
+// Fetch real data on mount
+onMounted(async () => {
+    await fetchData()
+})
+
+async function fetchData() {
+    isLoading.value = true
+    
+    try {
+        // Fetch on-chain whale transactions for alerts
+        const onchainRes = await api.getOnchainSummary()
+        if (onchainRes?.recent_whale_txs?.length > 0) {
+            onChainEvents.value = onchainRes.recent_whale_txs.slice(0, 5).map((tx: any, idx: number) => ({
+                id: idx + 1,
+                title: tx.tx_type === 'exchange_deposit' ? 'EXCHANGE INFLOW' : 
+                       tx.tx_type === 'exchange_withdraw' ? 'EXCHANGE OUTFLOW' : 'WHALE MOVE',
+                time: formatTimeAgo(tx.tx_timestamp),
+                entity: tx.exchange_name || shortenAddress(tx.from_address),
+                target: tx.exchange_name || shortenAddress(tx.to_address),
+                action: tx.tx_type === 'exchange_deposit' ? 'transfer' : 
+                        tx.tx_type === 'exchange_withdraw' ? 'swap' : 'transfer',
+                amount: formatAmount(tx.value_usd),
+                currency: tx.coin_id?.toUpperCase() || 'USD',
+                desc: tx.tx_type === 'exchange_deposit' 
+                    ? 'Large exchange inflow detected. Potential sell pressure.'
+                    : tx.tx_type === 'exchange_withdraw'
+                    ? 'Exchange outflow detected. Bullish accumulation signal.'
+                    : 'Large wallet-to-wallet transfer detected.',
+                icon1: `https://assets.coingecko.com/coins/images/${getCoinImage(tx.coin_id)}`,
+                icon2: tx.exchange_name 
+                    ? `https://assets.coingecko.com/markets/images/52/small/binance.jpg`
+                    : `https://assets.coingecko.com/coins/images/1/small/bitcoin.png`,
+            }))
+        }
+        
+        // Fetch news - try hero first
+        try {
+            const heroRes = await api.getHeroNews()
+            if (heroRes?.success && heroRes.article) {
+                heroNews.value = heroRes.article
+            }
+        } catch (e) { /* fallback to default hero */ }
+        
+        // Fetch news feed
+        try {
+            const newsRes = await api.getNews(5)
+            if (newsRes?.success && newsRes.articles?.length > 0) {
+                aiNewsFeed.value = newsRes.articles.map((article: any) => ({
+                    id: article.id,
+                    tag: article.tag || 'NEWS',
+                    title: article.title,
+                    time_ago: article.time_ago,
+                    image: article.image || 'https://images.unsplash.com/photo-1620321023374-d1a68fdd720d?q=80&w=200',
+                }))
+            }
+        } catch (e) { /* keep fallback data */ }
+        
+    } catch (error) {
+        console.error('Failed to fetch alerts data:', error)
+    } finally {
+        isLoading.value = false
     }
-])
+    
+    // Use fallback data if APIs return empty
+    if (onChainEvents.value.length === 0) {
+        onChainEvents.value = [
+            { id: 1, title: 'WHALE MOVE', time: '10:45 AM', entity: 'Large Wallet', target: 'Binance', action: 'transfer', amount: '50,000,000', currency: 'USDT', desc: 'Large exchange inflow detected.', icon1: 'https://assets.coingecko.com/coins/images/325/small/Tether.png', icon2: 'https://assets.coingecko.com/markets/images/52/small/binance.jpg' },
+        ]
+    }
+    if (aiNewsFeed.value.length === 0) {
+        aiNewsFeed.value = [
+            { id: 102, tag: 'LEGIT', title: 'Ethereum Pectra Upgrade Confirmed for Q1', time_ago: '30m ago', image: 'https://images.unsplash.com/photo-1620321023374-d1a68fdd720d?q=80&w=200' },
+            { id: 103, tag: 'FUD', title: 'SEC investigation rumors causing panic', time_ago: '45m ago', image: 'https://plus.unsplash.com/premium_photo-1681487767138-ddf2d67b35c1?q=80&w=200' },
+        ]
+    }
+}
 
-const aiNewsFeed = ref([
-    { id: 102, tag: 'LEGIT', title: 'Ethereum Pectra Upgrade Confirmed for Q1', time_ago: '30m ago', image: 'https://images.unsplash.com/photo-1620321023374-d1a68fdd720d?q=80&w=2697&auto=format&fit=crop' },
-    { id: 103, tag: 'FUD', title: 'SEC investigation rumors causing panic', time_ago: '45m ago', image: 'https://plus.unsplash.com/premium_photo-1681487767138-ddf2d67b35c1?q=80&w=2555&auto=format&fit=crop' },
-])
+function formatTimeAgo(timestamp: string): string {
+    if (!timestamp) return 'Just now'
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) return `${diffHours}h ago`
+    return `${Math.floor(diffHours / 24)}d ago`
+}
+
+function formatAmount(value: number): string {
+    if (!value) return '0'
+    if (value >= 1000000000) return (value / 1000000000).toFixed(1) + 'B'
+    if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M'
+    if (value >= 1000) return (value / 1000).toFixed(1) + 'K'
+    return value.toFixed(0)
+}
+
+function shortenAddress(addr: string): string {
+    if (!addr) return 'Unknown'
+    return addr.slice(0, 6) + '...' + addr.slice(-4)
+}
+
+function getCoinImage(coinId: string): string {
+    const mapping: Record<string, string> = {
+        'tether': '325/small/Tether.png',
+        'usd-coin': '6319/small/USD_Coin_icon.png',
+        'chainlink': '877/small/chainlink.png',
+        'aave': '12645/small/aave-token.png',
+        'uniswap': '12504/small/uniswap.png',
+    }
+    return mapping[coinId] || '1/small/bitcoin.png'
+}
 
 const getEventIcon = (action: string) => {
     if (action === 'transfer') return 'ph:arrows-left-right-bold'
@@ -239,6 +314,8 @@ const getEventIcon = (action: string) => {
 const getTagStyle = (tag: string) => {
     if (tag === 'LEGIT') return 'bg-blue-500/20 text-blue-400'
     if (tag === 'FUD') return 'bg-red-500/20 text-red-400'
+    if (tag === 'FOMO') return 'bg-emerald-500/20 text-emerald-400'
+    if (tag === 'BREAKING') return 'bg-orange-500/20 text-orange-400'
     return 'bg-slate-700 text-slate-300'
 }
 
