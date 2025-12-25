@@ -59,12 +59,12 @@ async def get_onchain_summary():
         # Get signals summary
         signals_data = db.get_onchain_summary()
         
-        # Get recent whale transactions
+        # Get recent whale transactions (7 days to ensure data availability)
         whale_query = text("""
             SELECT coin_id, tx_type, value_usd, from_address, to_address, 
                    exchange_name, tx_timestamp
             FROM whale_transactions
-            WHERE tx_timestamp > NOW() - INTERVAL '24 hours'
+            WHERE tx_timestamp > NOW() - INTERVAL '7 days'
             ORDER BY tx_timestamp DESC
             LIMIT 20
         """)
