@@ -34,8 +34,8 @@ class AIMarketMoodService:
         (100, "Extreme Greed"),
     ]
     
-    def __init__(self, db_session=None):
-        self.db = db_session
+    def __init__(self, engine=None):
+        self.engine = engine
     
     async def calculate_mood(self) -> Dict[str, Any]:
         """Calculate the AI Market Mood score."""
@@ -101,17 +101,16 @@ class AIMarketMoodService:
     async def _get_asi_average(self) -> float:
         """Calculate average ASI score from sentiment data."""
         try:
-            from app.db.database import get_db
             from sqlalchemy import text
             
-            # Use a new session if none provided
-            if self.db:
-                result = self.db.execute(
-                    text("SELECT AVG(asi_score) as avg_asi FROM sentiment WHERE asi_score IS NOT NULL")
-                )
-                row = result.fetchone()
-                if row and row.avg_asi:
-                    return float(row.avg_asi)
+            if self.engine:
+                with self.engine.connect() as conn:
+                    result = conn.execute(
+                        text("SELECT AVG(sentiment_score * 100) as avg_asi FROM aihub_sentiment WHERE sentiment_score IS NOT NULL")
+                    )
+                    row = result.fetchone()
+                    if row and row.avg_asi:
+                        return float(row.avg_asi)
         except Exception as e:
             logger.warning(f"Failed to get ASI average: {e}")
         return 50.0
@@ -119,28 +118,28 @@ class AIMarketMoodService:
     async def _get_market_trend(self) -> float:
         """Calculate market trend based on gainers vs losers ratio."""
         try:
-            from app.db.database import get_db
             from sqlalchemy import text
             
-            if self.db:
-                # Count gainers (positive 24h change) vs losers
-                result = self.db.execute(
-                    text("""
-                        SELECT 
-                            SUM(CASE WHEN price_change_percentage_24h > 0 THEN 1 ELSE 0 END) as gainers,
-                            SUM(CASE WHEN price_change_percentage_24h < 0 THEN 1 ELSE 0 END) as losers,
-                            COUNT(*) as total
-                        FROM coins 
-                        WHERE price_change_percentage_24h IS NOT NULL
-                    """)
-                )
-                row = result.fetchone()
-                if row and row.total > 0:
-                    # Convert ratio to 0-100 scale
-                    gainers = row.gainers or 0
-                    total = row.total
-                    trend = (gainers / total) * 100
-                    return trend
+            if self.engine:
+                with self.engine.connect() as conn:
+                    # Count gainers (positive 24h change) vs losers
+                    result = conn.execute(
+                        text("""
+                            SELECT 
+                                SUM(CASE WHEN change_24h > 0 THEN 1 ELSE 0 END) as gainers,
+                                SUM(CASE WHEN change_24h < 0 THEN 1 ELSE 0 END) as losers,
+                                COUNT(*) as total
+                            FROM aihub_coins 
+                            WHERE change_24h IS NOT NULL
+                        """)
+                    )
+                    row = result.fetchone()
+                    if row and row.total > 0:
+                        # Convert ratio to 0-100 scale
+                        gainers = row.gainers or 0
+                        total = row.total
+                        trend = (gainers / total) * 100
+                        return trend
         except Exception as e:
             logger.warning(f"Failed to get market trend: {e}")
         return 50.0
@@ -148,26 +147,26 @@ class AIMarketMoodService:
     async def _get_volume_momentum(self) -> float:
         """Calculate volume momentum (24h volume change)."""
         try:
-            from app.db.database import get_db
             from sqlalchemy import text
             
-            if self.db:
-                # Get average volume change
-                result = self.db.execute(
-                    text("""
-                        SELECT AVG(
-                            CASE 
-                                WHEN total_volume > 0 AND market_cap > 0 
-                                THEN LEAST(GREATEST((total_volume / market_cap) * 1000, 0), 100)
-                                ELSE 50
-                            END
-                        ) as avg_volume_ratio
-                        FROM coins
-                    """)
-                )
-                row = result.fetchone()
-                if row and row.avg_volume_ratio:
-                    return float(row.avg_volume_ratio)
+            if self.engine:
+                with self.engine.connect() as conn:
+                    # Get average volume change
+                    result = conn.execute(
+                        text("""
+                            SELECT AVG(
+                                CASE 
+                                    WHEN volume_24h > 0 AND market_cap > 0 
+                                    THEN LEAST(GREATEST((volume_24h / market_cap) * 1000, 0), 100)
+                                    ELSE 50
+                                END
+                            ) as avg_volume_ratio
+                            FROM aihub_coins
+                        """)
+                    )
+                    row = result.fetchone()
+                    if row and row.avg_volume_ratio:
+                        return float(row.avg_volume_ratio)
         except Exception as e:
             logger.warning(f"Failed to get volume momentum: {e}")
         return 50.0
@@ -175,28 +174,28 @@ class AIMarketMoodService:
     async def _get_whale_activity(self) -> float:
         """Calculate whale activity score based on recent transactions."""
         try:
-            from app.db.database import get_db
             from sqlalchemy import text
             
-            if self.db:
-                # Check for accumulation vs distribution signals
-                result = self.db.execute(
-                    text("""
-                        SELECT 
-                            SUM(CASE WHEN tx_type = 'accumulation' THEN 1 ELSE 0 END) as accum,
-                            SUM(CASE WHEN tx_type = 'distribution' THEN 1 ELSE 0 END) as distrib,
-                            COUNT(*) as total
-                        FROM whale_transactions
-                        WHERE created_at > NOW() - INTERVAL '24 hours'
-                    """)
-                )
-                row = result.fetchone()
-                if row and row.total > 0:
-                    accum = row.accum or 0
-                    total = row.total
-                    # More accumulation = more bullish = higher score
-                    score = (accum / total) * 100
-                    return score
+            if self.engine:
+                with self.engine.connect() as conn:
+                    # Check for accumulation vs distribution signals from onchain_signals
+                    result = conn.execute(
+                        text("""
+                            SELECT 
+                                SUM(CASE WHEN whale_signal = 'bullish' THEN 1 ELSE 0 END) as bullish,
+                                SUM(CASE WHEN whale_signal = 'bearish' THEN 1 ELSE 0 END) as bearish,
+                                COUNT(*) as total
+                            FROM onchain_signals
+                            WHERE updated_at > NOW() - INTERVAL '24 hours'
+                        """)
+                    )
+                    row = result.fetchone()
+                    if row and row.total > 0:
+                        bullish = row.bullish or 0
+                        total = row.total
+                        # More bullish = higher score
+                        score = (bullish / total) * 100
+                        return score
         except Exception as e:
             logger.warning(f"Failed to get whale activity: {e}")
         return 50.0  # Default neutral

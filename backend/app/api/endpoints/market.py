@@ -194,7 +194,7 @@ async def get_ai_market_mood(
     from app.services.ai_mood import AIMarketMoodService
     
     try:
-        service = AIMarketMoodService(db.session)
+        service = AIMarketMoodService(db.engine)
         mood = await service.calculate_mood()
         
         return {
