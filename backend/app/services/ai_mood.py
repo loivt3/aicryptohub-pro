@@ -9,10 +9,12 @@ Calculates a proprietary AI Market Mood score by combining multiple market signa
 - Whale Activity (10%)
 """
 
+import logging
 from typing import Dict, Any, Optional
 import httpx
 from app.core.config import settings
-from app.core.logging import logger
+
+logger = logging.getLogger(__name__)
 
 
 class AIMarketMoodService:
