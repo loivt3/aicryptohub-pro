@@ -248,6 +248,19 @@ async def get_categories():
         }
 
 
+@router.get("/explain/{coin_id}")
+async def explain_coin_volatility(
+    coin_id: str,
+    change_24h: float = Query(..., description="24h percentage change"),
+):
+    """
+    AI Scout: Explain why a coin is moving
+    """
+    from app.services.ai_scout import ai_scout_service
+    
+    return ai_scout_service.explain_volatility(coin_id, change_24h)
+
+
 @router.get("/{coin_id}")
 async def get_single_coin(
     coin_id: str,

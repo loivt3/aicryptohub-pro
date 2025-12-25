@@ -143,3 +143,45 @@ async def delete_portfolio_holding(
         raise HTTPException(status_code=500, detail="Failed to delete holding")
     
     return None
+
+
+@router.get("/audit", response_model=dict)
+async def audit_portfolio(
+    current_user: dict = Depends(get_current_user),
+    db: DatabaseService = Depends(get_db_service),
+):
+    """
+    AI Portfolio Auditor
+    Analyzes portfolio health, diversification, and risks.
+    """
+    from app.services.ai_hedge_fund import ai_hedge_fund_service
+    
+    # 1. Get Portfolio
+    holdings = db.get_portfolio(current_user["user_id"])
+    
+    # 2. Run Audit
+    audit_result = ai_hedge_fund_service.audit_portfolio(holdings)
+    
+    return audit_result
+
+
+@router.get("/simulate", response_model=dict)
+async def simulate_portfolio(
+    btc_change: float = -10.0,
+    current_user: dict = Depends(get_current_user),
+    db: DatabaseService = Depends(get_db_service),
+):
+    """
+    AI Stress Simulator
+    Simulates portfolio performance based on BTC price change scenario.
+    param btc_change: Percentage change of Bitcoin price (default -10%)
+    """
+    from app.services.ai_hedge_fund import ai_hedge_fund_service
+    
+    # 1. Get Portfolio
+    holdings = db.get_portfolio(current_user["user_id"])
+    
+    # 2. Run Simulation
+    simulation_result = ai_hedge_fund_service.simulate_stress(holdings, btc_change)
+    
+    return simulation_result

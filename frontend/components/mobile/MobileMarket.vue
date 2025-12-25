@@ -160,29 +160,65 @@
         
         <!-- Coin List -->
         <div class="screener-list">
-          <div 
-            v-for="coin in filteredCoins" 
-            :key="coin.coin_id"
-            class="screener-row"
-          >
-            <div class="screener-asset">
-              <img :src="coin.image" class="screener-avatar" :alt="coin.symbol" />
-              <div class="screener-info">
-                <span class="screener-symbol">{{ coin.symbol }}</span>
-                <span class="screener-name">{{ coin.name }}</span>
+          <template v-for="coin in filteredCoins" :key="coin.coin_id">
+            <div 
+              class="screener-row"
+              @click="toggleExpand(coin.coin_id)"
+            >
+              <div class="screener-asset">
+                <img :src="coin.image" class="screener-avatar" :alt="coin.symbol" />
+                <div class="screener-info">
+                  <span class="screener-symbol">{{ coin.symbol }}</span>
+                  <div class="screener-name-row">
+                     <span class="screener-name">{{ coin.name }}</span>
+                     <span v-if="Math.abs(coin.change_24h) > 5" class="m-volatility-badge">🔥 Volatile</span>
+                  </div>
+                </div>
+              </div>
+              <div class="screener-price-col">
+                <span class="screener-price">{{ formatPrice(coin.price) }}</span>
+                <span class="screener-change" :class="getChangeClass(coin)">
+                  {{ formatChange(coin) }}
+                </span>
+              </div>
+              <div class="screener-asi-col">
+                <span class="asi-badge" :class="getAsiBadgeClass(coin.asi_score)">
+                  {{ coin.asi_score || '--' }}
+                </span>
               </div>
             </div>
-            <div class="screener-price-col">
-              <span class="screener-price">{{ formatPrice(coin.price) }}</span>
-              <span class="screener-change" :class="getChangeClass(coin)">
-                {{ formatChange(coin) }}
-              </span>
+
+            <!-- AI Scout / Expanded View -->
+            <div v-if="expandedCoin === coin.coin_id" class="m-expand-panel">
+               <div class="m-expand-actions">
+                  <button class="m-action-btn" @click.stop="toggleFavorite(coin.coin_id)">
+                    <Icon name="ph:star" :class="favorites.includes(coin.coin_id) ? 'text-yellow-400' : ''" />
+                    {{ favorites.includes(coin.coin_id) ? 'Unfavorite' : 'Favorite' }}
+                  </button>
+                  <button class="m-action-btn m-btn-ai" @click.stop="askAi(coin)">
+                    <Icon name="ph:magic-wand" />
+                    Ask AI: Why moving?
+                  </button>
+               </div>
+
+               <!-- AI Explanation Result -->
+               <div v-if="aiExplanations[coin.coin_id]" class="m-ai-explanation">
+                  <div class="m-ai-header">
+                    <span>✨ AI Insight</span>
+                    <small>Confidence: {{ aiExplanations[coin.coin_id].confidence }}</small>
+                  </div>
+                  <p>{{ aiExplanations[coin.coin_id].explanation }}</p>
+               </div>
+               
+               <div v-else-if="loadingAi === coin.coin_id" class="m-ai-loading">
+                  <Icon name="svg-spinners:3-dots-fade" /> Analyzing market data...
+               </div>
             </div>
-            <div class="screener-asi-col">
-              <span class="asi-badge" :class="getAsiBadgeClass(coin.asi_score)">
-                {{ coin.asi_score || '--' }}
-              </span>
-            </div>
+          </template>
+
+          <div v-if="filteredCoins.length === 0" class="m-empty-list">
+             <span v-if="activeCategory === 'favorites'">No favorites yet. Star some coins!</span>
+             <span v-else>No coins found in this category.</span>
           </div>
         </div>
       </section>
@@ -221,13 +257,23 @@ defineEmits<{
   (e: 'openSearch'): void
 }>()
 
+import { ref, computed, onMounted } from 'vue'
+import { useApi } from '~/composables/useApi'
+
+const api = useApi()
+
 const heatmapTimeframe = ref<'1H' | '4H' | '24H'>('24H')
 const activeCategory = ref('all')
+const favorites = ref<string[]>([])
+const expandedCoin = ref<string | null>(null)
+const aiExplanations = ref<Record<string, any>>({})
+const loadingAi = ref<string | null>(null)
 const loading = ref(true)
 const allCoins = ref<Coin[]>([])
 
 const categories = [
   { id: 'all', label: 'All' },
+  { id: 'favorites', label: '⭐ Favorites' },
   { id: 'layer-1', label: 'Layer 1' },
   { id: 'ai', label: 'AI Tokens' },
   { id: 'meme', label: 'Meme' },
@@ -243,6 +289,9 @@ const topCoins = computed(() => {
 
 // Filtered coins for screener
 const filteredCoins = computed(() => {
+  if (activeCategory.value === 'favorites') {
+     return allCoins.value.filter(c => favorites.value.includes(c.coin_id))
+  }
   if (activeCategory.value === 'all') {
     return allCoins.value.slice(0, 20)
   }
@@ -250,6 +299,42 @@ const filteredCoins = computed(() => {
     .filter(c => c.category === activeCategory.value)
     .slice(0, 20)
 })
+
+// Favorites Logic
+onMounted(() => {
+  fetchData()
+  const stored = localStorage.getItem('aihub_favorites')
+  if (stored) {
+    try { favorites.value = JSON.parse(stored) } catch(e){}
+  }
+})
+
+const toggleFavorite = (id: string) => {
+  if (favorites.value.includes(id)) {
+    favorites.value = favorites.value.filter(f => f !== id)
+  } else {
+    favorites.value.push(id)
+  }
+  localStorage.setItem('aihub_favorites', JSON.stringify(favorites.value))
+}
+
+const toggleExpand = (id: string) => {
+  expandedCoin.value = expandedCoin.value === id ? null : id
+}
+
+const askAi = async (coin: Coin) => {
+  if (aiExplanations.value[coin.coin_id]) return 
+  
+  loadingAi.value = coin.coin_id
+  try {
+    const res = await api.explainCoin(coin.coin_id, coin.change_24h)
+    aiExplanations.value[coin.coin_id] = res
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loadingAi.value = null
+  }
+}
 
 // Get change value based on timeframe
 const getChangeValue = (coin: Coin) => {
@@ -921,6 +1006,97 @@ onMounted(() => {
 .asi-low {
   background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
   color: #fff;
+}
+
+/* AI Scout / Expansion Styles */
+.m-volatility-badge {
+  font-size: 10px;
+  background: rgba(249, 115, 22, 0.2);
+  color: #f97316;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.m-expand-panel {
+  padding: 12px 16px;
+  background: rgba(0,0,0,0.2);
+  border-top: 1px solid rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.m-expand-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.m-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.m-action-btn:active {
+  transform: scale(0.98);
+}
+
+.m-btn-ai {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #a78bfa;
+}
+
+.m-ai-explanation {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.9);
+}
+
+.m-ai-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #a78bfa;
+}
+
+.m-ai-loading {
+  padding: 12px;
+  text-align: center;
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.m-empty-list {
+  padding: 40px;
+  text-align: center;
+  color: rgba(255,255,255,0.4);
+  font-size: 13px;
+}
+
+.screener-name-row {
+  display: flex;
+  align-items: center;
 }
 
 /* Bottom spacer */

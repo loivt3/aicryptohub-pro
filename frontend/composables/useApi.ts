@@ -101,6 +101,10 @@ export const useApi = () => {
                 };
             }>('/market/stats/ai-mood'),
 
+        // AI Scout: Explain Volatility
+        explainCoin: (coinId: string, change24h: number) =>
+            apiFetch<any>(`/market/explain/${coinId}`, { query: { change_24h: change24h } }),
+
         // Portfolio endpoints (auth required)
         getPortfolio: () =>
             apiFetch<any[]>('/portfolio', { auth: true }),
@@ -108,15 +112,8 @@ export const useApi = () => {
         getPortfolioSummary: () =>
             apiFetch<any>('/portfolio/summary', { auth: true }),
 
-        addHolding: (coinId: string, amount: number, buyPrice: number) =>
-            apiFetch<any>('/portfolio', {
-                method: 'POST',
-                body: { coin_id: coinId, amount, buy_price: buyPrice },
-                auth: true,
-            }),
-
-        deleteHolding: (coinId: string) =>
-            apiFetch<void>(`/portfolio/${coinId}`, { method: 'DELETE', auth: true }),
+        addHolding: (data: { coin_id: string; amount: number; buy_price: number }) =>
+            apiFetch<any>('/portfolio', { method: 'POST', body: data, auth: true }),
 
         // On-chain endpoints
         getOnchainSummary: () =>
@@ -144,5 +141,19 @@ export const useApi = () => {
 
         getNewsFeed: (limit = 10) =>
             apiFetch<{ success: boolean; articles: any[]; total: number }>('/news/feed', { query: { limit } }),
+
+
+        updateHolding: (coinId: string, data: { amount?: number; buy_price?: number }) =>
+            apiFetch<any>(`/portfolio/${coinId}`, { method: 'PUT', body: data, auth: true }),
+
+        deleteHolding: (coinId: string) =>
+            apiFetch<void>(`/portfolio/${coinId}`, { method: 'DELETE', auth: true }),
+
+        // AI Hedge Fund Manager
+        getPortfolioAudit: () =>
+            apiFetch<any>('/portfolio/audit', { auth: true }),
+
+        simulatePortfolio: (btcChange: number) =>
+            apiFetch<any>('/portfolio/simulate', { query: { btc_change: btcChange }, auth: true }),
     }
 }
