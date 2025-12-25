@@ -136,3 +136,147 @@ async def get_hero_news():
             return {"success": False, "article": None}
     except Exception as e:
         return {"success": False, "error": str(e), "article": None}
+
+
+@router.get("/live")
+async def get_live_news(
+    coin_id: str = Query("bitcoin", description="Coin ID for news (e.g., bitcoin, ethereum)"),
+    limit: int = Query(10, le=20),
+):
+    """
+    Get live news from CryptoPanic API via NewsAggregator.
+    Falls back to mock data if no API key configured.
+    """
+    try:
+        from app.services.news_aggregator import get_news_aggregator
+        
+        aggregator = get_news_aggregator()
+        
+        # Fetch news for specific coin
+        news_items = await aggregator.fetch_news(coin_id=coin_id, limit=limit)
+        
+        articles = []
+        for item in news_items:
+            # Format time_ago
+            if item.publish_time:
+                delta = datetime.now() - item.publish_time.replace(tzinfo=None)
+                if delta.days > 0:
+                    time_ago = f"{delta.days}d ago"
+                elif delta.seconds > 3600:
+                    time_ago = f"{delta.seconds // 3600}h ago"
+                elif delta.seconds > 60:
+                    time_ago = f"{delta.seconds // 60}m ago"
+                else:
+                    time_ago = "Just now"
+            else:
+                time_ago = "Just now"
+            
+            # Map emotional tone to tag
+            tag = item.emotional_tone.value.upper()
+            if tag == "NEUTRAL":
+                tag = "NEWS"
+            
+            articles.append({
+                "id": item.event_id,
+                "title": item.title,
+                "excerpt": item.summary,
+                "source": item.source,
+                "source_url": item.source_url,
+                "tag": tag,
+                "category": item.category.value,
+                "coin_id": item.coin_id,
+                "symbol": item.symbol,
+                "time_ago": time_ago,
+                "intensity": item.news_intensity,
+                "published_at": item.publish_time.isoformat() if item.publish_time else None,
+            })
+        
+        return {
+            "success": True,
+            "articles": articles,
+            "total": len(articles),
+            "coin_id": coin_id,
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error": str(e),
+            "articles": [],
+            "total": 0,
+        }
+
+
+@router.get("/feed")
+async def get_news_feed(limit: int = Query(10, le=30)):
+    """
+    Get aggregated news feed for multiple major coins.
+    Combines live news from BTC, ETH, and SOL.
+    """
+    try:
+        from app.services.news_aggregator import get_news_aggregator
+        
+        aggregator = get_news_aggregator()
+        
+        all_articles = []
+        
+        # Fetch news for major coins
+        for coin_id in ["bitcoin", "ethereum", "solana"]:
+            try:
+                items = await aggregator.fetch_news(coin_id=coin_id, limit=5)
+                for item in items:
+                    # Format time_ago
+                    if item.publish_time:
+                        delta = datetime.now() - item.publish_time.replace(tzinfo=None)
+                        if delta.days > 0:
+                            time_ago = f"{delta.days}d ago"
+                        elif delta.seconds > 3600:
+                            time_ago = f"{delta.seconds // 3600}h ago"
+                        elif delta.seconds > 60:
+                            time_ago = f"{delta.seconds // 60}m ago"
+                        else:
+                            time_ago = "Just now"
+                    else:
+                        time_ago = "Just now"
+                    
+                    tag = item.emotional_tone.value.upper()
+                    if tag == "NEUTRAL":
+                        tag = "NEWS"
+                    
+                    all_articles.append({
+                        "id": item.event_id,
+                        "title": item.title,
+                        "excerpt": item.summary,
+                        "source": item.source,
+                        "tag": tag,
+                        "category": item.category.value,
+                        "coin_id": item.coin_id,
+                        "symbol": item.symbol,
+                        "time_ago": time_ago,
+                        "intensity": item.news_intensity,
+                        "published_at": item.publish_time.isoformat() if item.publish_time else None,
+                    })
+            except Exception as e:
+                print(f"Failed to fetch news for {coin_id}: {e}")
+        
+        # Sort by publish time (most recent first)
+        all_articles.sort(
+            key=lambda x: x.get("published_at") or "", 
+            reverse=True
+        )
+        
+        return {
+            "success": True,
+            "articles": all_articles[:limit],
+            "total": len(all_articles[:limit]),
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "articles": [],
+            "total": 0,
+        }

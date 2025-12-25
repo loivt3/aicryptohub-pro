@@ -234,9 +234,9 @@ async function fetchData() {
             }
         } catch (e) { /* fallback to default hero */ }
         
-        // Fetch news feed
+        // Fetch live news feed from CryptoPanic via NewsAggregator
         try {
-            const newsRes = await api.getNews(5)
+            const newsRes = await api.getNewsFeed(5)
             if (newsRes?.success && newsRes.articles?.length > 0) {
                 aiNewsFeed.value = newsRes.articles.map((article: any) => ({
                     id: article.id,

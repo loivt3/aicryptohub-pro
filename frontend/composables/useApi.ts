@@ -141,5 +141,8 @@ export const useApi = () => {
 
         getHeroNews: () =>
             apiFetch<{ success: boolean; article: any }>('/news/hero'),
+
+        getNewsFeed: (limit = 10) =>
+            apiFetch<{ success: boolean; articles: any[]; total: number }>('/news/feed', { query: { limit } }),
     }
 }
