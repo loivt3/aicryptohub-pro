@@ -66,10 +66,71 @@ class CoinGeckoFetcher:
                 "order": "market_cap_desc"
             })
             if response.status_code == 200:
-                return response.json()
+                categories = response.json()
+                if categories and len(categories) > 0:
+                    return categories
         except Exception as e:
             logger.error(f"CoinGecko categories error: {e}")
+        
+        # Fallback: return empty (will be calculated from DB in endpoint)
         return []
+    
+    @staticmethod
+    def get_fallback_categories(db) -> List[Dict]:
+        """Calculate category performance from database coins"""
+        from sqlalchemy import text
+        
+        # Map coins to categories (top coins per category)
+        CATEGORY_COINS = {
+            "layer-1": ["bitcoin", "ethereum", "solana", "cardano", "avalanche-2", "near", "sui", "aptos"],
+            "defi": ["uniswap", "aave", "chainlink", "maker", "compound-governance-token", "curve-dao-token", "lido-dao"],
+            "layer-2": ["polygon-ecosystem-token", "arbitrum", "optimism", "immutable-x", "starknet"],
+            "nft": ["immutable-x", "axie-infinity", "the-sandbox", "decentraland", "enjincoin", "gala"],
+            "gaming": ["axie-infinity", "the-sandbox", "gala", "immutable-x", "stepn", "illuvium"],
+            "meme": ["dogecoin", "shiba-inu", "pepe", "floki", "bonk", "dogwifcoin"],
+            "ai": ["fetch-ai", "singularitynet", "render-token", "ocean-protocol", "cortex", "bittensor"],
+        }
+        
+        categories = []
+        
+        try:
+            for cat_id, coin_ids in CATEGORY_COINS.items():
+                placeholders = ", ".join([f"'{cid}'" for cid in coin_ids])
+                query = text(f"""
+                    SELECT 
+                        AVG(change_24h) as avg_change,
+                        SUM(market_cap) as total_cap,
+                        SUM(volume_24h) as total_volume,
+                        COUNT(*) as coin_count
+                    FROM aihub_coins
+                    WHERE coin_id IN ({placeholders})
+                      AND change_24h IS NOT NULL
+                """)
+                
+                with db.engine.connect() as conn:
+                    result = conn.execute(query)
+                    row = result.fetchone()
+                    
+                    if row and row.coin_count > 0:
+                        categories.append({
+                            "id": cat_id,
+                            "name": cat_id.replace("-", " ").title(),
+                            "market_cap": float(row.total_cap or 0),
+                            "market_cap_change_24h": float(row.avg_change or 0),
+                            "volume_24h": float(row.total_volume or 0),
+                            "content": "",
+                            "top_3_coins": [],
+                        })
+            
+            # Sort by market cap
+            categories.sort(key=lambda x: x["market_cap"], reverse=True)
+            
+            logger.info(f"Generated {len(categories)} fallback categories from DB")
+            
+        except Exception as e:
+            logger.error(f"Fallback categories failed: {e}")
+        
+        return categories
 
     async def fetch_all_markets(self, max_coins: int = 500) -> List[Dict]:
         """Fetch pages with rate limiting - faster for initial load"""

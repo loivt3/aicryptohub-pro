@@ -216,8 +216,9 @@ async def get_ai_market_mood(
 
 @router.get("/categories")
 async def get_categories():
-    """Get market categories from CoinGecko"""
+    """Get market categories from CoinGecko or fallback from DB"""
     from app.services.data_fetcher import CoinGeckoFetcher
+    from app.services.database import get_database_service
     import logging
     
     logger = logging.getLogger(__name__)
@@ -225,6 +226,12 @@ async def get_categories():
     try:
         fetcher = CoinGeckoFetcher()
         categories = await fetcher.fetch_categories()
+        
+        # If CoinGecko returns empty (rate limited), use fallback
+        if not categories or len(categories) == 0:
+            logger.info("CoinGecko categories empty, using DB fallback")
+            db = get_database_service()
+            categories = CoinGeckoFetcher.get_fallback_categories(db)
         
         return {
             "success": True,
