@@ -2486,7 +2486,7 @@ const toggleFavorite = (coinId: string) => {
 
 /* Add padding to the glass list container */
 .m-list--dark {
-  padding: 12px !important;
+  padding: 8px !important;
 }
 
 /* Coin card wrapper - transparent with bottom border separator */
