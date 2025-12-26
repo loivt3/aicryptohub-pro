@@ -115,7 +115,8 @@ class DatabaseService:
         # Sort by rank first (CoinGecko market_cap_rank), then market_cap as fallback
         # This ensures BTC, ETH always appear at top even if market_cap is NULL/0
         if orderby == "market_cap":
-            order_clause = "COALESCE(rank, 99999) ASC, market_cap DESC NULLS LAST"
+            # Use table name prefix to avoid conflict with RANK() window function
+            order_clause = "COALESCE(aihub_coins.rank, 99999) ASC, market_cap DESC NULLS LAST"
         elif orderby == "volume_24h":
             order_clause = "volume_24h DESC NULLS LAST"
         elif orderby == "change_24h":
@@ -141,7 +142,7 @@ class DatabaseService:
                 sparkline_7d,
                 last_updated
             FROM aihub_coins
-            WHERE price > 0 OR rank <= 20
+            WHERE price > 0 OR aihub_coins.rank <= 20
             ORDER BY {order_clause}
             LIMIT :limit
         """)
