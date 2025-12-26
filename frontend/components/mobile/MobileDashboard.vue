@@ -2474,7 +2474,8 @@ const toggleFavorite = (coinId: string) => {
 .m-horizon-coin,
 .m-heatmap-tile,
 .m-treemap-container,
-.m-horizon-tab {
+.m-horizon-tab,
+.m-list--dark {
   background: rgba(15, 25, 35, 0.7) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
@@ -2483,16 +2484,27 @@ const toggleFavorite = (coinId: string) => {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Coin card wrapper - Glassmorphism style with spacing */
+/* Add padding to the glass list container */
+.m-list--dark {
+  padding: 12px !important;
+}
+
+/* Coin card wrapper - transparent with bottom border separator */
 .m-coin-card-wrapper {
-  background: rgba(15, 25, 35, 0.7) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3) !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding-bottom: 12px;
   margin-bottom: 12px;
-  overflow: hidden;
+}
+
+/* Remove border from last item */
+.m-coin-card-wrapper:last-child {
+  border-bottom: none !important;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 /* Keep inner items with their original styling */
@@ -2506,7 +2518,7 @@ const toggleFavorite = (coinId: string) => {
 .m-coin-card-wrapper .m-accordion-panel {
   background: transparent !important;
   border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
-  margin-top: 0 !important;
+  margin-top: 8px !important;
 }
 
 /* Specific adjustment for gem card padding/flex if needed */
