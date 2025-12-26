@@ -1,12 +1,12 @@
 <template>
   <div class="mobile-layout">
     <!-- Header -->
-    <header class="m-header-simple">
-      <h1 class="m-header-title">Discovery</h1>
-      <button class="m-search-btn" @click="$emit('openSearch')">
-        <Icon name="lucide:search" class="w-5 h-5" />
-      </button>
-    </header>
+    <!-- Header -->
+    <SharedMobileHeader 
+      :active-tab="activeTab"
+      @set-tab="$emit('setTab', $event)" 
+      @open-search="$emit('openSearch')" 
+    />
 
     <main class="m-main">
       <!-- Market Heatmap Section -->
@@ -904,29 +904,34 @@ onMounted(() => {
 .screener-list {
   display: flex;
   flex-direction: column;
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 0 0 16px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-top: none;
-  overflow: hidden;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  padding: 0 4px;
 }
 
 .screener-row {
   display: flex;
   align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  transition: background 0.2s ease;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: rgb(30 32 36 / 92%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
 }
 
 .screener-row:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgb(40 44 52 / 95%);
+  transform: translateY(-1px);
 }
 
 .screener-row:last-child {
-  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .screener-asset {
