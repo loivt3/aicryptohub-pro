@@ -191,6 +191,37 @@
         </div>
       </section>
 
+      <!-- AI Highlights - Dynamic Insights -->
+      <section v-if="aiHighlights.length > 0" class="home-section">
+        <div class="ai-highlights-card glass-card">
+          <div class="ai-highlights-header">
+            <Icon name="ph:sparkle" class="w-5 h-5" style="color: #38efeb;" />
+            <span class="ai-highlights-title">AI Highlights</span>
+            <span class="ai-highlights-count">{{ aiHighlights.length }}</span>
+          </div>
+          <div class="ai-highlights-grid">
+            <div 
+              v-for="(highlight, idx) in aiHighlights.slice(0, 4)" 
+              :key="idx" 
+              class="ai-highlight-item"
+              :class="highlight.color"
+            >
+              <div class="highlight-top">
+                <div class="highlight-icon" :class="highlight.color">
+                  <Icon :name="getHighlightIcon(highlight)" size="16" />
+                </div>
+                <div class="highlight-meta">
+                  <span class="highlight-type">{{ formatHighlightType(highlight.highlight_type) }}</span>
+                  <span class="highlight-symbol">{{ highlight.symbol }}</span>
+                </div>
+                <span v-if="highlight.confidence" class="highlight-confidence">{{ highlight.confidence }}%</span>
+              </div>
+              <p class="highlight-desc">{{ highlight.description }}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </main>
     
     <!-- Bottom Navigation -->
@@ -220,6 +251,7 @@ const heatmapTimeframe = ref('24h') // Default to 24h as API usually gives 24h c
 const whaleTransactions = ref<any[]>([])
 const categoriesData = ref<any[]>([])
 const gemSignals = ref<any[]>([])
+const aiHighlights = ref<any[]>([])
 
 // Top coins for pills
 const topCoins = computed(() => allCoins.value.slice(0, 10))
@@ -339,6 +371,34 @@ const getAsiClass = (score: number) => {
   if (score >= 60) return 'positive'
   if (score <= 40) return 'negative'
   return 'neutral'
+}
+
+// AI Highlights helpers
+const getHighlightIcon = (highlight: any) => {
+  const iconMap: Record<string, string> = {
+    'trend-up': 'ph:trend-up-bold',
+    'trend-down': 'ph:trend-down-bold',
+    'warning': 'ph:warning-bold',
+    'chart-bar': 'ph:chart-bar-bold',
+    'lightning': 'ph:lightning-bold',
+    'fish': 'ph:fish-bold',
+    'target': 'ph:target-bold',
+    'arrow-down': 'ph:arrow-down-bold',
+  }
+  return iconMap[highlight.icon] || 'ph:sparkle-bold'
+}
+
+const formatHighlightType = (type: string) => {
+  const typeMap: Record<string, string> = {
+    'bullish_signal': 'Bullish',
+    'bearish_signal': 'Bearish',
+    'risk_alert': 'Risk Alert',
+    'volume_surge': 'Volume Surge',
+    'breakout': 'Breakout',
+    'whale_activity': 'Whale Activity',
+    'opportunity': 'Opportunity',
+  }
+  return typeMap[type] || type
 }
 
 const formatSignal = (signal: string | null) => {
@@ -485,6 +545,16 @@ const fetchData = async () => {
         }
     } else if (allCoins.value.length === 0) {
         console.warn('Whale fallback skipped: allCoins is empty')
+    }
+
+    // 7. Fetch AI Highlights
+    try {
+        const highlightsRes = await api.getAIHighlights()
+        if (highlightsRes?.highlights && Array.isArray(highlightsRes.highlights)) {
+            aiHighlights.value = highlightsRes.highlights.slice(0, 4)
+        }
+    } catch (e) {
+        console.warn('Failed to fetch AI highlights:', e)
     }
 
   } catch (error) {
@@ -1176,5 +1246,139 @@ onMounted(() => {
   padding: 24px;
   color: rgba(255, 255, 255, 0.4);
   font-size: 13px;
+}
+
+/* ========== AI HIGHLIGHTS ========== */
+.ai-highlights-card {
+  padding: 16px;
+}
+
+.ai-highlights-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ai-highlights-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  flex: 1;
+}
+
+.ai-highlights-count {
+  background: rgba(56, 239, 235, 0.2);
+  color: #38efeb;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ai-highlights-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.ai-highlight-item {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ai-highlight-item.green {
+  border-color: rgba(16, 185, 129, 0.25);
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.02) 100%);
+}
+
+.ai-highlight-item.red {
+  border-color: rgba(239, 68, 68, 0.25);
+  background: linear-gradient(145deg, rgba(239, 68, 68, 0.08) 0%, rgba(239, 68, 68, 0.02) 100%);
+}
+
+.ai-highlight-item.blue {
+  border-color: rgba(59, 130, 246, 0.25);
+  background: linear-gradient(145deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.02) 100%);
+}
+
+.ai-highlight-item.cyan {
+  border-color: rgba(56, 239, 235, 0.25);
+  background: linear-gradient(145deg, rgba(56, 239, 235, 0.08) 0%, rgba(56, 239, 235, 0.02) 100%);
+}
+
+.ai-highlight-item.purple {
+  border-color: rgba(168, 85, 247, 0.25);
+  background: linear-gradient(145deg, rgba(168, 85, 247, 0.08) 0%, rgba(168, 85, 247, 0.02) 100%);
+}
+
+.ai-highlight-item.yellow {
+  border-color: rgba(234, 179, 8, 0.25);
+  background: linear-gradient(145deg, rgba(234, 179, 8, 0.08) 0%, rgba(234, 179, 8, 0.02) 100%);
+}
+
+.ai-highlight-item.orange {
+  border-color: rgba(249, 115, 22, 0.25);
+  background: linear-gradient(145deg, rgba(249, 115, 22, 0.08) 0%, rgba(249, 115, 22, 0.02) 100%);
+}
+
+.highlight-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.highlight-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.highlight-icon.green { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+.highlight-icon.red { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+.highlight-icon.blue { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+.highlight-icon.cyan { background: rgba(56, 239, 235, 0.2); color: #38efeb; }
+.highlight-icon.purple { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
+.highlight-icon.yellow { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+.highlight-icon.orange { background: rgba(249, 115, 22, 0.2); color: #f97316; }
+
+.highlight-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.highlight-type {
+  display: block;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.highlight-symbol {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.highlight-confidence {
+  font-size: 12px;
+  font-weight: 700;
+  color: #10b981;
+}
+
+.highlight-desc {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+  margin: 0;
 }
 </style>

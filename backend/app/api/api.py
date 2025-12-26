@@ -5,7 +5,7 @@ Combines all endpoint routers into a single API router
 
 from fastapi import APIRouter
 
-from app.api.endpoints import market, portfolio, sentiment, auth, onchain, admin, news
+from app.api.endpoints import market, portfolio, sentiment, auth, onchain, admin, news, alerts
 from app.api.endpoints import admin_data, admin_users, admin_fetcher, admin_ai_workers
 from app.api.endpoints import triggers, realtime, intent_divergence, discovery
 
@@ -34,6 +34,12 @@ api_router.include_router(
     news.router,
     prefix="/news",
     tags=["News"]
+)
+
+api_router.include_router(
+    alerts.router,
+    prefix="/alerts",
+    tags=["AI Alerts & Highlights"]
 )
 
 # Intent Divergence (Shadow Analysis)

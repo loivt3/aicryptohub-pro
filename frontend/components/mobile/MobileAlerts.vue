@@ -6,6 +6,76 @@
     <!-- MAIN SINGLE FEED CONTENT -->
     <main class="content-main">
       
+      <!-- 0. AI HIGHLIGHTS (NEW) -->
+      <section class="mb-6">
+        <div class="flex justify-between items-center mb-4 px-1">
+            <h3 class="flex items-center gap-2 text-lg font-bold text-white">
+                <Icon name="ph:sparkle" class="text-cyan-400" /> AI Highlights
+            </h3>
+            <button class="text-xs text-cyan-400 hover:underline">View All</button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+            <!-- Bullish Signal Card -->
+            <div class="ai-highlight-card bullish">
+                <div class="ai-highlight-header">
+                    <div class="ai-icon bullish">
+                        <Icon name="ph:trend-up-bold" size="18" />
+                    </div>
+                    <div class="ai-meta">
+                        <span class="ai-title">Bullish Signal: BTC</span>
+                        <span class="ai-confidence">Confidence: 85%</span>
+                    </div>
+                </div>
+                
+                <!-- Green Sparkline -->
+                <div class="ai-sparkline">
+                    <svg viewBox="0 0 100 40" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="bullish-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="rgba(16, 185, 129, 0.4)" />
+                                <stop offset="100%" stop-color="rgba(16, 185, 129, 0)" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M0,35 C10,32 20,28 30,22 S50,12 60,10 S80,8 100,5 L100,40 L0,40 Z" fill="url(#bullish-grad)" />
+                        <path d="M0,35 C10,32 20,28 30,22 S50,12 60,10 S80,8 100,5" fill="none" stroke="#10b981" stroke-width="2" />
+                    </svg>
+                </div>
+                
+                <p class="ai-description">AI predicts upward trend in 4h based on trading volume patterns.</p>
+            </div>
+
+            <!-- Risk Alert Card -->
+            <div class="ai-highlight-card bearish">
+                <div class="ai-highlight-header">
+                    <div class="ai-icon bearish">
+                        <Icon name="ph:warning-bold" size="18" />
+                    </div>
+                    <div class="ai-meta">
+                        <span class="ai-title">Risk Alert</span>
+                        <span class="ai-subtitle">ETH Volatility</span>
+                    </div>
+                </div>
+                
+                <!-- Red Sparkline -->
+                <div class="ai-sparkline">
+                    <svg viewBox="0 0 100 40" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="bearish-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="rgba(239, 68, 68, 0.3)" />
+                                <stop offset="100%" stop-color="rgba(239, 68, 68, 0)" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M0,20 L10,15 L20,25 L30,18 L40,28 L50,22 L60,30 L70,20 L80,32 L90,25 L100,28 L100,40 L0,40 Z" fill="url(#bearish-grad)" />
+                        <path d="M0,20 L10,15 L20,25 L30,18 L40,28 L50,22 L60,30 L70,20 L80,32 L90,25 L100,28" fill="none" stroke="#ef4444" stroke-width="2" />
+                    </svg>
+                </div>
+                
+                <p class="ai-description">Unusually high volatility detected. Consider reducing leverage.</p>
+            </div>
+        </div>
+      </section>
+
       <!-- 1. ACTIVE MONITORING (Moved to Top as requested) -->
       <section class="mb-6">
         <div class="flex justify-between items-center mb-4 px-1">
@@ -331,4 +401,96 @@ const getTagStyle = (tag: string) => {
   color: #f8fafc;
 }
 .content-main { padding: 16px; margin-top: 8px; }
+
+/* AI Highlights Cards */
+.ai-highlight-card {
+  background: rgba(15, 25, 35, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  min-height: 180px;
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-highlight-card.bullish {
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.1);
+}
+
+.ai-highlight-card.bearish {
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.1);
+}
+
+.ai-highlight-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ai-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ai-icon.bullish {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.ai-icon.bearish {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.ai-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ai-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.ai-confidence {
+  font-size: 11px;
+  color: #10b981;
+  font-weight: 500;
+}
+
+.ai-subtitle {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.ai-sparkline {
+  flex: 1;
+  min-height: 50px;
+  margin: 8px 0;
+}
+
+.ai-sparkline svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ai-description {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+  margin-top: auto;
+}
 </style>

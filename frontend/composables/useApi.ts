@@ -155,5 +155,25 @@ export const useApi = () => {
 
         simulatePortfolio: (btcChange: number) =>
             apiFetch<any>('/portfolio/simulate', { query: { btc_change: btcChange }, auth: true }),
+
+        // AI Highlights - Market signals and alerts
+        getAIHighlights: () =>
+            apiFetch<{
+                highlights: Array<{
+                    coin_id: string;
+                    symbol: string;
+                    name: string;
+                    highlight_type: string;
+                    description: string;
+                    icon: string;
+                    color: string;
+                    confidence?: number;
+                    change_24h?: number;
+                    volume_ratio?: number;
+                    risk_level?: string;
+                }>;
+                total_analyzed: number;
+                generated_at: string;
+            }>('/alerts/highlights'),
     }
 }
