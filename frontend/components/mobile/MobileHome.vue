@@ -525,10 +525,44 @@ const getTimeAgo = (timestamp: string | number | null) => {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
-// Fetch data
-const fetchData = async () => {
+// Cache for instant loading
+const { getCache, setCache } = useCache()
+const CACHE_KEYS = {
+  DASHBOARD_COINS: 'dashboard_coins',
+  DASHBOARD_SENTIMENT: 'dashboard_sentiment',
+  DASHBOARD_HIGHLIGHTS: 'dashboard_highlights'
+}
+const CACHE_TTL = 60 // 1 minute
+
+// Fetch data with cache support
+const fetchData = async (skipCache = false) => {
   try {
-    // 1. Fetch AI Market Mood (proprietary indicator)
+    // 1. Try to load from cache first (instant display)
+    if (!skipCache) {
+      const cachedCoins = getCache<any[]>(CACHE_KEYS.DASHBOARD_COINS)
+      const cachedSentiment = getCache<Record<string, any>>(CACHE_KEYS.DASHBOARD_SENTIMENT)
+      const cachedHighlights = getCache<any[]>(CACHE_KEYS.DASHBOARD_HIGHLIGHTS)
+      
+      if (cachedCoins && cachedCoins.length > 0) {
+        allCoins.value = cachedCoins
+        console.log('[Cache] Loaded dashboard coins from cache:', cachedCoins.length)
+        
+        if (cachedSentiment) {
+          sentimentMap.value = cachedSentiment
+        }
+        if (cachedHighlights) {
+          aiHighlights.value = cachedHighlights
+        }
+        
+        loading.value = false
+        
+        // Background refresh after showing cached data
+        setTimeout(() => fetchData(true), 1000)
+        return
+      }
+    }
+    
+    // 2. Fetch AI Market Mood (proprietary indicator)
     try {
         const moodRes = await api.getAIMood()
         if (moodRes.success && moodRes.data) {
@@ -549,18 +583,22 @@ const fetchData = async () => {
         }
     }
 
-    // 2. Fetch Market Data (Top 50)
+    // 3. Fetch Market Data (Top 50)
     const marketRes = await api.getMarketData(50)
     if (marketRes?.success && Array.isArray(marketRes.data)) {
       allCoins.value = marketRes.data
+      // Save to cache
+      setCache(CACHE_KEYS.DASHBOARD_COINS, marketRes.data, CACHE_TTL)
     }
     
-    // 3. Fetch Sentiment
+    // 4. Fetch Sentiment
     const sentimentRes = await api.getSentiment(50)
     if (sentimentRes?.success && Array.isArray(sentimentRes.data)) {
       sentimentRes.data.forEach((s: any) => {
         sentimentMap.value[s.coin_id] = s
       })
+      // Save to cache
+      setCache(CACHE_KEYS.DASHBOARD_SENTIMENT, sentimentMap.value, CACHE_TTL)
     }
 
     // 4. Fetch Categories
