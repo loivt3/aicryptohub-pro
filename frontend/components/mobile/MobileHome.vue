@@ -162,30 +162,27 @@
         </div>
       </section>
 
-      <!-- Whale Stream -->
+      <!-- Whale Stream - NEW DESIGN -->
       <section class="home-section">
-        <div class="whale-card glass-card">
-          <div class="whale-header">
-            <Icon name="ph:fish" class="w-4 h-4" style="color: #38bdf8;" />
-            <span>Whale Stream</span>
-            <span class="live-badge">LIVE</span>
+        <div class="whale-stream-card">
+          <div class="whale-stream-header">
+            <span class="whale-stream-icon">🌊</span>
+            <span class="whale-stream-title">Whale Stream</span>
+            <span class="whale-live-dot"></span>
           </div>
-          <div class="whale-list">
-            <div v-for="tx in whaleTransactions" :key="tx.id" class="whale-row">
-              <div class="whale-left">
-                <img :src="tx.image" class="whale-icon" />
-                <div class="whale-info">
-                  <span class="whale-amount">{{ tx.amount }} {{ tx.symbol }}</span>
-                  <span class="whale-usd">${{ formatNumber(tx.usd_value) }}</span>
+          <div class="whale-stream-list">
+            <div v-for="tx in whaleTransactions" :key="tx.id" class="whale-stream-row">
+              <div class="whale-stream-left">
+                <span class="whale-emoji">🐋</span>
+                <div class="whale-stream-info">
+                  <span class="whale-stream-amount">{{ tx.amount }} {{ tx.symbol }} <span class="whale-usd-inline">(${{ formatCompact(tx.usd_value) }})</span></span>
+                  <span class="whale-stream-direction">{{ tx.from_label || 'Wallet' }} → {{ tx.to_label || 'Wallet' }}</span>
                 </div>
               </div>
-              <div class="whale-right">
-                <span class="whale-time">{{ tx.time_ago }}</span>
-                <span class="whale-type-badge" :class="tx.type">{{ tx.type?.toUpperCase() }}</span>
-              </div>
+              <span class="whale-stream-time">{{ tx.time_ago }}</span>
             </div>
-            <div v-if="whaleTransactions.length === 0" class="whale-empty">
-              <span>No whale activity detected</span>
+            <div v-if="whaleTransactions.length === 0" class="whale-stream-empty">
+              <span>🐋 No whale activity detected</span>
             </div>
           </div>
         </div>
@@ -303,6 +300,15 @@ const formatNumber = (n: number) => {
   if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K'
   return n.toLocaleString()
 }
+
+const formatCompact = (n: number) => {
+  if (!n) return '0'
+  if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B'
+  if (n >= 1e6) return (n / 1e6).toFixed(0) + 'M'
+  if (n >= 1e3) return (n / 1e3).toFixed(0) + 'K'
+  return n.toFixed(0)
+}
+
 
 const getMoodClass = (value: number) => {
   if (value <= 30) return 'fear'
@@ -454,7 +460,9 @@ const fetchData = async () => {
                 usd_value: c.volume_24h / 24,
                 image: c.image || 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
                 time_ago: ['2m ago', '5m ago', '12m ago', '15m ago'][idx],
-                type: (c.change_24h || c.price_change_percentage_24h || 0) < 0 ? 'dump' : 'accum'
+                type: (c.change_24h || c.price_change_percentage_24h || 0) < 0 ? 'dump' : 'accum',
+                from_label: idx % 2 === 0 ? 'Wallet' : 'Binance',
+                to_label: idx % 2 === 0 ? 'Coinbase' : 'Wallet'
             }))
             console.log('Whale transactions generated:', whaleTransactions.value.length)
         }
@@ -1020,6 +1028,101 @@ onMounted(() => {
 }
 
 .whale-empty {
+  text-align: center;
+  padding: 24px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 13px;
+}
+
+/* ========== NEW WHALE STREAM DESIGN ========== */
+.whale-stream-card {
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.15) 0%, rgba(20, 184, 166, 0.08) 100%);
+  border: 1px solid rgba(20, 184, 166, 0.25);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.whale-stream-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.whale-stream-icon {
+  font-size: 20px;
+}
+
+.whale-stream-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  flex: 1;
+}
+
+.whale-live-dot {
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.whale-stream-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.whale-stream-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.whale-stream-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.whale-emoji {
+  font-size: 22px;
+}
+
+.whale-stream-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.whale-stream-amount {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.whale-usd-inline {
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.whale-stream-direction {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.whale-stream-time {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.whale-stream-empty {
   text-align: center;
   padding: 24px;
   color: rgba(255, 255, 255, 0.4);

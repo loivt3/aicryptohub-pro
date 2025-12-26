@@ -34,7 +34,7 @@ SCHEDULER_STATE = {
     },
     "onchain_collector": {
         "enabled": True,
-        "interval_minutes": 30,
+        "interval_minutes": 10,
         "last_run": None,
         "next_run": None,
         "is_running": False,
