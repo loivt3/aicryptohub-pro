@@ -317,7 +317,7 @@ const categories = computed(() => {
 const aiSignals = computed(() => {
   // If we have Gems, use them
   if (gemSignals.value.length > 0) {
-      return gemSignals.value.slice(0, 3).map(g => ({
+      return gemSignals.value.slice(0, 5).map(g => ({
           coin_id: g.coin_id,
           symbol: g.symbol,
           name: g.name,
@@ -338,7 +338,7 @@ const aiSignals = computed(() => {
       expected_return: sentimentMap.value[c.coin_id]?.expected_return || 0,
     }))
     .sort((a, b) => b.asi_score - a.asi_score)
-    .slice(0, 3)
+    .slice(0, 5)
 })
 
 // Fear & Greed label
