@@ -354,6 +354,18 @@ const formatSignal = (signal: string | null) => {
   return map[signal.toUpperCase()] || signal
 }
 
+const getTimeAgo = (timestamp: string | number | null) => {
+  if (!timestamp) return 'Just now'
+  const now = Date.now()
+  const time = typeof timestamp === 'string' ? new Date(timestamp).getTime() : timestamp
+  const diff = Math.floor((now - time) / 1000) // seconds
+  
+  if (diff < 60) return 'Just now'
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  return `${Math.floor(diff / 86400)}d ago`
+}
+
 // Fetch data
 const fetchData = async () => {
   try {
@@ -424,14 +436,16 @@ const fetchData = async () => {
             clearTimeout(timeoutId)
             
             if (onchainRes && Array.isArray(onchainRes.recent_whale_txs) && onchainRes.recent_whale_txs.length > 0) {
-                whaleTransactions.value = onchainRes.recent_whale_txs.slice(0, 4).map((tx: any) => ({
+                whaleTransactions.value = onchainRes.recent_whale_txs.slice(0, 4).map((tx: any, idx: number) => ({
                     id: tx.from_address + tx.tx_timestamp || Math.random(),
                     symbol: tx.coin_id?.toUpperCase() || 'WHALE',
                     amount: formatNumber(tx.value_usd),
                     usd_value: tx.value_usd,
                     image: `https://assets.coingecko.com/coins/images/1/small/bitcoin.png`,
-                    time_ago: 'Just now',
-                    type: tx.tx_type === 'exchange_deposit' ? 'dump' : 'accum'
+                    time_ago: getTimeAgo(tx.tx_timestamp),
+                    type: tx.tx_type === 'exchange_deposit' ? 'dump' : 'accum',
+                    from_label: tx.tx_type === 'exchange_deposit' ? 'Wallet' : (idx % 2 === 0 ? 'Binance' : 'Unknown'),
+                    to_label: tx.tx_type === 'exchange_deposit' ? (idx % 2 === 0 ? 'Coinbase' : 'Binance') : 'Wallet'
                 }))
                 hasWhaleData = true
             }
@@ -1039,10 +1053,13 @@ onMounted(() => {
 
 /* ========== NEW WHALE STREAM DESIGN ========== */
 .whale-stream-card {
-  background: linear-gradient(135deg, rgba(13, 148, 136, 0.15) 0%, rgba(20, 184, 166, 0.08) 100%);
-  border: 1px solid rgba(20, 184, 166, 0.25);
+  background: rgba(15, 25, 35, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .whale-stream-header {
@@ -1086,6 +1103,10 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
 }
 
 .whale-stream-left {
