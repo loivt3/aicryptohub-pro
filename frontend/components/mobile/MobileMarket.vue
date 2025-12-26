@@ -504,9 +504,22 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Dark Background */
+/* Dark Background - Match Dashboard Gradient */
 .mobile-layout {
-  background: #0a0f14 !important;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #0a0f14 0%, #0d1117 50%, #0a0f14 100%) !important;
+}
+
+/* Section Glass Card Base */
+.m-section {
+  background: rgba(15, 25, 35, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 /* Simple Header */
