@@ -2474,8 +2474,7 @@ const toggleFavorite = (coinId: string) => {
 .m-horizon-coin,
 .m-heatmap-tile,
 .m-treemap-container,
-.m-horizon-tab,
-.m-coin-card-wrapper {
+.m-horizon-tab {
   background: rgba(15, 25, 35, 0.7) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
@@ -2484,13 +2483,16 @@ const toggleFavorite = (coinId: string) => {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Ensure wrapper has spacing and internal items are transparent - Bento Grid Style */
+/* Coin card wrapper - transparent to match seamless list style */
 .m-coin-card-wrapper {
-  margin-bottom: 12px;
-  overflow: hidden; /* Ensure rounded corners clip content */
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  margin-bottom: 0;
 }
 
-/* Remove borders/bg from inner items to blend with card */
+/* Keep inner items with their original styling */
 .m-coin-card-wrapper .m-list-item {
   background: transparent !important;
   border: none !important;
