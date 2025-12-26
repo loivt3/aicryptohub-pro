@@ -613,8 +613,48 @@ const fetchData = async () => {
   }
 }
 
+// WebSocket for real-time price updates
+import { useSocket } from '~/composables/useSocket'
+
+const { connect: connectSocket, onPriceUpdate, connected: socketConnected } = useSocket()
+
+// Handle real-time price updates for top coins
+const handlePriceUpdate = (updates: any[]) => {
+  if (!updates || !allCoins.value.length) return
+  
+  updates.forEach(update => {
+    const symbolUpper = update.s?.toUpperCase()
+    const coin = allCoins.value.find(c => 
+      c.symbol?.toUpperCase() === symbolUpper || 
+      c.coin_id?.toUpperCase() === symbolUpper
+    )
+    
+    if (coin) {
+      // Update price and change
+      if (update.p) coin.price = update.p
+      if (update.c !== undefined) coin.change_24h = update.c
+      if (update.v) coin.volume_24h = update.v
+      if (update.h) coin.high_24h = update.h
+      if (update.l) coin.low_24h = update.l
+    }
+  })
+}
+
+let unsubscribePriceUpdate: (() => void) | null = null
+
 onMounted(() => {
   fetchData()
+  
+  // Connect WebSocket and subscribe to price updates
+  connectSocket()
+  unsubscribePriceUpdate = onPriceUpdate(handlePriceUpdate)
+})
+
+onUnmounted(() => {
+  // Cleanup price update subscription
+  if (unsubscribePriceUpdate) {
+    unsubscribePriceUpdate()
+  }
 })
 </script>
 
