@@ -2483,13 +2483,16 @@ const toggleFavorite = (coinId: string) => {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Coin card wrapper - transparent to match seamless list style */
+/* Coin card wrapper - Glassmorphism style with spacing */
 .m-coin-card-wrapper {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-  margin-bottom: 0;
+  background: rgba(15, 25, 35, 0.7) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3) !important;
+  margin-bottom: 12px;
+  overflow: hidden;
 }
 
 /* Keep inner items with their original styling */
