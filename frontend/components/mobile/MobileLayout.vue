@@ -69,11 +69,11 @@ const props = defineProps<{
 const emit = defineEmits(['openSearch', 'update:activeTab'])
 
 const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: 'ph:squares-four' },
-  { id: 'market', label: 'Market', icon: 'ph:chart-line-up' },
-  { id: 'analysis', label: 'Analysis', icon: 'ph:chart-bar' },
-  { id: 'shadow', label: 'Shadow', icon: 'ph:eye' },
-  { id: 'aichat', label: 'AI Chat', icon: 'ph:chat-circle-dots' },
+  { id: 'dashboard', label: 'Dashboard', icon: 'solar:widget-2-linear' },
+  { id: 'market', label: 'Market', icon: 'solar:graph-up-linear' },
+  { id: 'analysis', label: 'Analysis', icon: 'solar:chart-2-linear' },
+  { id: 'shadow', label: 'Shadow', icon: 'solar:radar-2-linear' },
+  { id: 'aichat', label: 'AI Chat', icon: 'solar:chat-round-dots-linear' },
 ]
 
 // Mock data
