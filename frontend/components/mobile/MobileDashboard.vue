@@ -1488,15 +1488,15 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-horizon-card {
-  background: rgb(30 32 36 / 92%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(15, 25, 35, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 12px 8px;
   text-align: center;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .m-horizon-label {
@@ -1539,12 +1539,12 @@ const toggleFavorite = (coinId: string) => {
   flex-direction: column;
   align-items: center;
   padding: 12px 8px;
-  background: rgb(30 32 36 / 92%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(15, 25, 35, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .m-horizon-tab:hover {
@@ -1613,12 +1613,12 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-horizon-coin {
-  background: rgb(30 32 36 / 92%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(15, 25, 35, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 12px;
   margin-bottom: 8px;
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .m-horizon-coin-row {
@@ -1751,9 +1751,9 @@ const toggleFavorite = (coinId: string) => {
   justify-content: center;
   padding: 10px 4px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgb(30 32 36 / 92%);
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 25, 35, 0.7);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
   transition: all 0.2s ease;
   min-height: 90px;
 }
@@ -2037,12 +2037,12 @@ const toggleFavorite = (coinId: string) => {
 
 .m-gem-card {
   flex: 0 0 180px;
-  background: rgb(30 32 36 / 92%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(15, 25, 35, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 12px;
   overflow: hidden;
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .m-gem-header {
@@ -2209,11 +2209,12 @@ const toggleFavorite = (coinId: string) => {
 
 .m-signal-card {
   flex: 0 0 170px;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(139, 92, 246, 0.02));
+  background: rgba(15, 25, 35, 0.7);
   border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 12px;
   padding: 12px;
   overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .m-signal-header {
@@ -2294,12 +2295,12 @@ const toggleFavorite = (coinId: string) => {
 
 /* Main Container Card (Unified List) */
 .m-tsig-card {
-  background: rgb(30 32 36 / 92%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(15, 25, 35, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: 0;
   overflow: hidden;
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .m-tsig-row {
@@ -2428,6 +2429,62 @@ const toggleFavorite = (coinId: string) => {
 
 .m-tsig-empty { padding: 32px; text-align: center; color: rgba(255, 255, 255, 0.3); font-size: 13px; }
 
+
+/* Reset Section Styles to be transparent containers */
+.m-section {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  padding: 0 0 16px 0;
+}
+
+/* Glassmorphism for Stats Cards */
+.m-stat-card-pro {
+  background: rgba(15, 25, 35, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  padding: 16px;
+  min-width: 140px; /* Ensure cards have width */
+}
+
+/* Ensure padding for stats container since section lost it */
+.m-stats-container {
+  padding: 4px 12px;
+}
+</style>
+
+<style scoped>
+/* Force Dark Glass Overrides for Cards */
+.m-gem-card,
+.m-signal-card,
+.m-tsig-card,
+.m-horizon-card,
+.m-horizon-coin,
+.m-heatmap-tile,
+.m-treemap-container,
+.m-horizon-tab {
+  background: rgba(15, 25, 35, 0.7) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Specific adjustment for gem card padding/flex if needed */
+.m-gem-card {
+  padding: 12px;
+}
+
+/* Ensure Horizon Tab active state maintains color but keeps glass background base */
+.m-horizon-tab.active {
+  background: linear-gradient(135deg, rgba(56, 239, 235, 0.2), rgba(34, 197, 94, 0.15)) !important;
+  border-color: rgba(56, 239, 235, 0.5) !important;
+}
 </style>
 
 
