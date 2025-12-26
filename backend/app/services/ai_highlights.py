@@ -1,10 +1,21 @@
 """
 AI Highlights Service
 Generates AI-powered signals and alerts based on market data analysis.
+Uses Gemini/DeepSeek AI for intelligent insights with algorithmic fallback.
 """
-from typing import Dict, Any, List
-from datetime import datetime
+from typing import Dict, Any, List, Optional
+from datetime import datetime, timedelta
 import random
+import logging
+import json
+import asyncio
+
+logger = logging.getLogger(__name__)
+
+# Cache for AI highlights
+_highlights_cache: Dict[str, Any] = {}
+_cache_expiry: Optional[datetime] = None
+CACHE_TTL_MINUTES = 5
 
 
 class AIHighlightsService:
@@ -339,7 +350,136 @@ class AIHighlightsService:
             "total_analyzed": len(coins),
             "generated_at": datetime.utcnow().isoformat()
         }
+    
+    async def generate_ai_highlights(self, coins: List[Dict[str, Any]], limit: int = 6) -> Dict[str, Any]:
+        """
+        Generate AI-powered highlights using Gemini/DeepSeek.
+        Falls back to algorithmic analysis on failure.
+        
+        Args:
+            coins: List of coin market data
+            limit: Max number of highlights to return
+            
+        Returns:
+            Dict with highlights array and metadata
+        """
+        global _highlights_cache, _cache_expiry
+        
+        # Check cache
+        if _cache_expiry and datetime.utcnow() < _cache_expiry and _highlights_cache:
+            logger.debug("Returning cached AI highlights")
+            return _highlights_cache
+        
+        if not coins:
+            return {
+                "highlights": [],
+                "total_analyzed": 0,
+                "generated_at": None,
+                "source": "empty"
+            }
+        
+        # Build market summary for AI prompt
+        top_gainers = sorted(coins, key=lambda c: c.get("price_change_percentage_24h") or c.get("change_24h") or 0, reverse=True)[:5]
+        top_losers = sorted(coins, key=lambda c: c.get("price_change_percentage_24h") or c.get("change_24h") or 0)[:5]
+        high_volume = sorted(coins, key=lambda c: (c.get("volume_24h", 0) or 0) / max(c.get("market_cap", 1) or 1, 1), reverse=True)[:5]
+        
+        market_summary = "TOP GAINERS (24h):\n"
+        for c in top_gainers:
+            change = c.get("price_change_percentage_24h") or c.get("change_24h") or 0
+            market_summary += f"- {c.get('symbol', '?').upper()}: {change:+.1f}%\n"
+        
+        market_summary += "\nTOP LOSERS (24h):\n"
+        for c in top_losers:
+            change = c.get("price_change_percentage_24h") or c.get("change_24h") or 0
+            market_summary += f"- {c.get('symbol', '?').upper()}: {change:+.1f}%\n"
+        
+        market_summary += "\nHIGH VOLUME (vs market cap):\n"
+        for c in high_volume:
+            vol_ratio = (c.get("volume_24h", 0) or 0) / max(c.get("market_cap", 1) or 1, 1) * 100
+            market_summary += f"- {c.get('symbol', '?').upper()}: {vol_ratio:.1f}% vol/cap\n"
+        
+        prompt = f"""You are a crypto market analyst. Analyze this market data and generate {limit} trading insights.
+
+{market_summary}
+
+For each insight, provide a JSON object with:
+- highlight_type: bullish_signal | bearish_signal | risk_alert | volume_surge | breakout | whale_activity | opportunity
+- symbol: coin ticker (e.g. BTC, ETH)
+- confidence: 50-95 (how confident is the signal)
+- description: brief actionable insight (max 40 words)
+- color: green (bullish) | red (bearish/risk) | blue (volume) | cyan (breakout) | purple (whale) | yellow (opportunity) | orange (caution)
+- icon: trend-up | trend-down | warning | chart-bar | lightning | fish | target
+
+Return ONLY a JSON array of {limit} highlights. No markdown, no explanation.
+Example: [{{"highlight_type":"bullish_signal","symbol":"BTC","confidence":78,"description":"Strong momentum...","color":"green","icon":"trend-up"}}]"""
+
+        try:
+            # Try Gemini first
+            from app.services.gemini import get_gemini_service
+            gemini = get_gemini_service()
+            
+            if gemini.enabled:
+                import httpx
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.post(
+                        f"{gemini.API_URL}?key={gemini.api_key}",
+                        json={
+                            "contents": [{"parts": [{"text": prompt}]}],
+                            "generationConfig": {
+                                "temperature": 0.5,
+                                "maxOutputTokens": 1000,
+                            }
+                        }
+                    )
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                        
+                        # Parse JSON from response
+                        json_str = text
+                        if "```json" in text:
+                            json_str = text.split("```json")[1].split("```")[0]
+                        elif "```" in text:
+                            json_str = text.split("```")[1].split("```")[0]
+                        
+                        highlights = json.loads(json_str.strip())
+                        
+                        if isinstance(highlights, list) and len(highlights) > 0:
+                            # Add metadata to each highlight
+                            for h in highlights:
+                                h["timestamp"] = datetime.utcnow().isoformat()
+                                h["coin_id"] = h.get("symbol", "").lower()
+                                h["name"] = h.get("symbol", "")
+                            
+                            result = {
+                                "highlights": highlights[:limit],
+                                "total_analyzed": len(coins),
+                                "generated_at": datetime.utcnow().isoformat(),
+                                "source": "ai_gemini"
+                            }
+                            
+                            # Cache result
+                            _highlights_cache = result
+                            _cache_expiry = datetime.utcnow() + timedelta(minutes=CACHE_TTL_MINUTES)
+                            
+                            logger.info(f"Generated {len(highlights)} AI highlights via Gemini")
+                            return result
+                    else:
+                        logger.warning(f"Gemini API error: {response.status_code}")
+                        
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse AI highlights JSON: {e}")
+        except Exception as e:
+            logger.error(f"AI highlights generation failed: {e}")
+        
+        # Fallback to algorithmic analysis
+        logger.info("Falling back to algorithmic highlights")
+        result = self.get_highlights(coins, limit)
+        result["source"] = "algorithmic_fallback"
+        return result
 
 
 # Singleton instance
 ai_highlights_service = AIHighlightsService()
+

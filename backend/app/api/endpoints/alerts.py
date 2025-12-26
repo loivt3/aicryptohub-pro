@@ -16,8 +16,9 @@ async def get_ai_highlights(
     db: DatabaseService = Depends(get_db_service)
 ) -> Dict[str, Any]:
     """
-    Get AI-generated highlights including bullish/bearish signals and risk alerts.
-    Analyzes current market data to provide actionable insights.
+    Get AI-generated highlights using Gemini/DeepSeek.
+    Analyzes current market data to provide intelligent, actionable insights.
+    Falls back to algorithmic analysis if AI is unavailable.
     """
     try:
         # Get current market data from database
@@ -32,8 +33,8 @@ async def get_ai_highlights(
                 "message": "No market data available"
             }
         
-        # Generate highlights from market data
-        highlights = ai_highlights_service.get_highlights(coins, limit=6)
+        # Generate AI-powered highlights (with fallback to algorithmic)
+        highlights = await ai_highlights_service.generate_ai_highlights(coins, limit=6)
         
         return highlights
         
