@@ -112,17 +112,7 @@ class DatabaseService:
         Returns:
             List of coin data dicts
         """
-        # Sort by rank first (CoinGecko market_cap_rank), then market_cap as fallback
-        # This ensures BTC, ETH always appear at top even if market_cap is NULL/0
-        if orderby == "market_cap":
-            # Use table name prefix to avoid conflict with RANK() window function
-            order_clause = "COALESCE(aihub_coins.rank, 99999) ASC, market_cap DESC NULLS LAST"
-        elif orderby == "volume_24h":
-            order_clause = "volume_24h DESC NULLS LAST"
-        elif orderby == "change_24h":
-            order_clause = "change_24h DESC NULLS LAST"
-        else:
-            order_clause = f"{orderby} DESC NULLS LAST"
+        order_column = "market_cap" if orderby == "market_cap" else orderby
         
         query = text(f"""
             SELECT 
@@ -142,8 +132,8 @@ class DatabaseService:
                 sparkline_7d,
                 last_updated
             FROM aihub_coins
-            WHERE price > 0 OR aihub_coins.rank <= 20
-            ORDER BY {order_clause}
+            WHERE price > 0
+            ORDER BY {order_column} DESC NULLS LAST
             LIMIT :limit
         """)
         
@@ -719,125 +709,6 @@ class DatabaseService:
             logger.error(f"Failed to save sentiment for {coin_id}: {e}")
             return False
             
-    # ===================================================
-    # Portfolio Methods (Added for Portfolio Feature)
-    # ===================================================
-
-    def get_portfolio(self, user_id: int) -> List[Dict[str, Any]]:
-        """
-        Get portfolio holdings for a user
-        
-        Args:
-            user_id: User ID
-            
-        Returns:
-            List of holding dicts with current price and PnL
-        """
-        # Join with aihub_coins to get current price and image
-        query = text("""
-            SELECT 
-                p.coin_id,
-                p.symbol,
-                p.name,
-                c.image_url as image,
-                p.amount,
-                p.buy_price,
-                c.price as current_price,
-                (p.amount * c.price) as value,
-                ((p.amount * c.price) - (p.amount * p.buy_price)) as pnl,
-                CASE 
-                    WHEN (p.amount * p.buy_price) > 0 THEN 
-                        (((p.amount * c.price) - (p.amount * p.buy_price)) / (p.amount * p.buy_price)) * 100
-                    ELSE 0 
-                END as pnl_percent
-            FROM aihub_portfolio p
-            LEFT JOIN aihub_coins c ON p.coin_id = c.coin_id
-            WHERE p.user_id = :user_id
-            ORDER BY value DESC
-        """)
-        
-        try:
-            with self.engine.connect() as conn:
-                result = conn.execute(query, {"user_id": user_id})
-                rows = result.fetchall()
-                columns = result.keys()
-                
-                return [
-                    {col: convert_db_value(col, val) for col, val in zip(columns, row)}
-                    for row in rows
-                ]
-        except Exception as e:
-            logger.error(f"Failed to fetch portfolio: {e}")
-            return []
-
-    def add_holding(self, user_id: int, coin_id: str, amount: float, buy_price: float) -> bool:
-        """
-        Add or update a portfolio holding
-        
-        Args:
-            user_id: User ID
-            coin_id: Coin ID
-            amount: Amount held
-            buy_price: Average buy price
-            
-        Returns:
-            True if successful
-        """
-        # Get symbol and name from coins table if possible
-        coin_info = self.get_coin_by_id(coin_id)
-        symbol = coin_info.get("symbol", "").upper() if coin_info else coin_id.upper()
-        name = coin_info.get("name", "") if coin_info else coin_id
-        
-        query = text("""
-            INSERT INTO aihub_portfolio (user_id, coin_id, symbol, name, amount, buy_price, updated_at)
-            VALUES (:user_id, :coin_id, :symbol, :name, :amount, :buy_price, NOW())
-            ON CONFLICT (user_id, coin_id) DO UPDATE SET
-                amount = :amount,
-                buy_price = :buy_price,
-                updated_at = NOW()
-        """)
-        
-        try:
-            with self.engine.begin() as conn:
-                conn.execute(query, {
-                    "user_id": user_id,
-                    "coin_id": coin_id,
-                    "symbol": symbol,
-                    "name": name,
-                    "amount": amount,
-                    "buy_price": buy_price
-                })
-            return True
-        except Exception as e:
-            logger.error(f"Failed to add holding: {e}")
-            return False
-
-    def delete_holding(self, user_id: int, coin_id: str) -> bool:
-        """
-        Delete a holding from portfolio
-        
-        Args:
-            user_id: User ID
-            coin_id: Coin ID
-            
-        Returns:
-            True if successful
-        """
-        query = text("""
-            DELETE FROM aihub_portfolio
-            WHERE user_id = :user_id AND coin_id = :coin_id
-        """)
-        
-        try:
-            with self.engine.begin() as conn:
-                conn.execute(query, {
-                    "user_id": user_id,
-                    "coin_id": coin_id
-                })
-            return True
-        except Exception as e:
-            logger.error(f"Failed to delete holding: {e}")
-            return False
             
     def get_coins_for_analysis(self, limit: int = 5000, frontend_limit: int = 100) -> List[str]:
         """

@@ -1,13 +1,7 @@
 <template>
   <div class="mobile-portfolio">
     <!-- Header -->
-    <SharedMobileHeader 
-      title="Portfolio" 
-      icon="ph:wallet" 
-      @openSearch="$emit('openSearch')" 
-    />
-    
-    <main class="portfolio-main">
+
     <!-- Section Header (inside page) -->
     <section class="m-section">
       <div class="m-section-header">
@@ -148,10 +142,7 @@
       </div>
     </div>
     
-    </main>
-    
-    <!-- Bottom Navigation -->
-    <SharedMobileFooter :activeTab="activeTab" @setTab="$emit('setTab', $event)" />
+    <div class="m-bottom-spacer"></div>
   </div>
 </template>
 
@@ -163,11 +154,7 @@ import PortfolioAuditor from './ai/PortfolioAuditor.vue'
 import StressSimulator from './ai/StressSimulator.vue'
 
 // Props & Emits
-const props = defineProps<{
-  activeTab?: string
-}>()
 
-const emit = defineEmits(['setTab', 'openSearch'])
 
 const api = useApi()
 const authStore = useAuthStore() // Use auto-import
