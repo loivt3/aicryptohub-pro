@@ -446,28 +446,44 @@ const generateSparkPath = (highlight: any) => {
   return pathPoints.join(' ')
 }
 
-// Generate sparkline path for AI Signals (based on expected return)
+// Generate detailed sparkline path for AI Signals (realistic price movement)
 const generateSignalSparkPath = (coin: any) => {
-  const points = 6
+  const points = 24  // More points for detailed chart
   const width = 50
   const height = 20
   const padding = 2
   
   // Determine trend direction based on expected return
   const isPositive = (coin.expected_return || 0) >= 0
+  const volatility = Math.abs(coin.expected_return || 5) / 10 + 0.5
   
-  // Generate points with trend
+  // Generate realistic price movement with trend + oscillation
   const values: number[] = []
-  let base = isPositive ? 14 : 6
+  let base = height / 2
+  
+  // Use coin symbol as seed for consistent pattern per coin
+  const seed = (coin.symbol || 'X').charCodeAt(0) + (coin.asi_score || 50)
+  
   for (let i = 0; i < points; i++) {
-    const trend = isPositive ? (i * 2) : (-i * 1.5)
-    const noise = (Math.random() - 0.5) * 4
-    values.push(Math.max(padding, Math.min(height - padding, base + trend + noise)))
+    // Overall trend
+    const trendFactor = isPositive ? 0.25 : -0.25
+    const trend = i * trendFactor
+    
+    // Oscillation (wave pattern)
+    const wave1 = Math.sin((i + seed) * 0.8) * 3 * volatility
+    const wave2 = Math.sin((i + seed) * 1.5) * 2 * volatility
+    const wave3 = Math.sin((i + seed) * 0.3) * 4 * volatility
+    
+    // Micro noise
+    const noise = (Math.sin((i * seed) % 17) - 0.5) * 1.5
+    
+    const value = base + trend + wave1 + wave2 + wave3 + noise
+    values.push(Math.max(padding, Math.min(height - padding, value)))
   }
   
   // Build SVG path
   const step = width / (points - 1)
-  const pathPoints = values.map((v, i) => `${i === 0 ? 'M' : 'L'} ${i * step} ${height - v}`)
+  const pathPoints = values.map((v, i) => `${i === 0 ? 'M' : 'L'} ${(i * step).toFixed(1)} ${(height - v).toFixed(1)}`)
   return pathPoints.join(' ')
 }
 
