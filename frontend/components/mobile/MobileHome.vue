@@ -184,9 +184,22 @@
                 </div>
               </div>
               
-              <!-- Sparkline Chart -->
+              <!-- Sparkline Chart with Gradient -->
               <div class="signal-spark">
                 <svg viewBox="0 0 50 20" class="signal-spark-svg" :class="coin.expected_return >= 0 ? 'positive' : 'negative'">
+                  <!-- Gradient Definitions -->
+                  <defs>
+                    <linearGradient :id="'sparkGradient-' + coin.coin_id" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" :stop-color="coin.expected_return >= 0 ? '#10b981' : '#ef4444'" stop-opacity="0.4" />
+                      <stop offset="100%" :stop-color="coin.expected_return >= 0 ? '#10b981' : '#ef4444'" stop-opacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <!-- Area Fill -->
+                  <path 
+                    :d="generateSignalSparkPath(coin) + ' L 50 20 L 0 20 Z'" 
+                    :fill="'url(#sparkGradient-' + coin.coin_id + ')'"
+                  />
+                  <!-- Line -->
                   <path 
                     :d="generateSignalSparkPath(coin)" 
                     fill="none" 
