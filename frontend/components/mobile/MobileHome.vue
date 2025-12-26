@@ -80,6 +80,37 @@
         </div>
       </section>
 
+      <!-- AI Highlights - Horizontal Swipeable Cards -->
+      <section v-if="aiHighlights.length > 0" class="home-section ai-highlights-section">
+        <div class="ai-highlights-header">
+          <div class="ai-highlights-left">
+            <Icon name="ph:sparkle" class="w-5 h-5" style="color: #38efeb;" />
+            <span class="ai-highlights-title">AI Highlights</span>
+          </div>
+          <span class="ai-highlights-count">{{ aiHighlights.length }}</span>
+        </div>
+        <div class="ai-highlights-scroll">
+          <div 
+            v-for="(highlight, idx) in aiHighlights" 
+            :key="idx" 
+            class="ai-highlight-card"
+            :class="highlight.color"
+          >
+            <div class="highlight-header">
+              <div class="highlight-icon" :class="highlight.color">
+                <Icon :name="getHighlightIcon(highlight)" size="18" />
+              </div>
+              <div class="highlight-meta">
+                <span class="highlight-type">{{ formatHighlightType(highlight.highlight_type) }}</span>
+                <span class="highlight-symbol">{{ highlight.symbol }}</span>
+              </div>
+              <span v-if="highlight.confidence" class="highlight-confidence" :class="highlight.color">{{ highlight.confidence }}%</span>
+            </div>
+            <p class="highlight-desc">{{ highlight.description }}</p>
+          </div>
+        </div>
+      </section>
+
       <!-- Heatmap + Trending (Bento Grid) -->
       <section class="home-section bento-row">
         <!-- Category Heatmap -->
@@ -191,36 +222,7 @@
         </div>
       </section>
 
-      <!-- AI Highlights - Dynamic Insights -->
-      <section v-if="aiHighlights.length > 0" class="home-section">
-        <div class="ai-highlights-card glass-card">
-          <div class="ai-highlights-header">
-            <Icon name="ph:sparkle" class="w-5 h-5" style="color: #38efeb;" />
-            <span class="ai-highlights-title">AI Highlights</span>
-            <span class="ai-highlights-count">{{ aiHighlights.length }}</span>
-          </div>
-          <div class="ai-highlights-grid">
-            <div 
-              v-for="(highlight, idx) in aiHighlights.slice(0, 4)" 
-              :key="idx" 
-              class="ai-highlight-item"
-              :class="highlight.color"
-            >
-              <div class="highlight-top">
-                <div class="highlight-icon" :class="highlight.color">
-                  <Icon :name="getHighlightIcon(highlight)" size="16" />
-                </div>
-                <div class="highlight-meta">
-                  <span class="highlight-type">{{ formatHighlightType(highlight.highlight_type) }}</span>
-                  <span class="highlight-symbol">{{ highlight.symbol }}</span>
-                </div>
-                <span v-if="highlight.confidence" class="highlight-confidence">{{ highlight.confidence }}%</span>
-              </div>
-              <p class="highlight-desc">{{ highlight.description }}</p>
-            </div>
-          </div>
-        </div>
-      </section>
+
 
     </main>
     
@@ -1248,93 +1250,114 @@ onMounted(() => {
   font-size: 13px;
 }
 
-/* ========== AI HIGHLIGHTS ========== */
-.ai-highlights-card {
-  padding: 16px;
+/* ========== AI HIGHLIGHTS - HORIZONTAL SCROLL ========== */
+.ai-highlights-section {
+  padding: 0 !important;
 }
 
 .ai-highlights-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  padding: 0 16px;
   margin-bottom: 12px;
+}
+
+.ai-highlights-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .ai-highlights-title {
   font-size: 16px;
   font-weight: 600;
   color: #fff;
-  flex: 1;
 }
 
 .ai-highlights-count {
   background: rgba(56, 239, 235, 0.2);
   color: #38efeb;
-  padding: 2px 8px;
+  padding: 4px 10px;
   border-radius: 12px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 }
 
-.ai-highlights-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.ai-highlight-item {
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 12px;
-  padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.ai-highlight-item.green {
-  border-color: rgba(16, 185, 129, 0.25);
-  background: linear-gradient(145deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.02) 100%);
-}
-
-.ai-highlight-item.red {
-  border-color: rgba(239, 68, 68, 0.25);
-  background: linear-gradient(145deg, rgba(239, 68, 68, 0.08) 0%, rgba(239, 68, 68, 0.02) 100%);
-}
-
-.ai-highlight-item.blue {
-  border-color: rgba(59, 130, 246, 0.25);
-  background: linear-gradient(145deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.02) 100%);
-}
-
-.ai-highlight-item.cyan {
-  border-color: rgba(56, 239, 235, 0.25);
-  background: linear-gradient(145deg, rgba(56, 239, 235, 0.08) 0%, rgba(56, 239, 235, 0.02) 100%);
-}
-
-.ai-highlight-item.purple {
-  border-color: rgba(168, 85, 247, 0.25);
-  background: linear-gradient(145deg, rgba(168, 85, 247, 0.08) 0%, rgba(168, 85, 247, 0.02) 100%);
-}
-
-.ai-highlight-item.yellow {
-  border-color: rgba(234, 179, 8, 0.25);
-  background: linear-gradient(145deg, rgba(234, 179, 8, 0.08) 0%, rgba(234, 179, 8, 0.02) 100%);
-}
-
-.ai-highlight-item.orange {
-  border-color: rgba(249, 115, 22, 0.25);
-  background: linear-gradient(145deg, rgba(249, 115, 22, 0.08) 0%, rgba(249, 115, 22, 0.02) 100%);
-}
-
-.highlight-top {
+.ai-highlights-scroll {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 0 16px 8px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.ai-highlights-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.ai-highlight-card {
+  flex-shrink: 0;
+  width: 180px;
+  min-height: 130px;
+  background: rgba(15, 25, 35, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 14px;
+  padding: 14px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-highlight-card.green {
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.1);
+}
+
+.ai-highlight-card.red {
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.1);
+}
+
+.ai-highlight-card.blue {
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.1);
+}
+
+.ai-highlight-card.cyan {
+  border: 1px solid rgba(56, 239, 235, 0.3);
+  box-shadow: 0 4px 16px rgba(56, 239, 235, 0.1);
+}
+
+.ai-highlight-card.purple {
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  box-shadow: 0 4px 16px rgba(168, 85, 247, 0.1);
+}
+
+.ai-highlight-card.yellow {
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  box-shadow: 0 4px 16px rgba(234, 179, 8, 0.1);
+}
+
+.ai-highlight-card.orange {
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.1);
+}
+
+.highlight-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .highlight-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1356,29 +1379,39 @@ onMounted(() => {
 
 .highlight-type {
   display: block;
-  font-size: 11px;
+  font-size: 10px;
   color: rgba(255, 255, 255, 0.5);
   text-transform: uppercase;
   font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .highlight-symbol {
   display: block;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: #fff;
+  margin-top: 2px;
 }
 
 .highlight-confidence {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
-  color: #10b981;
 }
+
+.highlight-confidence.green { color: #10b981; }
+.highlight-confidence.red { color: #ef4444; }
+.highlight-confidence.blue { color: #3b82f6; }
+.highlight-confidence.cyan { color: #38efeb; }
+.highlight-confidence.purple { color: #a855f7; }
+.highlight-confidence.yellow { color: #eab308; }
+.highlight-confidence.orange { color: #f97316; }
 
 .highlight-desc {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.45;
   margin: 0;
+  margin-top: auto;
 }
 </style>
