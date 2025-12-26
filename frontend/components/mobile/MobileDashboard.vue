@@ -1488,15 +1488,15 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-horizon-card {
-  background: rgba(15, 25, 35, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgb(30 32 36 / 92%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
   padding: 12px 8px;
   text-align: center;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
 }
 
 .m-horizon-label {
@@ -1539,12 +1539,12 @@ const toggleFavorite = (coinId: string) => {
   flex-direction: column;
   align-items: center;
   padding: 12px 8px;
-  background: rgba(15, 25, 35, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgb(30 32 36 / 92%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
 }
 
 .m-horizon-tab:hover {
@@ -1613,12 +1613,12 @@ const toggleFavorite = (coinId: string) => {
 }
 
 .m-horizon-coin {
-  background: rgba(15, 25, 35, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgb(30 32 36 / 92%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
   padding: 12px;
   margin-bottom: 8px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
 }
 
 .m-horizon-coin-row {
@@ -1751,9 +1751,9 @@ const toggleFavorite = (coinId: string) => {
   justify-content: center;
   padding: 10px 4px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(15, 25, 35, 0.7);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgb(30 32 36 / 92%);
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
   transition: all 0.2s ease;
   min-height: 90px;
 }
@@ -1853,7 +1853,7 @@ const toggleFavorite = (coinId: string) => {
   gap: 16px;
   margin: 12px 12px 0;
   padding: 10px 16px;
-  background: rgba(15, 25, 35, 0.9);
+  background: rgba(30, 30, 50, 0.6);
   border-radius: 10px;
 }
 
@@ -2037,12 +2037,12 @@ const toggleFavorite = (coinId: string) => {
 
 .m-gem-card {
   flex: 0 0 180px;
-  background: rgba(15, 25, 35, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgb(30 32 36 / 92%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
   padding: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
 }
 
 .m-gem-header {
@@ -2209,12 +2209,11 @@ const toggleFavorite = (coinId: string) => {
 
 .m-signal-card {
   flex: 0 0 170px;
-  background: rgba(15, 25, 35, 0.7);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(139, 92, 246, 0.02));
   border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 12px;
   padding: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .m-signal-header {
@@ -2295,12 +2294,12 @@ const toggleFavorite = (coinId: string) => {
 
 /* Main Container Card (Unified List) */
 .m-tsig-card {
-  background: rgba(15, 25, 35, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgb(30 32 36 / 92%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
   padding: 0;
   overflow: hidden;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 6px 12px, rgba(0, 0, 0, 0.12) 0px 0px 4px 0px;
 }
 
 .m-tsig-row {
@@ -2429,17 +2428,6 @@ const toggleFavorite = (coinId: string) => {
 
 .m-tsig-empty { padding: 32px; text-align: center; color: rgba(255, 255, 255, 0.3); font-size: 13px; }
 
-
-/* Glassmorphism base - Match Home Module */
-.heatmap-cell, .m-section, .m-stat-card-pro {
-  background: rgba(15, 25, 35, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
-  padding: 16px;
-}
 </style>
 
 
