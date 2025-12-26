@@ -179,7 +179,10 @@
                   <span class="whale-stream-direction">{{ tx.from_label || 'Wallet' }} → {{ tx.to_label || 'Wallet' }}</span>
                 </div>
               </div>
-              <span class="whale-stream-time">{{ tx.time_ago }}</span>
+              <div class="whale-stream-right">
+                <span class="whale-stream-time">{{ tx.time_ago }}</span>
+                <span class="whale-type-badge" :class="tx.type">{{ tx.type === 'accum' ? 'ACCUM' : 'DUMP' }}</span>
+              </div>
             </div>
             <div v-if="whaleTransactions.length === 0" class="whale-stream-empty">
               <span>🐋 No whale activity detected</span>
@@ -1120,6 +1123,31 @@ onMounted(() => {
 .whale-stream-time {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.5);
+}
+
+.whale-stream-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.whale-type-badge {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.whale-type-badge.accum {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.whale-type-badge.dump {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
 }
 
 .whale-stream-empty {
