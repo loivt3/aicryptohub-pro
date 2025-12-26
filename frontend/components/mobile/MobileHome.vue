@@ -185,14 +185,17 @@
             <NuxtLink to="/analysis" class="signals-link">View All</NuxtLink>
           </div>
           <div class="signals-list">
-            <div v-for="coin in aiSignals" :key="coin.coin_id" class="signal-row">
+            <div v-for="(coin, idx) in aiSignals" :key="coin.coin_id" class="signal-row">
+              <!-- Ranking Number -->
+              <div class="signal-rank">{{ idx + 1 }}</div>
+              
               <div class="signal-left">
                 <div class="coin-icon-ring" v-if="coin.image">
                   <img :src="coin.image" class="coin-icon" :alt="coin.symbol" />
                 </div>
                 <span class="signal-symbol-badge" v-else>{{ coin.symbol?.toUpperCase().slice(0, 4) }}</span>
                 <div class="signal-info">
-                  <span class="signal-name">{{ coin.name }}</span>
+                  <span class="signal-name">{{ coin.symbol?.toUpperCase() }}</span>
                   <div class="signal-asi-row">
                     <span class="asi-label">ASI Score:</span>
                     <div class="asi-bar">
@@ -202,6 +205,21 @@
                   </div>
                 </div>
               </div>
+              
+              <!-- Sparkline Chart -->
+              <div class="signal-spark">
+                <svg viewBox="0 0 50 20" class="signal-spark-svg" :class="coin.expected_return >= 0 ? 'positive' : 'negative'">
+                  <path 
+                    :d="generateSignalSparkPath(coin)" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              
               <div class="signal-right">
                 <span class="signal-badge" :class="'signal-' + (coin.signal || 'hold').toLowerCase().replace('_', '-')">
                   {{ formatSignal(coin.signal) }}
@@ -441,6 +459,31 @@ const generateSparkPath = (highlight: any) => {
   for (let i = 0; i < points; i++) {
     const trend = isBullish ? (i * 1.5) : (-i * 1.2)
     const noise = (Math.random() - 0.5) * 6
+    values.push(Math.max(padding, Math.min(height - padding, base + trend + noise)))
+  }
+  
+  // Build SVG path
+  const step = width / (points - 1)
+  const pathPoints = values.map((v, i) => `${i === 0 ? 'M' : 'L'} ${i * step} ${height - v}`)
+  return pathPoints.join(' ')
+}
+
+// Generate sparkline path for AI Signals (based on expected return)
+const generateSignalSparkPath = (coin: any) => {
+  const points = 6
+  const width = 50
+  const height = 20
+  const padding = 2
+  
+  // Determine trend direction based on expected return
+  const isPositive = (coin.expected_return || 0) >= 0
+  
+  // Generate points with trend
+  const values: number[] = []
+  let base = isPositive ? 14 : 6
+  for (let i = 0; i < points; i++) {
+    const trend = isPositive ? (i * 2) : (-i * 1.5)
+    const noise = (Math.random() - 0.5) * 4
     values.push(Math.max(padding, Math.min(height - padding, base + trend + noise)))
   }
   
@@ -982,18 +1025,50 @@ onUnmounted(() => {
 
 .signal-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 10px;
   padding: 12px;
   background: rgba(255, 255, 255, 0.03);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* Signal Ranking Badge */
+.signal-rank {
+  width: 24px;
+  height: 24px;
+  background: rgba(139, 92, 246, 0.2);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8b5cf6;
+  flex-shrink: 0;
+}
+
+/* Signal Sparkline */
+.signal-spark {
+  width: 50px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.signal-spark-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.signal-spark-svg.positive { color: #10b981; }
+.signal-spark-svg.negative { color: #ef4444; }
+
 .signal-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
 }
 
 .signal-symbol-badge {
