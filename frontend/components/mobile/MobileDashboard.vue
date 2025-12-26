@@ -372,6 +372,7 @@
                   {{ favorites.includes(coin.coin_id) ? 'Remove Favorite' : 'Add to Favorites' }}
                 </button>
             </div>
+            </div>
             </template>
           </template>
 
@@ -471,6 +472,7 @@
                   {{ favorites.includes(coin.coin_id) ? 'Remove Favorite' : 'Add to Favorites' }}
                 </button>
             </div>
+            </div>
             </template>
           </template>
 
@@ -569,6 +571,7 @@
                   <Icon name="ph:star" :class="favorites.includes(coin.coin_id) ? 'text-yellow-400' : ''" />
                   {{ favorites.includes(coin.coin_id) ? 'Remove Favorite' : 'Add to Favorites' }}
                 </button>
+            </div>
             </div>
             </template>
           </template>
