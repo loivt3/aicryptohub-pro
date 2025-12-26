@@ -2513,6 +2513,7 @@ const toggleFavorite = (coinId: string) => {
   border: none !important;
   box-shadow: none !important;
   margin-bottom: 0 !important;
+  padding: 2px 2px 0px !important;
 }
 
 .m-coin-card-wrapper .m-accordion-panel {
