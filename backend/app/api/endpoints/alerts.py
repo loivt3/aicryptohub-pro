@@ -5,35 +5,35 @@ Provides AI Highlights and alert-related functionality.
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Any, Dict, List
 from app.services.ai_highlights import ai_highlights_service
-from app.services.market_service import market_service
+from app.services.database import DatabaseService, get_db_service
 
 
 router = APIRouter()
 
 
 @router.get("/highlights")
-async def get_ai_highlights() -> Dict[str, Any]:
+async def get_ai_highlights(
+    db: DatabaseService = Depends(get_db_service)
+) -> Dict[str, Any]:
     """
     Get AI-generated highlights including bullish/bearish signals and risk alerts.
     Analyzes current market data to provide actionable insights.
     """
     try:
-        # Get current market data
-        coins = await market_service.get_all_coins()
+        # Get current market data from database
+        coins = db.get_market_data(limit=50, orderby="market_cap")
         
         if not coins or len(coins) == 0:
             # Return empty state if no market data
             return {
-                "bullish_signals": [],
-                "bearish_signals": [],
-                "risk_alerts": [],
+                "highlights": [],
                 "total_analyzed": 0,
                 "generated_at": None,
                 "message": "No market data available"
             }
         
         # Generate highlights from market data
-        highlights = ai_highlights_service.get_highlights(coins, limit=4)
+        highlights = ai_highlights_service.get_highlights(coins, limit=6)
         
         return highlights
         
@@ -45,13 +45,16 @@ async def get_ai_highlights() -> Dict[str, Any]:
 
 
 @router.get("/signals/{coin_id}")
-async def get_coin_signal(coin_id: str) -> Dict[str, Any]:
+async def get_coin_signal(
+    coin_id: str,
+    db: DatabaseService = Depends(get_db_service)
+) -> Dict[str, Any]:
     """
     Get AI signal for a specific coin.
     """
     try:
-        # Get coin data
-        coins = await market_service.get_all_coins()
+        # Get coin data from database
+        coins = db.get_market_data(limit=100, orderby="market_cap")
         coin = next((c for c in coins if c.get("coin_id") == coin_id or c.get("id") == coin_id), None)
         
         if not coin:
