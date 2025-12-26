@@ -1042,14 +1042,14 @@ onMounted(() => {
   background: linear-gradient(135deg, rgba(13, 148, 136, 0.15) 0%, rgba(20, 184, 166, 0.08) 100%);
   border: 1px solid rgba(20, 184, 166, 0.25);
   border-radius: 16px;
-  padding: 16px;
+  padding: 12px;
 }
 
 .whale-stream-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .whale-stream-icon {
@@ -1079,7 +1079,7 @@ onMounted(() => {
 .whale-stream-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
 }
 
 .whale-stream-row {
@@ -1091,11 +1091,11 @@ onMounted(() => {
 .whale-stream-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .whale-emoji {
-  font-size: 22px;
+  font-size: 18px;
 }
 
 .whale-stream-info {
