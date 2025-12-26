@@ -181,6 +181,7 @@
         <div class="m-list m-list--dark">
           <template v-for="(coin, idx) in horizonCoins" :key="coin.coin_id">
             <!-- Main Row + Meta combined -->
+            <div class="m-coin-card-wrapper">
             <div class="m-list-item m-list-item--with-meta">
               <div class="m-list-item-main">
                 <span class="m-rank" :class="getRankClass(idx)">{{ idx + 1 }}</span>
@@ -221,6 +222,7 @@
                 </div>
               </div>
 
+            </div>
             </div>
           </template>
           
@@ -277,6 +279,7 @@
           <!-- Top Gainers -->
           <template v-if="activeMoversTab === 'gainers'">
             <template v-for="(coin, idx) in topGainers" :key="coin.coin_id">
+            <div class="m-coin-card-wrapper">
               <div class="m-list-item m-list-item--with-meta" @click="expandedCoin = expandedCoin === coin.coin_id ? null : coin.coin_id">
                 <div class="m-list-item-main">
                   <span class="m-rank">{{ idx + 1 }}</span>
@@ -368,13 +371,14 @@
                   <Icon name="ph:star" :class="favorites.includes(coin.coin_id) ? 'text-yellow-400' : ''" />
                   {{ favorites.includes(coin.coin_id) ? 'Remove Favorite' : 'Add to Favorites' }}
                 </button>
-              </div>
+            </div>
             </template>
           </template>
 
           <!-- Top Losers -->
           <template v-else-if="activeMoversTab === 'losers'">
             <template v-for="(coin, idx) in topLosers" :key="'loser-'+coin.coin_id">
+            <div class="m-coin-card-wrapper">
               <div class="m-list-item m-list-item--with-meta" @click="expandedCoin = expandedCoin === 'loser-'+coin.coin_id ? null : 'loser-'+coin.coin_id">
                 <div class="m-list-item-main">
                   <span class="m-rank m-rank--danger">{{ idx + 1 }}</span>
@@ -466,13 +470,14 @@
                   <Icon name="ph:star" :class="favorites.includes(coin.coin_id) ? 'text-yellow-400' : ''" />
                   {{ favorites.includes(coin.coin_id) ? 'Remove Favorite' : 'Add to Favorites' }}
                 </button>
-              </div>
+            </div>
             </template>
           </template>
 
           <!-- Most Traded -->
           <template v-else>
             <template v-for="(coin, idx) in mostTraded" :key="'traded-'+coin.coin_id">
+            <div class="m-coin-card-wrapper">
               <div class="m-list-item m-list-item--with-meta" @click="expandedCoin = expandedCoin === 'traded-'+coin.coin_id ? null : 'traded-'+coin.coin_id">
                 <div class="m-list-item-main">
                   <span class="m-rank m-rank--info">{{ idx + 1 }}</span>
@@ -564,7 +569,7 @@
                   <Icon name="ph:star" :class="favorites.includes(coin.coin_id) ? 'text-yellow-400' : ''" />
                   {{ favorites.includes(coin.coin_id) ? 'Remove Favorite' : 'Add to Favorites' }}
                 </button>
-              </div>
+            </div>
             </template>
           </template>
         </div>
@@ -2466,13 +2471,34 @@ const toggleFavorite = (coinId: string) => {
 .m-horizon-coin,
 .m-heatmap-tile,
 .m-treemap-container,
-.m-horizon-tab {
+.m-horizon-tab,
+.m-coin-card-wrapper {
   background: rgba(15, 25, 35, 0.7) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 16px !important;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Ensure wrapper has spacing and internal items are transparent - Bento Grid Style */
+.m-coin-card-wrapper {
+  margin-bottom: 12px;
+  overflow: hidden; /* Ensure rounded corners clip content */
+}
+
+/* Remove borders/bg from inner items to blend with card */
+.m-coin-card-wrapper .m-list-item {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin-bottom: 0 !important;
+}
+
+.m-coin-card-wrapper .m-accordion-panel {
+  background: transparent !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+  margin-top: 0 !important;
 }
 
 /* Specific adjustment for gem card padding/flex if needed */
