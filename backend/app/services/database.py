@@ -112,7 +112,16 @@ class DatabaseService:
         Returns:
             List of coin data dicts
         """
-        order_column = "market_cap" if orderby == "market_cap" else orderby
+        # Sort by rank first (CoinGecko market_cap_rank), then market_cap as fallback
+        # This ensures BTC, ETH always appear at top even if market_cap is NULL/0
+        if orderby == "market_cap":
+            order_clause = "COALESCE(rank, 99999) ASC, market_cap DESC NULLS LAST"
+        elif orderby == "volume_24h":
+            order_clause = "volume_24h DESC NULLS LAST"
+        elif orderby == "change_24h":
+            order_clause = "change_24h DESC NULLS LAST"
+        else:
+            order_clause = f"{orderby} DESC NULLS LAST"
         
         query = text(f"""
             SELECT 
@@ -132,8 +141,8 @@ class DatabaseService:
                 sparkline_7d,
                 last_updated
             FROM aihub_coins
-            WHERE price > 0
-            ORDER BY {order_column} DESC NULLS LAST
+            WHERE price > 0 OR rank <= 20
+            ORDER BY {order_clause}
             LIMIT :limit
         """)
         
