@@ -87,48 +87,26 @@
             <Icon name="ph:sparkle" class="w-5 h-5" style="color: #38efeb;" />
             <span class="ai-highlights-title">AI Highlights</span>
           </div>
-          <span class="ai-highlights-count">{{ Math.min(aiHighlights.length, 5) }}</span>
+          <span class="ai-highlights-count">{{ aiHighlights.length }}</span>
         </div>
         <div class="ai-highlights-scroll">
           <div 
-            v-for="(highlight, idx) in aiHighlights.slice(0, 5)" 
+            v-for="(highlight, idx) in aiHighlights" 
             :key="idx" 
             class="ai-highlight-card"
             :class="highlight.color"
           >
-            <!-- Ranking Number -->
-            <div class="highlight-rank" :class="highlight.color">{{ idx + 1 }}</div>
-            
-            <div class="highlight-content">
-              <!-- Top: Icon + Meta + Confidence -->
-              <div class="highlight-header">
-                <div class="highlight-icon" :class="highlight.color">
-                  <Icon :name="getHighlightIcon(highlight)" size="16" />
-                </div>
-                <div class="highlight-meta">
-                  <span class="highlight-type">{{ formatHighlightType(highlight.highlight_type) }}</span>
-                  <span class="highlight-symbol">{{ highlight.symbol }}</span>
-                </div>
-                <span v-if="highlight.confidence" class="highlight-confidence" :class="highlight.color">{{ highlight.confidence }}%</span>
+            <div class="highlight-header">
+              <div class="highlight-icon" :class="highlight.color">
+                <Icon :name="getHighlightIcon(highlight)" size="18" />
               </div>
-              
-              <!-- Sparkline Chart -->
-              <div class="highlight-spark">
-                <svg viewBox="0 0 60 24" class="spark-svg" :class="highlight.color">
-                  <path 
-                    :d="generateSparkPath(highlight)" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    stroke-width="1.5"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
+              <div class="highlight-meta">
+                <span class="highlight-type">{{ formatHighlightType(highlight.highlight_type) }}</span>
+                <span class="highlight-symbol">{{ highlight.symbol }}</span>
               </div>
-              
-              <!-- Description -->
-              <p class="highlight-desc">{{ highlight.description }}</p>
+              <span v-if="highlight.confidence" class="highlight-confidence" :class="highlight.color">{{ highlight.confidence }}%</span>
             </div>
+            <p class="highlight-desc">{{ highlight.description }}</p>
           </div>
         </div>
       </section>
@@ -661,7 +639,7 @@ import { useSocket } from '~/composables/useSocket'
 
 const { connect: connectSocket, onPriceUpdate, connected: socketConnected } = useSocket()
 
-// Handle real-time price updates for top coins
+// Handle real-time price updates for top coins (only price and change_24h)
 const handlePriceUpdate = (updates: any[]) => {
   if (!updates || !allCoins.value.length) return
   
@@ -673,12 +651,9 @@ const handlePriceUpdate = (updates: any[]) => {
     )
     
     if (coin) {
-      // Update price and change
+      // Update only price and change_24h for top assets
       if (update.p) coin.price = update.p
       if (update.c !== undefined) coin.change_24h = update.c
-      if (update.v) coin.volume_24h = update.v
-      if (update.h) coin.high_24h = update.h
-      if (update.l) coin.low_24h = update.l
     }
   })
 }
