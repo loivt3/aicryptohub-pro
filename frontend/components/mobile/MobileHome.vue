@@ -1453,17 +1453,16 @@ onUnmounted(() => {
 
 .ai-highlight-card {
   flex-shrink: 0;
-  width: 200px;
-  min-height: 140px;
+  width: 180px;
+  min-height: 120px;
   background: rgba(15, 25, 35, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 14px;
-  padding: 12px;
+  padding: 14px;
   scroll-snap-align: start;
   display: flex;
-  flex-direction: row;
-  gap: 10px;
+  flex-direction: column;
 }
 
 /* Ranking Badge */
