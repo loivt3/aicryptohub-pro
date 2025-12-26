@@ -99,9 +99,10 @@ const formatPrice = (price: number) => {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(20, 28, 43, 0.95);
+  background: rgba(15, 25, 35, 0.85);
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .m-header-content {
@@ -131,6 +132,7 @@ const formatPrice = (price: number) => {
   font-size: 1rem;
   background: linear-gradient(135deg, #38efeb, #9f7aea);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -203,20 +205,22 @@ const formatPrice = (price: number) => {
   justify-content: center;
 }
 
-/* Bottom Navigation */
+/* Bottom Navigation - Floating Island */
 .m-bottom-nav {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 24px; /* Move up for floating effect */
+  left: 16px;
+  right: 16px;
   z-index: 50;
   display: flex;
   justify-content: space-around;
-  background: rgba(20, 28, 43, 0.98);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding: 0.5rem 0;
-  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  background: rgba(15, 25, 35, 0.85); /* Dark Glass */
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px; /* Pill shape */
+  padding: 0.75rem 0; /* Slightly more padding */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); /* Deep shadow for lift */
 }
 
 .m-nav-item {
@@ -234,6 +238,8 @@ const formatPrice = (price: number) => {
 
 .m-nav-item.active {
   color: #38efeb;
+  background: linear-gradient(180deg, rgba(56, 239, 235, 0.15) 0%, rgba(56, 239, 235, 0.0) 100%);
+  border-radius: 12px;
 }
 
 .m-nav-icon {
