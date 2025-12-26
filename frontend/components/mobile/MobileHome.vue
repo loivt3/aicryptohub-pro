@@ -87,26 +87,48 @@
             <Icon name="ph:sparkle" class="w-5 h-5" style="color: #38efeb;" />
             <span class="ai-highlights-title">AI Highlights</span>
           </div>
-          <span class="ai-highlights-count">{{ aiHighlights.length }}</span>
+          <span class="ai-highlights-count">{{ Math.min(aiHighlights.length, 5) }}</span>
         </div>
         <div class="ai-highlights-scroll">
           <div 
-            v-for="(highlight, idx) in aiHighlights" 
+            v-for="(highlight, idx) in aiHighlights.slice(0, 5)" 
             :key="idx" 
             class="ai-highlight-card"
             :class="highlight.color"
           >
-            <div class="highlight-header">
-              <div class="highlight-icon" :class="highlight.color">
-                <Icon :name="getHighlightIcon(highlight)" size="18" />
+            <!-- Ranking Number -->
+            <div class="highlight-rank" :class="highlight.color">{{ idx + 1 }}</div>
+            
+            <div class="highlight-content">
+              <!-- Top: Icon + Meta + Confidence -->
+              <div class="highlight-header">
+                <div class="highlight-icon" :class="highlight.color">
+                  <Icon :name="getHighlightIcon(highlight)" size="16" />
+                </div>
+                <div class="highlight-meta">
+                  <span class="highlight-type">{{ formatHighlightType(highlight.highlight_type) }}</span>
+                  <span class="highlight-symbol">{{ highlight.symbol }}</span>
+                </div>
+                <span v-if="highlight.confidence" class="highlight-confidence" :class="highlight.color">{{ highlight.confidence }}%</span>
               </div>
-              <div class="highlight-meta">
-                <span class="highlight-type">{{ formatHighlightType(highlight.highlight_type) }}</span>
-                <span class="highlight-symbol">{{ highlight.symbol }}</span>
+              
+              <!-- Sparkline Chart -->
+              <div class="highlight-spark">
+                <svg viewBox="0 0 60 24" class="spark-svg" :class="highlight.color">
+                  <path 
+                    :d="generateSparkPath(highlight)" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
               </div>
-              <span v-if="highlight.confidence" class="highlight-confidence" :class="highlight.color">{{ highlight.confidence }}%</span>
+              
+              <!-- Description -->
+              <p class="highlight-desc">{{ highlight.description }}</p>
             </div>
-            <p class="highlight-desc">{{ highlight.description }}</p>
           </div>
         </div>
       </section>
@@ -401,6 +423,31 @@ const formatHighlightType = (type: string) => {
     'opportunity': 'Opportunity',
   }
   return typeMap[type] || type
+}
+
+// Generate sparkline path for highlight cards
+const generateSparkPath = (highlight: any) => {
+  const points = 8
+  const width = 60
+  const height = 24
+  const padding = 2
+  
+  // Determine trend direction based on highlight type
+  const isBullish = ['bullish_signal', 'breakout', 'volume_surge', 'opportunity'].includes(highlight.highlight_type)
+  
+  // Generate points with trend
+  const values: number[] = []
+  let base = isBullish ? 18 : 6
+  for (let i = 0; i < points; i++) {
+    const trend = isBullish ? (i * 1.5) : (-i * 1.2)
+    const noise = (Math.random() - 0.5) * 6
+    values.push(Math.max(padding, Math.min(height - padding, base + trend + noise)))
+  }
+  
+  // Build SVG path
+  const step = width / (points - 1)
+  const pathPoints = values.map((v, i) => `${i === 0 ? 'M' : 'L'} ${i * step} ${height - v}`)
+  return pathPoints.join(' ')
 }
 
 const formatSignal = (signal: string | null) => {
@@ -1300,16 +1347,46 @@ onMounted(() => {
 
 .ai-highlight-card {
   flex-shrink: 0;
-  width: 180px;
-  min-height: 130px;
-  background: rgba(15, 25, 35, 0.8);
+  width: 200px;
+  min-height: 140px;
+  background: rgba(15, 25, 35, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 14px;
-  padding: 14px;
+  padding: 12px;
   scroll-snap-align: start;
   display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+/* Ranking Badge */
+.highlight-rank {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.highlight-rank.green { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+.highlight-rank.red { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+.highlight-rank.blue { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+.highlight-rank.cyan { background: rgba(56, 239, 235, 0.2); color: #38efeb; }
+.highlight-rank.purple { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
+.highlight-rank.yellow { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+.highlight-rank.orange { background: rgba(249, 115, 22, 0.2); color: #f97316; }
+
+/* Card Content */
+.highlight-content {
+  flex: 1;
+  display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .ai-highlight-card.green {
@@ -1346,6 +1423,25 @@ onMounted(() => {
   border: 1px solid rgba(249, 115, 22, 0.3);
   box-shadow: 0 4px 16px rgba(249, 115, 22, 0.1);
 }
+
+/* Sparkline Container */
+.highlight-spark {
+  height: 24px;
+  margin: 6px 0;
+}
+
+.spark-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.spark-svg.green { color: #10b981; }
+.spark-svg.red { color: #ef4444; }
+.spark-svg.blue { color: #3b82f6; }
+.spark-svg.cyan { color: #38efeb; }
+.spark-svg.purple { color: #a855f7; }
+.spark-svg.yellow { color: #eab308; }
+.spark-svg.orange { color: #f97316; }
 
 .highlight-header {
   display: flex;
