@@ -80,7 +80,7 @@
         </div>
       </section>
 
-      <!-- AI Highlights - Bento Grid Layout -->
+      <!-- AI Highlights - Horizontal Scroll Cards (Improved Style) -->
       <section v-if="aiHighlights.length > 0" class="home-section ai-highlights-section">
         <div class="ai-highlights-header">
           <div class="ai-highlights-left">
@@ -90,78 +90,41 @@
           <span class="ai-highlights-count">{{ aiHighlights.length }}</span>
         </div>
         
-        <!-- Bento Grid -->
-        <div class="highlights-bento">
-          <!-- Featured Card (First item - larger) -->
+        <!-- Horizontal Scroll Container -->
+        <div class="ai-highlights-scroll">
           <div 
-            v-if="aiHighlights[0]" 
-            class="bento-card bento-featured"
-            :class="aiHighlights[0].color"
-            @click="openHighlightDetail(aiHighlights[0])"
-          >
-            <div class="bento-card-header">
-              <div class="bento-type-badge" :class="aiHighlights[0].color">
-                <Icon :name="getHighlightIcon(aiHighlights[0])" size="14" />
-                <span>{{ formatHighlightType(aiHighlights[0].highlight_type) }}</span>
-              </div>
-              <span v-if="aiHighlights[0].confidence" class="bento-confidence" :class="aiHighlights[0].color">
-                {{ aiHighlights[0].confidence }}%
-              </span>
-            </div>
-            <div class="bento-symbol">{{ aiHighlights[0].symbol }}</div>
-            <div v-if="aiHighlights[0].technical_data?.rsi_14" class="bento-rsi" :class="getRsiClass(aiHighlights[0].technical_data.rsi_14)">
-              RSI: {{ aiHighlights[0].technical_data.rsi_14.toFixed(0) }}
-            </div>
-            <p class="bento-desc">{{ aiHighlights[0].description }}</p>
-            <div v-if="aiHighlights[0].action_hint" class="bento-action">
-              <Icon name="ph:lightbulb" size="14" />
-              <span>{{ aiHighlights[0].action_hint }}</span>
-            </div>
-          </div>
-          
-          <!-- Secondary Card (Second item - medium) -->
-          <div 
-            v-if="aiHighlights[1]" 
-            class="bento-card bento-secondary"
-            :class="aiHighlights[1].color"
-            @click="openHighlightDetail(aiHighlights[1])"
-          >
-            <div class="bento-card-header">
-              <div class="bento-type-badge" :class="aiHighlights[1].color">
-                <Icon :name="getHighlightIcon(aiHighlights[1])" size="14" />
-                <span>{{ formatHighlightType(aiHighlights[1].highlight_type) }}</span>
-              </div>
-              <span v-if="aiHighlights[1].confidence" class="bento-confidence" :class="aiHighlights[1].color">
-                {{ aiHighlights[1].confidence }}%
-              </span>
-            </div>
-            <div class="bento-symbol">{{ aiHighlights[1].symbol }}</div>
-            <div v-if="aiHighlights[1].technical_data?.rsi_14" class="bento-rsi" :class="getRsiClass(aiHighlights[1].technical_data.rsi_14)">
-              RSI: {{ aiHighlights[1].technical_data.rsi_14.toFixed(0) }}
-            </div>
-            <p class="bento-desc-short">{{ aiHighlights[1].description?.substring(0, 80) }}...</p>
-          </div>
-          
-          <!-- Compact Cards (Remaining items) -->
-          <div 
-            v-for="(highlight, idx) in aiHighlights.slice(2, 6)" 
-            :key="idx + 2" 
-            class="bento-card bento-compact"
+            v-for="(highlight, idx) in aiHighlights" 
+            :key="idx" 
+            class="ai-highlight-card"
             :class="highlight.color"
             @click="openHighlightDetail(highlight)"
           >
-            <div class="compact-header">
-              <Icon :name="getHighlightIcon(highlight)" size="16" :class="highlight.color" />
-              <span class="compact-symbol">{{ highlight.symbol }}</span>
-            </div>
-            <div class="compact-type" :class="highlight.color">
-              {{ formatHighlightType(highlight.highlight_type) }}
-            </div>
-            <div class="compact-footer">
-              <span v-if="highlight.technical_data?.rsi_14" class="compact-rsi">
-                RSI {{ highlight.technical_data.rsi_14.toFixed(0) }}
+            <!-- Type Badge + Confidence -->
+            <div class="highlight-top">
+              <div class="highlight-type-badge" :class="highlight.color">
+                <Icon :name="getHighlightIcon(highlight)" size="12" />
+                <span>{{ formatHighlightType(highlight.highlight_type) }}</span>
+              </div>
+              <span v-if="highlight.confidence" class="highlight-confidence" :class="highlight.color">
+                {{ highlight.confidence }}%
               </span>
-              <span v-if="highlight.confidence" class="compact-conf" :class="highlight.color">{{ highlight.confidence }}%</span>
+            </div>
+            
+            <!-- Symbol -->
+            <div class="highlight-symbol">{{ highlight.symbol }}</div>
+            
+            <!-- RSI Badge -->
+            <div v-if="highlight.technical_data?.rsi_14" class="highlight-rsi" :class="getRsiClass(highlight.technical_data.rsi_14)">
+              RSI: {{ highlight.technical_data.rsi_14.toFixed(0) }}
+            </div>
+            
+            <!-- Description (truncated) -->
+            <p class="highlight-desc">{{ highlight.description?.substring(0, 100) }}{{ highlight.description?.length > 100 ? '...' : '' }}</p>
+            
+            <!-- Action Hint -->
+            <div v-if="highlight.action_hint" class="highlight-action">
+              <Icon name="ph:lightbulb" size="12" />
+              <span>{{ highlight.action_hint }}</span>
             </div>
           </div>
         </div>
@@ -1665,28 +1628,41 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-/* Bento Grid Container */
-.highlights-bento {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto auto auto;
+/* Horizontal Scroll Container */
+.ai-highlights-scroll {
+  display: flex;
   gap: 12px;
+  overflow-x: auto;
+  padding: 0 16px 8px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
 
-/* Base Card Styling */
-.bento-card {
+.ai-highlights-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* AI Highlight Card - Enhanced Style */
+.ai-highlight-card {
+  flex-shrink: 0;
+  width: 180px;
+  min-height: 180px;
   background: linear-gradient(145deg, rgba(20, 30, 45, 0.95) 0%, rgba(15, 20, 30, 0.9) 100%);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 16px;
-  padding: 16px;
+  padding: 14px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
 }
 
-.bento-card::before {
+.ai-highlight-card::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -1700,90 +1676,184 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-.bento-card:active {
-  transform: scale(0.98);
+.ai-highlight-card:active {
+  transform: scale(0.97);
 }
 
-/* Featured Card - Spans 1 column, full height */
-.bento-featured {
-  grid-column: 1;
-  grid-row: 1 / 3;
+/* Card Color Variants with Glow */
+.ai-highlight-card.red {
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
-/* Secondary Card */
-.bento-secondary {
-  grid-column: 2;
-  grid-row: 1;
+.ai-highlight-card.green {
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
-/* Compact Cards - Row 2-3 col 2 + Row 3 col 1-2 */
-.bento-compact {
-  padding: 12px;
+.ai-highlight-card.cyan {
+  border: 1px solid rgba(56, 239, 235, 0.4);
+  box-shadow: 0 4px 20px rgba(56, 239, 235, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
-/* Card Header */
-.bento-card-header {
+.ai-highlight-card.purple {
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  box-shadow: 0 4px 20px rgba(168, 85, 247, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.ai-highlight-card.yellow {
+  border: 1px solid rgba(234, 179, 8, 0.4);
+  box-shadow: 0 4px 20px rgba(234, 179, 8, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.ai-highlight-card.orange {
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.ai-highlight-card.blue {
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+/* Card Top Row - Type Badge + Confidence */
+.highlight-top {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
+  align-items: center;
+  margin-bottom: 10px;
 }
 
-.bento-type-badge {
+.highlight-type-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
   border-radius: 8px;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.bento-type-badge.red {
+.highlight-type-badge.red {
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(239, 68, 68, 0.1));
   color: #ef4444;
 }
 
-.bento-type-badge.green {
+.highlight-type-badge.green {
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.1));
   color: #10b981;
 }
 
-.bento-type-badge.cyan {
+.highlight-type-badge.cyan {
   background: linear-gradient(135deg, rgba(56, 239, 235, 0.3), rgba(56, 239, 235, 0.1));
   color: #38efeb;
 }
 
-.bento-type-badge.purple {
+.highlight-type-badge.purple {
   background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(168, 85, 247, 0.1));
   color: #a855f7;
 }
 
-.bento-type-badge.yellow {
+.highlight-type-badge.yellow {
   background: linear-gradient(135deg, rgba(234, 179, 8, 0.3), rgba(234, 179, 8, 0.1));
   color: #eab308;
 }
 
-.bento-type-badge.orange {
+.highlight-type-badge.orange {
   background: linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(249, 115, 22, 0.1));
   color: #f97316;
 }
 
-.bento-type-badge.blue {
+.highlight-type-badge.blue {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.1));
   color: #3b82f6;
 }
 
 /* Confidence */
-.bento-confidence {
-  font-size: 18px;
+.highlight-confidence {
+  font-size: 16px;
   font-weight: 700;
 }
 
-.bento-confidence.red { color: #ef4444; }
-.bento-confidence.green { color: #10b981; }
+.highlight-confidence.red { color: #ef4444; }
+.highlight-confidence.green { color: #10b981; }
+.highlight-confidence.cyan { color: #38efeb; }
+.highlight-confidence.purple { color: #a855f7; }
+.highlight-confidence.yellow { color: #eab308; }
+.highlight-confidence.orange { color: #f97316; }
+.highlight-confidence.blue { color: #3b82f6; }
+
+/* Symbol */
+.highlight-symbol {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+/* RSI Badge */
+.highlight-rsi {
+  display: inline-flex;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  width: fit-content;
+}
+
+.highlight-rsi.overbought {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.highlight-rsi.oversold {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.highlight-rsi.neutral {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Description */
+.highlight-desc {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.4;
+  margin: 0;
+  flex: 1;
+}
+
+/* Action Hint */
+.highlight-action {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 8px;
+  background: rgba(234, 179, 8, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(234, 179, 8, 0.2);
+}
+
+.highlight-action span {
+  font-size: 10px;
+  color: #eab308;
+  line-height: 1.3;
+}
+
+.highlight-action svg {
+  color: #eab308;
+  flex-shrink: 0;
+}
 .bento-confidence.cyan { color: #38efeb; }
 .bento-confidence.purple { color: #a855f7; }
 .bento-confidence.yellow { color: #eab308; }
