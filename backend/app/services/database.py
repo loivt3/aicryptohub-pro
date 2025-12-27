@@ -1445,6 +1445,170 @@ class DatabaseService:
         except Exception as e:
             logger.error(f"Failed to get recent patterns: {e}")
             return []
+    
+    # ==================== PORTFOLIO METHODS ====================
+    
+    def get_portfolio(self, user_id: str) -> List[Dict[str, Any]]:
+        """
+        Get all portfolio holdings for a user.
+        
+        Args:
+            user_id: User identifier
+            
+        Returns:
+            List of holdings with current prices and PnL
+        """
+        try:
+            with self.engine.connect() as conn:
+                # Check if portfolio table exists
+                check_query = text("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'portfolio'
+                    )
+                """)
+                exists = conn.execute(check_query).scalar()
+                
+                if not exists:
+                    # Create portfolio table if not exists
+                    create_query = text("""
+                        CREATE TABLE IF NOT EXISTS portfolio (
+                            id SERIAL PRIMARY KEY,
+                            user_id VARCHAR(255) NOT NULL,
+                            coin_id VARCHAR(100) NOT NULL,
+                            amount DECIMAL(20, 8) NOT NULL,
+                            buy_price DECIMAL(20, 8) NOT NULL,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            UNIQUE(user_id, coin_id)
+                        )
+                    """)
+                    conn.execute(create_query)
+                    conn.commit()
+                    logger.info("Created portfolio table")
+                    return []
+                
+                # Get holdings with current prices
+                query = text("""
+                    SELECT 
+                        p.coin_id,
+                        p.amount,
+                        p.buy_price,
+                        c.symbol,
+                        c.name,
+                        c.image,
+                        c.current_price
+                    FROM portfolio p
+                    LEFT JOIN coins c ON LOWER(p.coin_id) = LOWER(c.coin_id)
+                    WHERE p.user_id = :user_id
+                    ORDER BY p.created_at DESC
+                """)
+                
+                result = conn.execute(query, {"user_id": user_id})
+                rows = result.fetchall()
+                
+                holdings = []
+                for row in rows:
+                    amount = float(row[1]) if row[1] else 0
+                    buy_price = float(row[2]) if row[2] else 0
+                    current_price = float(row[6]) if row[6] else buy_price
+                    value = amount * current_price
+                    cost = amount * buy_price
+                    pnl = value - cost
+                    pnl_percent = ((value / cost) - 1) * 100 if cost > 0 else 0
+                    
+                    holdings.append({
+                        "coin_id": row[0],
+                        "amount": amount,
+                        "buy_price": buy_price,
+                        "symbol": row[3] or row[0].upper(),
+                        "name": row[4] or row[0],
+                        "image": row[5],
+                        "current_price": current_price,
+                        "value": value,
+                        "pnl": pnl,
+                        "pnl_percent": pnl_percent,
+                    })
+                
+                return holdings
+                
+        except Exception as e:
+            logger.error(f"Failed to get portfolio: {e}")
+            return []
+    
+    def add_holding(self, user_id: str, coin_id: str, amount: float, buy_price: float) -> bool:
+        """
+        Add or update a holding in portfolio.
+        
+        Args:
+            user_id: User identifier
+            coin_id: Coin identifier
+            amount: Amount to hold
+            buy_price: Purchase price
+            
+        Returns:
+            True on success
+        """
+        try:
+            with self.engine.connect() as conn:
+                # Upsert holding
+                query = text("""
+                    INSERT INTO portfolio (user_id, coin_id, amount, buy_price, updated_at)
+                    VALUES (:user_id, :coin_id, :amount, :buy_price, NOW())
+                    ON CONFLICT (user_id, coin_id)
+                    DO UPDATE SET 
+                        amount = :amount,
+                        buy_price = :buy_price,
+                        updated_at = NOW()
+                """)
+                
+                conn.execute(query, {
+                    "user_id": user_id,
+                    "coin_id": coin_id,
+                    "amount": amount,
+                    "buy_price": buy_price,
+                })
+                conn.commit()
+                
+                logger.info(f"Added/updated holding: {coin_id} for user {user_id}")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Failed to add holding: {e}")
+            return False
+    
+    def delete_holding(self, user_id: str, coin_id: str) -> bool:
+        """
+        Delete a holding from portfolio.
+        
+        Args:
+            user_id: User identifier
+            coin_id: Coin identifier
+            
+        Returns:
+            True on success
+        """
+        try:
+            with self.engine.connect() as conn:
+                query = text("""
+                    DELETE FROM portfolio
+                    WHERE user_id = :user_id AND coin_id = :coin_id
+                """)
+                
+                result = conn.execute(query, {
+                    "user_id": user_id,
+                    "coin_id": coin_id,
+                })
+                conn.commit()
+                
+                if result.rowcount > 0:
+                    logger.info(f"Deleted holding: {coin_id} for user {user_id}")
+                    return True
+                return False
+                
+        except Exception as e:
+            logger.error(f"Failed to delete holding: {e}")
+            return False
 
 
 # Dependency injection
