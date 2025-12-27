@@ -220,32 +220,49 @@
           </div>
         </section>
 
-        <!-- Recent Whale Transactions (NEW) -->
+        <!-- Whale Stream Terminal (REDESIGNED) -->
         <section class="m-section" v-if="whaleTransactions.length">
-          <div class="m-section-header">
-            <h3 class="m-section-title">
-              <Icon name="ph:list-magnifying-glass" class="w-4 h-4" style="color: #a855f7;" />
-              Recent Whale Txs
-            </h3>
-            <span class="m-section-link" @click="fetchOnchainData">Refresh</span>
-          </div>
-          <div class="m-whale-tx-list">
-            <div 
-              v-for="(tx, idx) in whaleTransactions" 
-              :key="idx"
-              class="m-whale-tx-item"
-              :class="tx.tx_type === 'exchange_deposit' ? 'tx-sell' : 'tx-buy'"
-            >
-              <div class="m-tx-icon">{{ tx.tx_type === 'exchange_deposit' ? '🔴' : '🟢' }}</div>
-              <div class="m-tx-info">
-                <span class="m-tx-coin">{{ tx.coin_id?.toUpperCase() }}</span>
-                <span class="m-tx-addresses">
-                  {{ formatAddress(tx.from_address) }} → {{ tx.exchange_name || formatAddress(tx.to_address) }}
-                </span>
+          <div class="whale-terminal">
+            <div class="terminal-header">
+              <div class="terminal-title">
+                <span class="terminal-icon">🐋</span>
+                <span>WHALE-STREAM // V.2.0</span>
               </div>
-              <div class="m-tx-meta">
-                <span class="m-tx-value">{{ formatCurrency(tx.value_usd) }}</span>
-                <span class="m-tx-time">{{ formatTxTime(tx.tx_timestamp) }}</span>
+              <button class="terminal-refresh" @click="fetchOnchainData">
+                <Icon name="ph:arrows-clockwise" class="w-3.5 h-3.5" />
+              </button>
+            </div>
+            
+            <div class="terminal-body">
+              <div class="terminal-status">
+                <span class="status-dot"></span>
+                <span class="status-text">Live feed active...</span>
+                <span class="status-count">{{ whaleTransactions.length }} alerts</span>
+              </div>
+              
+              <div class="terminal-alerts">
+                <div 
+                  v-for="(tx, idx) in whaleTransactions" 
+                  :key="idx"
+                  class="terminal-alert"
+                  :class="tx.tx_type === 'exchange_deposit' ? 'alert-sell' : 'alert-buy'"
+                >
+                  <span class="alert-prefix">>></span>
+                  <div class="alert-content">
+                    <span class="alert-type" :class="tx.tx_type === 'exchange_deposit' ? 'type-sell' : 'type-buy'">
+                      {{ tx.tx_type === 'exchange_deposit' ? 'SELL SIGNAL:' : 'WHALE ALERT:' }}
+                    </span>
+                    <span class="alert-message">
+                      {{ formatWhaleMessage(tx) }}
+                    </span>
+                    <span class="alert-time">{{ formatTxTime(tx.tx_timestamp) }}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="terminal-cursor">
+                <span class="cursor-prompt">>></span>
+                <span class="cursor-blink">▌</span>
               </div>
             </div>
           </div>
@@ -658,6 +675,20 @@ function formatAddress(addr) {
   if (!addr) return 'Unknown'
   if (addr.length > 12) return `${addr.slice(0, 6)}...${addr.slice(-4)}`
   return addr
+}
+
+function formatWhaleMessage(tx) {
+  const coin = tx.coin_id?.toUpperCase() || 'CRYPTO'
+  const value = formatCurrency(tx.value_usd)
+  const addr = formatAddress(tx.from_address)
+  
+  if (tx.tx_type === 'exchange_deposit') {
+    // Sell signal - whale moving to exchange
+    return `Whale ${addr} deposited ${value} $${coin} to ${tx.exchange_name || 'exchange'}.`
+  } else {
+    // Buy signal - whale accumulating or withdrawing
+    return `Whale ${addr} moved ${value} $${coin} off ${tx.exchange_name || 'exchange'}.`
+  }
 }
 
 // Lifecycle
@@ -1354,5 +1385,164 @@ onUnmounted(() => {
 
 .m-bottom-spacer {
   height: 20px;
+}
+
+/* Whale Stream Terminal Styles */
+.whale-terminal {
+  background: rgba(10, 15, 25, 0.95);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+.terminal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(0, 212, 255, 0.08);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.15);
+}
+
+.terminal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #00d4ff;
+  letter-spacing: 0.5px;
+}
+
+.terminal-icon {
+  font-size: 14px;
+}
+
+.terminal-refresh {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 6px;
+  color: #00d4ff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.terminal-refresh:hover {
+  background: rgba(0, 212, 255, 0.2);
+}
+
+.terminal-body {
+  padding: 16px;
+}
+
+.terminal-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 11px;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background: #00ff88;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.status-text {
+  color: #00ff88;
+}
+
+.status-count {
+  margin-left: auto;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.terminal-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.terminal-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.alert-prefix {
+  color: #00d4ff;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.alert-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.alert-type {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.alert-type.type-buy {
+  color: #00ff88;
+}
+
+.alert-type.type-sell {
+  color: #ff4757;
+}
+
+.alert-message {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.alert-time {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.terminal-cursor {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.cursor-prompt {
+  color: #00d4ff;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.cursor-blink {
+  color: #00d4ff;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 </style>
