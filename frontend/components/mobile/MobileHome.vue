@@ -252,7 +252,19 @@
                     {{ tx.type === 'dump' ? 'SELL SIGNAL:' : 'WHALE ALERT:' }}
                   </span>
                   <span class="alert-message">
-                    {{ tx.from_label || 'Whale' }} moved {{ tx.amount }} ${{ tx.symbol }} ({{ formatCompact(tx.usd_value) }}) {{ tx.type === 'dump' ? 'to ' + (tx.to_label || 'exchange') : 'off exchange' }}.
+                    <span class="highlight-entity">{{ tx.from_label || 'Whale' }}</span> 
+                    {{ tx.type === 'dump' ? 'deposited' : 'withdrew' }} 
+                    <span class="highlight-amount">{{ tx.amount }}</span> 
+                    <span class="highlight-token">${{ tx.symbol }}</span>
+                    (<span class="highlight-usd">{{ formatCompact(tx.usd_value) }}</span>) 
+                    {{ tx.type === 'dump' ? 'to ' : 'from ' }}
+                    <span class="highlight-entity">{{ tx.to_label || 'exchange' }}</span>.
+                  </span>
+                  <span class="alert-context" v-if="tx.type !== 'dump'">
+                    Potential accumulation - moving assets off exchange for long-term holding.
+                  </span>
+                  <span class="alert-context" v-else>
+                    Sell pressure detected - whale moving to exchange for potential liquidation.
                   </span>
                   <span class="alert-time">{{ tx.time_ago }}</span>
                 </div>
@@ -1792,6 +1804,36 @@ onUnmounted(() => {
 .alert-time {
   font-size: 10px;
   color: rgba(255, 255, 255, 0.4);
+}
+
+.highlight-entity {
+  color: #00d4ff;
+  font-weight: 600;
+}
+
+.highlight-amount {
+  color: #fff;
+  font-weight: 700;
+}
+
+.highlight-token {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.highlight-usd {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.alert-context {
+  display: block;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  margin-top: 4px;
+  padding-left: 8px;
+  border-left: 2px solid rgba(0, 212, 255, 0.3);
 }
 
 .terminal-empty {
