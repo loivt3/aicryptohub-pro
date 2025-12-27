@@ -1099,7 +1099,7 @@ onUnmounted(() => {
 }
 
 /* ========== AI MARKET MOOD V2 ========== */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 .mood-card-v2 {
   background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.05), rgba(15, 23, 35, 1));
@@ -1107,10 +1107,10 @@ onUnmounted(() => {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 20px;
-  padding: 24px; /* Increased padding slightly */
+  padding: 16px; /* Reduced padding from 24px */
   position: relative;
   overflow: hidden;
-  font-family: 'Plus Jakarta Sans', sans-serif; /* Applied to container */
+  font-family: 'Inter', sans-serif; /* Switched to Inter */
 }
 
 /* Background Gear Decoration */
@@ -1132,14 +1132,14 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 12px; /* Reduced from 16px */
 }
 
 .mood-title-v2 {
   font-size: 15px;
-  font-weight: 600; /* Increased weight */
-  color: rgba(255, 255, 255, 0.9); /* Brighter title */
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: 'Inter', sans-serif;
   letter-spacing: 0;
 }
 
@@ -1156,11 +1156,11 @@ onUnmounted(() => {
 }
 
 .mood-score-v2 {
-  font-size: 42px; /* Reduced from 56px */
+  font-size: 42px;
   font-weight: 800;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Inter', sans-serif;
   line-height: 1;
-  margin-bottom: 4px; /* Slightly tighter spacing */
+  margin-bottom: 2px; /* Reduced from 4px */
   letter-spacing: -1px;
 }
 
@@ -1170,10 +1170,10 @@ onUnmounted(() => {
 .mood-score-v2.extreme-greed { color: #38efeb; }
 
 .mood-label-v2 {
-  font-size: 16px; /* Reduced from 20px */
+  font-size: 16px;
   font-weight: 700;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  margin-bottom: 8px; /* Reduced spacing */
+  font-family: 'Inter', sans-serif;
+  margin-bottom: 6px; /* Reduced from 8px */
   letter-spacing: -0.2px;
 }
 
@@ -1188,7 +1188,7 @@ onUnmounted(() => {
   line-height: 1.5;
   margin: 0;
   max-width: 180px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-weight: 500;
 }
 
@@ -2233,11 +2233,13 @@ onUnmounted(() => {
   color: #fff;
   margin: 0 0 2px 0;
   line-height: 1.2;
+  font-family: 'Inter', sans-serif; /* Added Inter font */
 }
 
 .highlight-subtitle-v3 {
   font-size: 13px;
   font-weight: 500;
+  font-family: 'Inter', sans-serif; /* Added Inter font */
 }
 
 .highlight-subtitle-v3.card-bullish { color: #34d399; }
