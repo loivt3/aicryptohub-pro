@@ -121,18 +121,16 @@
               </span>
             </div>
             
-            <!-- Symbol -->
-            <div class="highlight-symbol">{{ highlight.symbol }}</div>
+            <!-- Symbol with Coin Icon -->
+            <div class="highlight-symbol-row">
+              <img v-if="highlight.image" :src="highlight.image" class="highlight-coin-icon" :alt="highlight.symbol" />
+              <span class="highlight-symbol-text">{{ highlight.symbol }}</span>
+            </div>
             
-            <!-- Description (truncated) -->
-            <p class="highlight-desc">{{ highlight.description?.substring(0, 80) }}{{ highlight.description?.length > 80 ? '...' : '' }}</p>
-            
-            <!-- Action Hint - Bento Style -->
-            <div v-if="highlight.action_hint" class="highlight-action-bento">
-              <div class="action-icon-box">
-                <Icon name="ph:lightbulb-filament" size="16" />
-              </div>
-              <span class="action-text">{{ highlight.action_hint }}</span>
+            <!-- Description in Bento Grid Style -->
+            <div class="highlight-desc-bento">
+              <Icon name="ph:chart-line" size="14" class="desc-icon" />
+              <p class="highlight-desc-text">{{ highlight.description?.substring(0, 90) }}{{ highlight.description?.length > 90 ? '...' : '' }}</p>
             </div>
           </div>
         </div>
@@ -2071,7 +2069,29 @@ onUnmounted(() => {
 .highlight-confidence.orange { color: #f97316; }
 .highlight-confidence.blue { color: #3b82f6; }
 
-/* Symbol */
+/* Symbol Row with Coin Icon */
+.highlight-symbol-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.highlight-coin-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.highlight-symbol-text {
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+
+/* Old Symbol (backwards compat) */
 .highlight-symbol {
   font-size: 24px;
   font-weight: 800;
@@ -2109,7 +2129,32 @@ onUnmounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Description */
+/* Description Bento Grid */
+.highlight-desc-bento {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex: 1;
+}
+
+.desc-icon {
+  color: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.highlight-desc-text {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Old Description (backwards compat) */
 .highlight-desc {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.65);
