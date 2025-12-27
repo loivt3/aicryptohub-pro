@@ -525,8 +525,8 @@ async def get_high_rich(
         with db.engine.connect() as conn:
             result = conn.execute(text("""
                 SELECT 
-                    ac.coin_id, ac.symbol, ac.name, ac.image,
-                    ac.price, 
+                    mds.coin_id, mds.symbol, mds.name, mds.image,
+                    COALESCE(ac.price, mds.price) as price,
                     COALESCE(ac.price_change_1h, mds.change_1h, 0) as change_1h,
                     COALESCE(ac.change_24h, mds.change_24h, 0) as change_24h, 
                     COALESCE(ac.price_change_7d, mds.change_7d, 0) as change_7d,
@@ -537,13 +537,12 @@ async def get_high_rich(
                     COALESCE(ac.rank, mds.market_cap_rank, 500) as market_cap_rank,
                     mds.volume_ratio, mds.rsi_14, mds.momentum_score,
                     mds.discovery_score
-                FROM aihub_coins ac
-                LEFT JOIN market_discovery_snapshot mds ON UPPER(mds.symbol) = ac.symbol
+                FROM market_discovery_snapshot mds
+                LEFT JOIN aihub_coins ac ON UPPER(mds.symbol) = ac.symbol
                 WHERE COALESCE(ac.volume_24h, mds.volume_24h, 0) > 10000
-                  AND COALESCE(ac.asi_score, 50) >= 40
                 ORDER BY 
-                    COALESCE(ac.asi_score, 50) DESC,
-                    COALESCE(mds.discovery_score, 0) DESC,
+                    COALESCE(ac.asi_score, mds.discovery_score, 50) DESC,
+                    COALESCE(mds.momentum_score, 0) DESC,
                     COALESCE(ac.price_change_1h, mds.change_1h, 0) DESC
                 LIMIT :limit
             """), {"limit": limit})
