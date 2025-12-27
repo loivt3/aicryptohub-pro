@@ -739,7 +739,7 @@
         
         <div class="m-tsig-list">
           <div class="m-tsig-card">
-            <div v-for="(coin, idx) in technicalSignals" :key="coin.coin_id" class="m-tsig-row">
+            <div v-for="(coin, idx) in paginatedTechnicalSignals" :key="coin.coin_id" class="m-tsig-row">
               <!-- Top Row: Main Info + Signal -->
               <div class="m-tsig-top">
                 <div class="m-tsig-rank-circle" :class="'rank-' + (idx + 1)">{{ idx + 1 }}</div>
@@ -805,6 +805,25 @@
             <div v-if="technicalSignals.length === 0" class="m-tsig-empty">
               <span>No technical signals detected</span>
             </div>
+          </div>
+          
+          <!-- Pagination Controls -->
+          <div v-if="tsigTotalPages > 1" class="m-tsig-pagination">
+            <button 
+              class="m-tsig-page-btn" 
+              :disabled="tsigPage === 1"
+              @click="tsigPage--"
+            >
+              <Icon name="ph:caret-left" class="w-4 h-4" />
+            </button>
+            <span class="m-tsig-page-info">{{ tsigPage }} / {{ tsigTotalPages }}</span>
+            <button 
+              class="m-tsig-page-btn" 
+              :disabled="tsigPage >= tsigTotalPages"
+              @click="tsigPage++"
+            >
+              <Icon name="ph:caret-right" class="w-4 h-4" />
+            </button>
           </div>
         </div>
       </section>
@@ -907,6 +926,15 @@ const hiddenGems = ref<any[]>([])
 
 // Technical signals data from discovery API
 const technicalSignals = ref<any[]>([])
+const tsigPage = ref(1)
+const tsigPerPage = 5
+
+// Computed: paginated technical signals
+const paginatedTechnicalSignals = computed(() => {
+  const start = (tsigPage.value - 1) * tsigPerPage
+  return technicalSignals.value.slice(start, start + tsigPerPage)
+})
+const tsigTotalPages = computed(() => Math.ceil(technicalSignals.value.length / tsigPerPage))
 
 // Active gem tab (Hidden Gems vs High Rich)
 const activeGemTab = ref<'gems' | 'highrich'>('gems')
@@ -2436,6 +2464,46 @@ const toggleFavorite = (coinId: string) => {
 .pill-val.macd-bearish { color: #ef4444; }
 
 .m-tsig-empty { padding: 32px; text-align: center; color: rgba(255, 255, 255, 0.3); font-size: 13px; }
+
+/* Pagination Controls for Technical Signals */
+.m-tsig-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px 0;
+  margin-top: 8px;
+}
+
+.m-tsig-page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.m-tsig-page-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.m-tsig-page-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.m-tsig-page-info {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
 
 
 /* Reset Section Styles to be transparent containers */
