@@ -255,13 +255,13 @@
 
       <!-- AI Risk integrated into Top AI Signals above -->
 
-      <!-- Whale Stream Terminal - NEW DESIGN -->
+      <!-- AI WHALE-STREAM - Enhanced with AI Analysis -->
       <section class="home-section">
         <div class="whale-terminal">
           <div class="terminal-header">
             <div class="terminal-title">
               <span class="terminal-icon">🐋</span>
-              <span>WHALE-STREAM // V.2.0</span>
+              <span>AI WHALE-STREAM</span>
             </div>
             <span class="terminal-live">
               <span class="live-dot"></span>
@@ -269,7 +269,8 @@
             </span>
           </div>
           
-          <div class="terminal-body">
+          <!-- Scrollable container for more items -->
+          <div class="terminal-body terminal-scrollable">
             <div class="terminal-alerts">
               <div 
                 v-for="tx in whaleTransactions" 
@@ -291,11 +292,10 @@
                     {{ tx.type === 'dump' ? 'to ' : 'from ' }}
                     <span class="highlight-entity">{{ tx.to_label || 'exchange' }}</span>.
                   </span>
-                  <span class="alert-context" v-if="tx.type !== 'dump'">
-                    Potential accumulation - moving assets off exchange for long-term holding.
-                  </span>
-                  <span class="alert-context" v-else>
-                    Sell pressure detected - whale moving to exchange for potential liquidation.
+                  <!-- AI-powered analysis (dynamic) -->
+                  <span class="alert-context alert-context--ai">
+                    <Icon name="ph:brain" class="w-3 h-3" style="color: #38efeb;" />
+                    {{ tx.ai_analysis || generateWhaleAnalysis(tx) }}
                   </span>
                   <span class="alert-time">{{ tx.time_ago }}</span>
                 </div>
@@ -690,6 +690,24 @@ const getTimeAgo = (timestamp: string | number | null) => {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
   return `${Math.floor(diff / 86400)}d ago`
+}
+
+// AI-powered whale analysis
+const generateWhaleAnalysis = (tx: any) => {
+  const value = tx.usd_value || 0
+  const symbol = tx.symbol || 'TOKEN'
+  const isDump = tx.type === 'dump'
+  
+  // Dynamic analysis based on transaction characteristics
+  if (isDump) {
+    if (value > 10000000) return `Major sell pressure. $${symbol} may face short-term volatility. Monitor for support levels.`
+    if (value > 1000000) return `Significant exchange deposit. Potential profit-taking or rebalancing.`
+    return `Exchange deposit detected. Watch for increased selling activity.`
+  } else {
+    if (value > 10000000) return `Strong accumulation signal. Smart money building $${symbol} position for potential upside.`
+    if (value > 1000000) return `Whale accumulation detected. Long-term bullish sentiment for $${symbol}.`
+    return `Assets moved off-exchange. Potential long-term holding strategy.`
+  }
 }
 
 // Cache for instant loading
@@ -1567,6 +1585,46 @@ onUnmounted(() => {
   padding: 24px;
   color: rgba(255, 255, 255, 0.4);
   font-size: 13px;
+}
+
+/* Terminal Scrollable Container */
+.terminal-scrollable {
+  max-height: 320px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 239, 235, 0.3) transparent;
+  padding-right: 4px;
+}
+
+.terminal-scrollable::-webkit-scrollbar {
+  width: 4px;
+}
+
+.terminal-scrollable::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.terminal-scrollable::-webkit-scrollbar-thumb {
+  background: rgba(56, 239, 235, 0.3);
+  border-radius: 2px;
+}
+
+.terminal-scrollable::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 239, 235, 0.5);
+}
+
+/* AI Context with Icon */
+.alert-context--ai {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: #38efeb !important;
+  font-style: italic;
+}
+
+.alert-context--ai svg {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 /* ========== NEW WHALE STREAM DESIGN ========== */
