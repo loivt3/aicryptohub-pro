@@ -326,6 +326,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import AIRiskWidget from './ai/AIRiskWidget.vue'
+import HighlightDetailModal from '../shared/HighlightDetailModal.vue'
+import RiskDetailModal from '../shared/RiskDetailModal.vue'
 
 const props = defineProps<{
   activeTab?: string
