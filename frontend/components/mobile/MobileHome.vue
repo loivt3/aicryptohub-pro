@@ -98,27 +98,51 @@
         </div>
         
         <!-- Horizontal Scroll Cards -->
+        <!-- Horizontal Scroll Cards -->
         <div class="highlights-scroll-v2">
           <div 
             v-for="(highlight, idx) in aiHighlights" 
             :key="idx" 
             class="highlight-card-v2"
+            :class="getHighlightCardClass(highlight)"
             @click="openHighlightDetail(highlight)"
           >
-            <!-- Top: Type Badge + Time -->
-            <div class="highlight-header-v2">
-              <div class="highlight-badge-v2" :class="getHighlightBadgeClass(highlight)">
-                <Icon :name="getHighlightIcon(highlight)" size="14" />
-                <span>{{ getHighlightCategory(highlight) }}</span>
+            <!-- Header: Icon + Title + Confidence -->
+            <div class="highlight-header-v3">
+              <div class="highlight-icon-box-v3">
+                <Icon :name="getHighlightIcon(highlight)" size="20" />
               </div>
-              <span class="highlight-time-v2">{{ getHighlightTimeAgo(highlight) }}</span>
+              <div class="highlight-title-group-v3">
+                <h3 class="highlight-title-v3">{{ getHighlightHeaderTitle(highlight) }}</h3>
+                <span class="highlight-subtitle-v3" :class="getHighlightCardClass(highlight)">
+                  {{ getHighlightHeaderSubtitle(highlight) }}
+                </span>
+              </div>
             </div>
             
-            <!-- Title -->
-            <h3 class="highlight-title-v2">{{ highlight.title || formatHighlightTitle(highlight) }}</h3>
+            <!-- Large Sparkline Area Chart -->
+            <div class="highlight-chart-v3">
+              <svg viewBox="0 0 280 100" preserveAspectRatio="none" class="chart-svg-v3">
+                <defs>
+                  <linearGradient :id="'chartGradient-' + idx" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="currentColor" stop-opacity="0.5" />
+                    <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <path 
+                  :d="generateAreaSparkPath(highlight)" 
+                  fill="url(#chartGradient-' + idx + ')" 
+                  stroke="currentColor" 
+                  stroke-width="3"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+            </div>
             
-            <!-- Description -->
-            <p class="highlight-desc-v2" v-html="formatHighlightDesc(highlight)"></p>
+            <!-- Footer Description -->
+            <p class="highlight-footer-v3">
+              {{ highlight.description?.substring(0, 90) }}...
+            </p>
           </div>
         </div>
       </section>
@@ -574,55 +598,99 @@ const formatHighlightType = (type: string) => {
 }
 
 // V2 Highlight helpers
-const getHighlightBadgeClass = (highlight: any) => {
+const getHighlightCardClass = (highlight: any) => {
   const type = highlight.highlight_type || ''
-  if (['bearish_signal', 'overbought', 'risk_alert'].includes(type)) return 'badge-danger'
-  if (['bullish_signal', 'oversold', 'breakout'].includes(type)) return 'badge-success'
-  if (['whale_activity', 'volume_surge'].includes(type)) return 'badge-warning'
-  return 'badge-info'
+  if (['bearish_signal', 'overbought', 'risk_alert'].includes(type)) return 'card-risk'
+  if (['bullish_signal', 'oversold', 'breakout', 'opportunity'].includes(type)) return 'card-bullish'
+  return 'card-neutral'
 }
 
-const getHighlightCategory = (highlight: any) => {
+const getHighlightHeaderTitle = (highlight: any) => {
   const type = highlight.highlight_type || ''
-  const catMap: Record<string, string> = {
-    'overbought': 'Technical',
-    'oversold': 'Technical',
-    'bullish_signal': 'Technical',
-    'bearish_signal': 'Technical',
-    'breakout': 'Technical',
-    'whale_activity': 'Anomaly',
-    'volume_surge': 'Anomaly',
-    'risk_alert': 'Risk',
-    'opportunity': 'Signal',
+  const symbol = highlight.symbol?.toUpperCase() || ''
+  
+  const map: Record<string, string> = {
+    'bullish_signal': `Bullish Signal: ${symbol}`,
+    'bearish_signal': `Bearish Signal: ${symbol}`,
+    'risk_alert': `Risk Alert`,
+    'breakout': `Breakout: ${symbol}`,
+    'opportunity': `Opportunity: ${symbol}`,
+    'whale_activity': `Whale Alert: ${symbol}`,
   }
-  return catMap[type] || 'AI Signal'
+  return map[type] || `${symbol} AI Signal`
 }
 
-const getHighlightTimeAgo = (highlight: any) => {
-  if (highlight.created_at) {
-    const mins = Math.floor((Date.now() - new Date(highlight.created_at).getTime()) / 60000)
-    if (mins < 60) return `${mins}m ago`
-    if (mins < 1440) return `${Math.floor(mins / 60)}h ago`
-    return `${Math.floor(mins / 1440)}d ago`
-  }
-  return '2m ago'
+const getHighlightHeaderSubtitle = (highlight: any) => {
+  const type = highlight.highlight_type || ''
+  if (type === 'risk_alert') return `${highlight.symbol} Volatility`
+  return `Confidence: ${highlight.confidence || 85}%`
 }
 
-const formatHighlightTitle = (highlight: any) => {
-  const symbol = highlight.symbol?.toUpperCase() || 'COIN'
-  const type = highlight.highlight_type || ''
-  const titleMap: Record<string, string> = {
-    'overbought': `${symbol} Overbought Alert`,
-    'oversold': `${symbol} Oversold Signal`,
-    'bullish_signal': `${symbol} Bullish Pattern`,
-    'bearish_signal': `${symbol} Bearish Warning`,
-    'breakout': `${symbol} Breakout Pattern`,
-    'whale_activity': `${symbol} Whale Activity`,
-    'volume_surge': `Abnormal ${symbol} Volume`,
-    'risk_alert': `${symbol} Risk Alert`,
-    'opportunity': `${symbol} Opportunity`,
+// Generate smooth curved area path for sparkline
+const generateAreaSparkPath = (highlight: any) => {
+  const points = 12
+  const width = 280 // card width
+  const height = 100 // chart height
+  
+  const isBullish = ['bullish_signal', 'breakout', 'opportunity'].includes(highlight.highlight_type)
+  const isNeutral = highlight.highlight_type === 'whale_activity'
+  
+  // Generate points
+  const data: number[] = []
+  let y = isBullish ? height * 0.8 : height * 0.2
+  
+  for (let i = 0; i <= points; i++) {
+    const progress = i / points
+    
+    // Trend
+    let trend = 0
+    if (isBullish) {
+      // Exponential growth curve
+      trend = - (height * 0.6) * Math.pow(progress, 2)
+    } else {
+      // Volatile decline or sideways
+      trend = (height * 0.3) * Math.sin(progress * Math.PI * 2) + (height * 0.2 * progress)
+    }
+    
+    // Noise
+    const noise = (Math.random() - 0.5) * (height * 0.15)
+    
+    let val = y + trend + noise
+    // Clamp
+    val = Math.max(5, Math.min(height - 5, val))
+    data.push(val)
   }
-  return titleMap[type] || `${symbol} AI Signal`
+  
+  // Build SVG Path command
+  // Start bottom left
+  let d = `M 0 ${height}`
+  
+  // Line points
+  const stepX = width / points
+  
+  // First point
+  d += ` L 0 ${data[0]}`
+  
+  // Bezier curves for smooth line
+  for (let i = 0; i < points; i++) {
+    const x0 = i * stepX
+    const y0 = data[i]
+    const x1 = (i + 1) * stepX
+    const y1 = data[i + 1]
+    
+    // Control points
+    const cp1x = x0 + (stepX / 2)
+    const cp1y = y0
+    const cp2x = x1 - (stepX / 2)
+    const cp2y = y1
+    
+    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x1} ${y1}`
+  }
+  
+  // Close path at bottom right
+  d += ` L ${width} ${height} Z`
+  
+  return d
 }
 
 const formatHighlightDesc = (highlight: any) => {
@@ -2099,6 +2167,7 @@ onUnmounted(() => {
   50% { opacity: 0.4; }
 }
 
+
 .highlights-scroll-v2 {
   display: flex;
   gap: 12px;
@@ -2115,81 +2184,116 @@ onUnmounted(() => {
 
 .highlight-card-v2 {
   flex: 0 0 280px;
-  background: rgba(15, 25, 35, 0.9);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(56, 239, 235, 0.2);
   border-radius: 16px;
-  padding: 16px;
+  padding: 20px;
   scroll-snap-align: start;
   cursor: pointer;
+  height: 200px; /* Fixed height for consistency */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  position: relative;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.highlight-card-v2:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+/* Card Variants with Gradients */
+.highlight-card-v2.card-bullish {
+  background: radial-gradient(circle at top left, rgba(16, 185, 129, 0.15), rgba(6, 78, 59, 0.4));
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 20px rgba(6, 78, 59, 0.2);
 }
 
-.highlight-header-v2 {
+.highlight-card-v2.card-risk {
+  background: radial-gradient(circle at top left, rgba(239, 68, 68, 0.15), rgba(127, 29, 29, 0.4));
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  box-shadow: 0 4px 20px rgba(127, 29, 29, 0.2);
+}
+
+.highlight-card-v2.card-neutral {
+  background: radial-gradient(circle at top left, rgba(56, 239, 235, 0.1), rgba(15, 23, 42, 0.6));
+  border: 1px solid rgba(56, 239, 235, 0.2);
+}
+
+.highlight-card-v2:active {
+  transform: scale(0.98);
+}
+
+/* Header V3 */
+.highlight-header-v3 {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  z-index: 2;
+}
+
+.highlight-icon-box-v3 {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
 }
 
-.highlight-badge-v2 {
+.card-bullish .highlight-icon-box-v3 { color: #34d399; }
+.card-risk .highlight-icon-box-v3 { color: #f87171; }
+.card-neutral .highlight-icon-box-v3 { color: #38efeb; }
+
+.highlight-title-group-v3 {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 600;
+  flex-direction: column;
 }
 
-.highlight-badge-v2.badge-success {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
-}
-
-.highlight-badge-v2.badge-danger {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-}
-
-.highlight-badge-v2.badge-warning {
-  background: rgba(249, 115, 22, 0.2);
-  color: #f97316;
-}
-
-.highlight-badge-v2.badge-info {
-  background: rgba(56, 239, 235, 0.2);
-  color: #38efeb;
-}
-
-.highlight-time-v2 {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.highlight-title-v2 {
-  font-size: 18px;
+.highlight-title-v3 {
+  font-size: 16px;
   font-weight: 700;
   color: #fff;
-  margin: 0 0 10px 0;
-  line-height: 1.3;
+  margin: 0 0 2px 0;
+  line-height: 1.2;
 }
 
-.highlight-desc-v2 {
+.highlight-subtitle-v3 {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1.5;
-  margin: 0;
+  font-weight: 500;
 }
 
-.desc-highlight {
-  color: #10b981;
-  font-weight: 600;
+.highlight-subtitle-v3.card-bullish { color: #34d399; }
+.highlight-subtitle-v3.card-risk { color: rgba(255, 255, 255, 0.6); }
+.highlight-subtitle-v3.card-neutral { color: #38efeb; }
+
+/* Chart Area */
+.highlight-chart-v3 {
+  position: absolute;
+  bottom: 50px; /* Space for footer */
+  left: 0;
+  width: 100%;
+  height: 80px;
+  z-index: 1;
+  opacity: 0.8;
+  mask-image: linear-gradient(to top, black 50%, transparent 100%);
+}
+
+.chart-svg-v3 {
+  width: 100%;
+  height: 100%;
+}
+
+.card-bullish .chart-svg-v3 { color: #10b981; }
+.card-risk .chart-svg-v3 { color: #ef4444; }
+.card-neutral .chart-svg-v3 { color: #38efeb; }
+
+/* Footer */
+.highlight-footer-v3 {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+  margin: 0;
+  z-index: 2;
+  position: relative;
+  font-family: 'Inter', sans-serif; /* Clean font as requested */
 }
 
 /* ========== AI HIGHLIGHTS V1 (backwards compat) ========== */
