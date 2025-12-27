@@ -193,28 +193,28 @@
               <div class="signal-rank">{{ idx + 1 }}</div>
               
               <div class="signal-left">
-                <div class="coin-icon-ring" v-if="coin.image">
-                  <img :src="coin.image" class="coin-icon" :alt="coin.symbol" />
-                </div>
-                <span class="signal-symbol-badge" v-else>{{ coin.symbol?.toUpperCase().slice(0, 4) }}</span>
-                <div class="signal-info">
+                <div class="signal-top-row">
+                  <div class="coin-icon-ring" v-if="coin.image">
+                    <img :src="coin.image" class="coin-icon" :alt="coin.symbol" />
+                  </div>
+                  <span class="signal-symbol-badge" v-else>{{ coin.symbol?.toUpperCase().slice(0, 4) }}</span>
                   <span class="signal-name">{{ coin.symbol?.toUpperCase() }}</span>
-                  <!-- ASI Score + AI Risk on same row -->
-                  <div class="signal-metrics-row">
-                    <div class="metric-item">
-                      <span class="metric-label">ASI</span>
-                      <div class="metric-bar">
-                        <div class="metric-bar-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
-                      </div>
-                      <span class="metric-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
+                </div>
+                <!-- ASI (left) + AI Risk (right) on separate row -->
+                <div class="signal-metrics-row-spread">
+                  <div class="metric-item">
+                    <span class="metric-label">ASI</span>
+                    <div class="metric-bar">
+                      <div class="metric-bar-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
                     </div>
-                    <div class="metric-item">
-                      <span class="metric-label">AI RISK</span>
-                      <div class="metric-bar">
-                        <div class="metric-bar-fill" :class="getRiskClass(coin.risk_score || 50)" :style="{ width: (coin.risk_score || 50) + '%' }"></div>
-                      </div>
-                      <span class="metric-value" :class="getRiskClass(coin.risk_score || 50)">{{ coin.risk_score || 50 }}%</span>
+                    <span class="metric-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">AI RISK</span>
+                    <div class="metric-bar">
+                      <div class="metric-bar-fill" :class="getRiskClass(coin.risk_score || 50)" :style="{ width: (coin.risk_score || 50) + '%' }"></div>
                     </div>
+                    <span class="metric-value" :class="getRiskClass(coin.risk_score || 50)">{{ coin.risk_score || 50 }}%</span>
                   </div>
                 </div>
               </div>
@@ -1398,7 +1398,23 @@ onUnmounted(() => {
   color: #fff;
 }
 
-/* ASI + AI RISK Metrics Row */
+/* Signal Top Row (Icon + Name) */
+.signal-top-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+/* ASI (left) + AI Risk (right) spread row */
+.signal-metrics-row-spread {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+/* Old metrics row (same row) */
 .signal-metrics-row {
   display: flex;
   gap: 12px;
