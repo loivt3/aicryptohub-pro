@@ -1099,15 +1099,18 @@ onUnmounted(() => {
 }
 
 /* ========== AI MARKET MOOD V2 ========== */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 .mood-card-v2 {
   background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.05), rgba(15, 23, 35, 1));
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 20px;
-  padding: 20px;
+  padding: 24px; /* Increased padding slightly */
   position: relative;
   overflow: hidden;
+  font-family: 'Plus Jakarta Sans', sans-serif; /* Applied to container */
 }
 
 /* Background Gear Decoration */
@@ -1134,10 +1137,10 @@ onUnmounted(() => {
 
 .mood-title-v2 {
   font-size: 15px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
-  font-family: 'Inter', sans-serif;
-  letter-spacing: 0.2px;
+  font-weight: 600; /* Increased weight */
+  color: rgba(255, 255, 255, 0.9); /* Brighter title */
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  letter-spacing: 0;
 }
 
 .mood-content-v2 {
@@ -1154,8 +1157,8 @@ onUnmounted(() => {
 
 .mood-score-v2 {
   font-size: 56px;
-  font-weight: 700;
-  font-family: 'Inter', sans-serif;
+  font-weight: 800; /* Extra bold */
+  font-family: 'Plus Jakarta Sans', sans-serif;
   line-height: 1;
   margin-bottom: 8px;
   letter-spacing: -2px;
@@ -1169,7 +1172,7 @@ onUnmounted(() => {
 .mood-label-v2 {
   font-size: 20px;
   font-weight: 700;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   margin-bottom: 12px;
   letter-spacing: -0.5px;
 }
@@ -1185,7 +1188,8 @@ onUnmounted(() => {
   line-height: 1.5;
   margin: 0;
   max-width: 180px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 500;
 }
 
 .mood-gauge-v2 {
