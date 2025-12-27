@@ -48,7 +48,7 @@
             <div class="mood-left">
               <span class="mood-score" :class="getMoodClass(fearGreedValue)">{{ Math.round(fearGreedValue) }}</span>
               <span class="mood-label">{{ fearGreedLabel }}</span>
-              <p class="mood-desc">{{ moodAnalysis }}</p>
+              <p class="mood-desc">{{ truncateMoodAnalysis(moodAnalysis) }}</p>
             </div>
             <div class="mood-right">
               <svg viewBox="0 0 120 120" class="mood-gauge">
@@ -547,6 +547,16 @@ const getMoodDescription = (value: number) => {
   if (value <= 50) return 'Markets are neutral. Wait for clearer signals.'
   if (value <= 70) return 'Sentiment is positive. Watch for corrections.'
   return 'Sentiment is overheated. Watch for corrections.'
+}
+
+const truncateMoodAnalysis = (text: string) => {
+  if (!text) return ''
+  const maxLen = 80
+  if (text.length <= maxLen) return text
+  // Cut at last space before maxLen
+  const truncated = text.substring(0, maxLen)
+  const lastSpace = truncated.lastIndexOf(' ')
+  return (lastSpace > 40 ? truncated.substring(0, lastSpace) : truncated) + '...'
 }
 
 const getAsiClass = (score: number) => {
