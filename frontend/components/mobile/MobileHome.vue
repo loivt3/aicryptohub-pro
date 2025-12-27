@@ -1093,43 +1093,65 @@ onUnmounted(() => {
 
 /* ========== AI MARKET MOOD V2 ========== */
 .mood-card-v2 {
-  background: rgba(15, 25, 35, 0.85);
+  background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.05), rgba(15, 23, 35, 1));
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(56, 239, 235, 0.2);
-  border-radius: 16px;
-  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Background Gear Decoration */
+.mood-card-v2::before {
+  content: '';
+  position: absolute;
+  top: 10%;
+  right: -10%;
+  width: 150px;
+  height: 150px;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='rgba(255,255,255,0.03)' d='M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506 0 0 0 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.63c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.31.61.22l2.49-1c.52.39 1.06.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.63-.25 1.17-.59 1.69-.98l2.49 1c.22.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+  opacity: 1;
+  pointer-events: none;
 }
 
 .mood-header-v2 {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .mood-title-v2 {
-  font-size: 14px;
-  font-weight: 600;
-  color: #38efeb;
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.2px;
 }
 
 .mood-content-v2 {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
 }
 
 .mood-left-v2 {
   display: flex;
   flex-direction: column;
+  z-index: 1;
 }
 
 .mood-score-v2 {
-  font-size: 42px;
+  font-size: 56px;
   font-weight: 700;
-  font-family: 'SF Mono', monospace;
+  font-family: 'Inter', sans-serif;
   line-height: 1;
+  margin-bottom: 8px;
+  letter-spacing: -2px;
 }
 
 .mood-score-v2.fear { color: #ef4444; }
@@ -1138,35 +1160,42 @@ onUnmounted(() => {
 .mood-score-v2.extreme-greed { color: #38efeb; }
 
 .mood-label-v2 {
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 700;
-  margin-top: 4px;
+  font-family: 'Inter', sans-serif;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
 }
 
-.mood-label-v2.fear { color: #ef4444; }
-.mood-label-v2.neutral { color: #f59e0b; }
-.mood-label-v2.greed { color: #22c55e; }
-.mood-label-v2.extreme-greed { color: #38efeb; }
+.mood-label-v2.fear { color: #fff; }
+.mood-label-v2.neutral { color: #fff; }
+.mood-label-v2.greed { color: #fff; }
+.mood-label-v2.extreme-greed { color: #fff; }
 
 .mood-text-v2 {
-  font-size: 12px;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.6);
-  margin-top: 10px;
   line-height: 1.5;
-  white-space: pre-line;
+  margin: 0;
+  max-width: 180px;
+  font-family: 'Inter', sans-serif;
 }
 
-/* Circular Gauge V2 */
 .mood-gauge-v2 {
   position: relative;
-  width: 90px;
-  height: 90px;
-  flex-shrink: 0;
+  width: 110px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
 }
 
 .mood-gauge-svg {
   width: 100%;
   height: 100%;
+  transform: rotate(135deg); /* Adjust rotation if needed */
+  filter: drop-shadow(0 0 8px rgba(56, 239, 235, 0.3));
 }
 
 .mood-gauge-icon {
@@ -1181,7 +1210,6 @@ onUnmounted(() => {
 
 /* ========== AI MARKET MOOD V1 (backwards compat) ========== */
 .mood-header {
-  display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 16px;
