@@ -1533,21 +1533,12 @@ onUnmounted(() => {
 /* Signal Ranking Badge */
 .signal-rank {
   width: 24px;
-  height: 24px;
-  background: rgba(139, 92, 246, 0.2);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  color: #8b5cf6;
-  flex-shrink: 0;
+  /* flex-shrink: 0; */
 }
 
-/* Signal Sparkline */
+/* Sparkline - reduce to give space */
 .signal-spark {
-  width: 50px;
+  width: 40px;
   height: 20px;
   flex-shrink: 0;
 }
@@ -1563,9 +1554,10 @@ onUnmounted(() => {
 .signal-left {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px; /* Tighter vertical gap */
   flex: 1;
   min-width: 0;
+  margin-right: -4px; /* Pull right content closer if needed, or just standard flex */
 }
 
 .signal-symbol-badge {
@@ -1607,6 +1599,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   width: 100%;
+  padding-right: 4px; /* Small buffer */
 }
 
 /* Old metrics row (same row) */
@@ -1620,17 +1613,23 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap; /* Prevent text wrap */
+}
+
+/* Explicitly push the second item (Risk) to right if needed, though space-between does it */
+.metric-item:last-child {
+  margin-left: auto;
 }
 
 .metric-label {
-  font-size: 8px;
+  font-size: 9px; /* Slightly larger for readability */
   color: rgba(255, 255, 255, 0.5);
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
 
 .metric-bar {
-  width: 35px;
+  width: 30px; /* Reduced bar width to fit mobile */
   height: 4px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
