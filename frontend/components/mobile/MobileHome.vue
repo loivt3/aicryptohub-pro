@@ -103,7 +103,7 @@
             v-for="(highlight, idx) in aiHighlights" 
             :key="idx" 
             class="highlight-card-v2"
-            :class="getHighlightCardClass(highlight)"
+            :class="[getHighlightCardClass(highlight), isBentoWide(idx) ? 'bento-wide' : 'bento-small']"
             @click="openHighlightDetail(highlight)"
           >
             <!-- Header: Icon + Title + Confidence -->
@@ -119,9 +119,9 @@
               </div>
             </div>
             
-            <!-- Footer Description -->
-            <p class="highlight-footer-v3">
-              {{ highlight.description?.substring(0, 90) }}...
+            <!-- Footer Description (Only for Wide cards) -->
+            <p v-if="isBentoWide(idx)" class="highlight-footer-v3">
+              {{ highlight.description?.substring(0, 80) }}...
             </p>
           </div>
         </div>
@@ -606,71 +606,10 @@ const getHighlightHeaderSubtitle = (highlight: any) => {
   return `Confidence: ${highlight.confidence || 85}%`
 }
 
-// Generate smooth curved area path for sparkline
-const generateAreaSparkPath = (highlight: any) => {
-  const points = 12
-  const width = 280 // card width
-  const height = 100 // chart height
-  
-  const isBullish = ['bullish_signal', 'breakout', 'opportunity'].includes(highlight.highlight_type)
-  const isNeutral = highlight.highlight_type === 'whale_activity'
-  
-  // Generate points
-  const data: number[] = []
-  let y = isBullish ? height * 0.8 : height * 0.2
-  
-  for (let i = 0; i <= points; i++) {
-    const progress = i / points
-    
-    // Trend
-    let trend = 0
-    if (isBullish) {
-      // Exponential growth curve
-      trend = - (height * 0.6) * Math.pow(progress, 2)
-    } else {
-      // Volatile decline or sideways
-      trend = (height * 0.3) * Math.sin(progress * Math.PI * 2) + (height * 0.2 * progress)
-    }
-    
-    // Noise
-    const noise = (Math.random() - 0.5) * (height * 0.15)
-    
-    let val = y + trend + noise
-    // Clamp
-    val = Math.max(5, Math.min(height - 5, val))
-    data.push(val)
-  }
-  
-  // Build SVG Path command
-  // Start bottom left
-  let d = `M 0 ${height}`
-  
-  // Line points
-  const stepX = width / points
-  
-  // First point
-  d += ` L 0 ${data[0]}`
-  
-  // Bezier curves for smooth line
-  for (let i = 0; i < points; i++) {
-    const x0 = i * stepX
-    const y0 = data[i]
-    const x1 = (i + 1) * stepX
-    const y1 = data[i + 1]
-    
-    // Control points
-    const cp1x = x0 + (stepX / 2)
-    const cp1y = y0
-    const cp2x = x1 - (stepX / 2)
-    const cp2y = y1
-    
-    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x1} ${y1}`
-  }
-  
-  // Close path at bottom right
-  d += ` L ${width} ${height} Z`
-  
-  return d
+// Bento Grid Logic: Index 0 is Wide, 1&2 Small, 3 Wide, etc.
+// Pattern: Wide, Small, Small, Wide... (1, 2, 2, 1...)
+const isBentoWide = (index: number) => {
+  return index % 3 === 0
 }
 
 const formatHighlightDesc = (highlight: any) => {
@@ -2162,18 +2101,41 @@ onUnmounted(() => {
 }
 
 .highlight-card-v2 {
-  flex: 0 0 280px;
+  /* flex width set by modifier classes */
   border-radius: 16px;
-  padding: 20px;
+  padding: 16px; /* Slightly reduced padding for small cards */
   scroll-snap-align: start;
   cursor: pointer;
-  height: 160px; /* Reduced fixed height since chart is gone */
+  height: 160px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
   position: relative;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.highlight-card-v2.bento-wide {
+  flex: 0 0 280px;
+}
+
+.highlight-card-v2.bento-small {
+  flex: 0 0 145px;
+}
+
+/* On small cards, force subtitle to bottom or hide description */
+.bento-small .highlight-header-v3 {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bento-small .highlight-title-v3 {
+  font-size: 14px; /* Smaller title */
+  line-height: 1.3;
+}
+
+.bento-small .highlight-subtitle-v3 {
+  font-size: 11px;
 }
 
 /* Card Variants with Gradients */
