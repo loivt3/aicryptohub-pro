@@ -1498,14 +1498,17 @@ onUnmounted(() => {
   gap: 12px;
 }
 
+/* Main Signal Row Layout */
 .signal-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 12px 8px; /* Reduced horizontal padding from default 12px (or 16px) */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 6px; /* Reduced gap slightly */
+}
+
+.signal-row:last-child {
+  border-bottom: none;
 }
 
 /* Signal Ranking Badge */
