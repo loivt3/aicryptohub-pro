@@ -1156,12 +1156,12 @@ onUnmounted(() => {
 }
 
 .mood-score-v2 {
-  font-size: 56px;
-  font-weight: 800; /* Extra bold */
+  font-size: 42px; /* Reduced from 56px */
+  font-weight: 800;
   font-family: 'Plus Jakarta Sans', sans-serif;
   line-height: 1;
-  margin-bottom: 8px;
-  letter-spacing: -2px;
+  margin-bottom: 4px; /* Slightly tighter spacing */
+  letter-spacing: -1px;
 }
 
 .mood-score-v2.fear { color: #ef4444; }
@@ -1170,11 +1170,11 @@ onUnmounted(() => {
 .mood-score-v2.extreme-greed { color: #38efeb; }
 
 .mood-label-v2 {
-  font-size: 20px;
+  font-size: 16px; /* Reduced from 20px */
   font-weight: 700;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  margin-bottom: 12px;
-  letter-spacing: -0.5px;
+  margin-bottom: 8px; /* Reduced spacing */
+  letter-spacing: -0.2px;
 }
 
 .mood-label-v2.fear { color: #fff; }
