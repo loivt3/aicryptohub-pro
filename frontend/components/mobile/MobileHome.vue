@@ -765,7 +765,7 @@ const fetchData = async (skipCache = false) => {
     try {
         const highlightsRes = await api.getAIHighlights()
         if (highlightsRes?.highlights && Array.isArray(highlightsRes.highlights)) {
-            aiHighlights.value = highlightsRes.highlights.slice(0, 4)
+            aiHighlights.value = highlightsRes.highlights.slice(0, 6)
         }
     } catch (e) {
         console.warn('Failed to fetch AI highlights:', e)
