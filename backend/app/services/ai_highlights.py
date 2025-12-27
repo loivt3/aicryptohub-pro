@@ -594,7 +594,7 @@ class AIHighlightsService:
                 "source": "empty"
             }
         
-        # Build market summary for AI prompt
+        # Build enhanced market summary with technical data
         top_gainers = sorted(coins, key=lambda c: c.get("price_change_percentage_24h") or c.get("change_24h") or 0, reverse=True)[:5]
         top_losers = sorted(coins, key=lambda c: c.get("price_change_percentage_24h") or c.get("change_24h") or 0)[:5]
         high_volume = sorted(coins, key=lambda c: (c.get("volume_24h", 0) or 0) / max(c.get("market_cap", 1) or 1, 1), reverse=True)[:5]
@@ -602,98 +602,188 @@ class AIHighlightsService:
         market_summary = "TOP GAINERS (24h):\n"
         for c in top_gainers:
             change = c.get("price_change_percentage_24h") or c.get("change_24h") or 0
-            market_summary += f"- {c.get('symbol', '?').upper()}: {change:+.1f}%\n"
+            tech = self.get_technical_data(c)
+            market_summary += f"- {c.get('symbol', '?').upper()}: {change:+.1f}% | RSI: {tech['rsi_14']:.0f} | 7d: {tech['change_7d']:+.1f}%\n"
         
         market_summary += "\nTOP LOSERS (24h):\n"
         for c in top_losers:
             change = c.get("price_change_percentage_24h") or c.get("change_24h") or 0
-            market_summary += f"- {c.get('symbol', '?').upper()}: {change:+.1f}%\n"
+            tech = self.get_technical_data(c)
+            market_summary += f"- {c.get('symbol', '?').upper()}: {change:+.1f}% | RSI: {tech['rsi_14']:.0f} | 7d: {tech['change_7d']:+.1f}%\n"
         
-        market_summary += "\nHIGH VOLUME (vs market cap):\n"
+        market_summary += "\nHIGH VOLUME (potential whale activity):\n"
         for c in high_volume:
-            vol_ratio = (c.get("volume_24h", 0) or 0) / max(c.get("market_cap", 1) or 1, 1) * 100
-            market_summary += f"- {c.get('symbol', '?').upper()}: {vol_ratio:.1f}% vol/cap\n"
+            tech = self.get_technical_data(c)
+            market_summary += f"- {c.get('symbol', '?').upper()}: Vol/Cap {tech['volume_ratio']:.1f}% | RSI: {tech['rsi_14']:.0f}\n"
         
-        prompt = f"""You are a crypto market analyst. Analyze this market data and generate {limit} trading insights.
+        # Enhanced prompt with technical awareness
+        prompt = f"""You are a professional crypto market analyst with expertise in technical analysis. 
+Analyze this market data and generate {limit} actionable trading insights.
 
 {market_summary}
 
+KEY RULES:
+- RSI below 30 = oversold (potential buy)
+- RSI above 70 = overbought (potential sell)
+- High volume + price move = confirmation
+- 7d trend direction matters for momentum
+
 For each insight, provide a JSON object with:
-- highlight_type: bullish_signal | bearish_signal | risk_alert | volume_surge | breakout | whale_activity | opportunity
+- highlight_type: bullish_signal | bearish_signal | risk_alert | volume_surge | breakout | whale_activity | opportunity | dip_buy | oversold_alert | overbought_alert | momentum_surge
 - symbol: coin ticker (e.g. BTC, ETH)
-- confidence: 50-95 (how confident is the signal)
-- description: brief actionable insight (max 40 words)
+- confidence: 50-95 (based on signal strength)
+- description: actionable insight with specific reasoning (max 50 words)
+- action_hint: specific trade suggestion if applicable (e.g. "Consider buying at current levels with stop at $X")
+- technical_data: {{"rsi_14": number, "trend": "up"|"down"|"sideways"}}
 - color: green (bullish) | red (bearish/risk) | blue (volume) | cyan (breakout) | purple (whale) | yellow (opportunity) | orange (caution)
-- icon: trend-up | trend-down | warning | chart-bar | lightning | fish | target
+- icon: trend-up | trend-down | warning | chart-bar | lightning | fish | target | rocket | arrow-down-circle | alert-triangle
 
-Return ONLY a JSON array of {limit} highlights. No markdown, no explanation.
-Example: [{{"highlight_type":"bullish_signal","symbol":"BTC","confidence":78,"description":"Strong momentum...","color":"green","icon":"trend-up"}}]"""
+Return ONLY a JSON array of {limit} highlights. No markdown, no explanation, no extra text.
+Example: [{{"highlight_type":"dip_buy","symbol":"ETH","confidence":82,"description":"RSI at 28 with -8% drop. Historical support held.","action_hint":"Consider buying below $3200","technical_data":{{"rsi_14":28,"trend":"down"}},"color":"cyan","icon":"arrow-down-circle"}}]"""
 
-        try:
-            # Try Gemini first
-            from app.services.gemini import get_gemini_service
-            gemini = get_gemini_service()
-            
-            if gemini.enabled:
-                import httpx
-                async with httpx.AsyncClient(timeout=30.0) as client:
-                    response = await client.post(
-                        f"{gemini.API_URL}?key={gemini.api_key}",
-                        json={
-                            "contents": [{"parts": [{"text": prompt}]}],
-                            "generationConfig": {
-                                "temperature": 0.5,
-                                "maxOutputTokens": 1000,
-                            }
-                        }
-                    )
-                    
-                    if response.status_code == 200:
-                        data = response.json()
-                        text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                        
-                        # Parse JSON from response
-                        json_str = text
-                        if "```json" in text:
-                            json_str = text.split("```json")[1].split("```")[0]
-                        elif "```" in text:
-                            json_str = text.split("```")[1].split("```")[0]
-                        
-                        highlights = json.loads(json_str.strip())
-                        
-                        if isinstance(highlights, list) and len(highlights) > 0:
-                            # Add metadata to each highlight
-                            for h in highlights:
-                                h["timestamp"] = datetime.utcnow().isoformat()
-                                h["coin_id"] = h.get("symbol", "").lower()
-                                h["name"] = h.get("symbol", "")
-                            
-                            result = {
-                                "highlights": highlights[:limit],
-                                "total_analyzed": len(coins),
-                                "generated_at": datetime.utcnow().isoformat(),
-                                "source": "ai_gemini"
-                            }
-                            
-                            # Cache result
-                            _highlights_cache = result
-                            _cache_expiry = datetime.utcnow() + timedelta(minutes=CACHE_TTL_MINUTES)
-                            
-                            logger.info(f"Generated {len(highlights)} AI highlights via Gemini")
-                            return result
-                    else:
-                        logger.warning(f"Gemini API error: {response.status_code}")
-                        
-        except json.JSONDecodeError as e:
-            logger.warning(f"Failed to parse AI highlights JSON: {e}")
-        except Exception as e:
-            logger.error(f"AI highlights generation failed: {e}")
+        # Try Gemini first
+        result = await self._try_gemini(prompt, coins, limit)
+        if result:
+            return result
         
-        # Fallback to algorithmic analysis
-        logger.info("Falling back to algorithmic highlights")
+        # Try DeepSeek as fallback
+        result = await self._try_deepseek(prompt, coins, limit)
+        if result:
+            return result
+        
+        # Final fallback to algorithmic analysis
+        logger.info("AI providers failed, falling back to algorithmic highlights")
         result = self.get_highlights(coins, limit)
         result["source"] = "algorithmic_fallback"
         return result
+    
+    async def _try_gemini(self, prompt: str, coins: List[Dict[str, Any]], limit: int) -> Dict[str, Any] | None:
+        """Try generating highlights via Gemini API."""
+        try:
+            from app.services.gemini import get_gemini_service
+            gemini = get_gemini_service()
+            
+            if not gemini.enabled:
+                logger.debug("Gemini not enabled")
+                return None
+            
+            import httpx
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"{gemini.API_URL}?key={gemini.api_key}",
+                    json={
+                        "contents": [{"parts": [{"text": prompt}]}],
+                        "generationConfig": {
+                            "temperature": 0.5,
+                            "maxOutputTokens": 1500,
+                        }
+                    }
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    highlights = self._parse_ai_response(text, limit)
+                    
+                    if highlights:
+                        result = {
+                            "highlights": highlights,
+                            "total_analyzed": len(coins),
+                            "generated_at": datetime.utcnow().isoformat(),
+                            "source": "ai_gemini"
+                        }
+                        self._cache_result(result)
+                        logger.info(f"Generated {len(highlights)} AI highlights via Gemini")
+                        return result
+                else:
+                    logger.warning(f"Gemini API error: {response.status_code}")
+                    
+        except Exception as e:
+            logger.error(f"Gemini highlights failed: {e}")
+        
+        return None
+    
+    async def _try_deepseek(self, prompt: str, coins: List[Dict[str, Any]], limit: int) -> Dict[str, Any] | None:
+        """Try generating highlights via DeepSeek API."""
+        try:
+            import os
+            deepseek_key = os.getenv("DEEPSEEK_API_KEY")
+            
+            if not deepseek_key:
+                logger.debug("DeepSeek API key not configured")
+                return None
+            
+            import httpx
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    "https://api.deepseek.com/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {deepseek_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": "deepseek-chat",
+                        "messages": [
+                            {"role": "system", "content": "You are a professional crypto analyst. Always respond with valid JSON only."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        "temperature": 0.5,
+                        "max_tokens": 1500,
+                    }
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    text = data["choices"][0]["message"]["content"].strip()
+                    highlights = self._parse_ai_response(text, limit)
+                    
+                    if highlights:
+                        result = {
+                            "highlights": highlights,
+                            "total_analyzed": len(coins),
+                            "generated_at": datetime.utcnow().isoformat(),
+                            "source": "ai_deepseek"
+                        }
+                        self._cache_result(result)
+                        logger.info(f"Generated {len(highlights)} AI highlights via DeepSeek")
+                        return result
+                else:
+                    logger.warning(f"DeepSeek API error: {response.status_code}")
+                    
+        except Exception as e:
+            logger.error(f"DeepSeek highlights failed: {e}")
+        
+        return None
+    
+    def _parse_ai_response(self, text: str, limit: int) -> List[Dict[str, Any]] | None:
+        """Parse AI response and extract highlights JSON."""
+        try:
+            json_str = text
+            if "```json" in text:
+                json_str = text.split("```json")[1].split("```")[0]
+            elif "```" in text:
+                json_str = text.split("```")[1].split("```")[0]
+            
+            highlights = json.loads(json_str.strip())
+            
+            if isinstance(highlights, list) and len(highlights) > 0:
+                # Add metadata to each highlight
+                for h in highlights:
+                    h["timestamp"] = datetime.utcnow().isoformat()
+                    h["coin_id"] = h.get("symbol", "").lower()
+                    h["name"] = h.get("symbol", "")
+                
+                return highlights[:limit]
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse AI response JSON: {e}")
+        
+        return None
+    
+    def _cache_result(self, result: Dict[str, Any]) -> None:
+        """Cache the highlights result."""
+        global _highlights_cache, _cache_expiry
+        _highlights_cache = result
+        _cache_expiry = datetime.utcnow() + timedelta(minutes=CACHE_TTL_MINUTES)
 
 
 # Singleton instance

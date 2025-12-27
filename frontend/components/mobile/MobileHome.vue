@@ -95,6 +95,7 @@
             :key="idx" 
             class="ai-highlight-card"
             :class="highlight.color"
+            @click="openHighlightDetail(highlight)"
           >
             <div class="highlight-header">
               <div class="highlight-icon" :class="highlight.color">
@@ -301,6 +302,13 @@
     
     <!-- Bottom Navigation -->
     <SharedMobileFooter :activeTab="activeTab" @setTab="$emit('setTab', $event)" />
+    
+    <!-- Highlight Detail Modal -->
+    <HighlightDetailModal 
+      :visible="showHighlightModal" 
+      :highlight="selectedHighlight"
+      @close="closeHighlightModal"
+    />
   </div>
 </template>
 
@@ -327,6 +335,20 @@ const whaleTransactions = ref<any[]>([])
 const categoriesData = ref<any[]>([])
 const gemSignals = ref<any[]>([])
 const aiHighlights = ref<any[]>([])
+
+// Highlight detail modal state
+const showHighlightModal = ref(false)
+const selectedHighlight = ref<any>(null)
+
+const openHighlightDetail = (highlight: any) => {
+  selectedHighlight.value = highlight
+  showHighlightModal.value = true
+}
+
+const closeHighlightModal = () => {
+  showHighlightModal.value = false
+  selectedHighlight.value = null
+}
 
 // Top coins for pills
 const topCoins = computed(() => allCoins.value.slice(0, 10))
