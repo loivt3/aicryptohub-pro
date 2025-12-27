@@ -1,14 +1,21 @@
 <template>
-  <div class="mobile-portfolio">
-    <!-- Header -->
+  <div class="portfolio-layout">
+    <!-- Shared Header -->
+    <SharedMobileHeader 
+      :active-tab="activeTab" 
+      @set-tab="$emit('setTab', $event)" 
+      @open-search="$emit('openSearch')" 
+    />
 
-    <!-- Section Header (inside page) -->
-    <section class="m-section">
-      <div class="m-section-header">
-        <h3 class="m-section-title">💼 Portfolio</h3>
-        <button v-if="isAuthenticated" class="m-btn-small" @click="openAddModal">+ Add</button>
-      </div>
-    </section>
+    <!-- Main Content -->
+    <main class="portfolio-main">
+      <!-- Section Header (inside page) -->
+      <section class="m-section">
+        <div class="m-section-header">
+          <h3 class="m-section-title">💼 Portfolio</h3>
+          <button v-if="isAuthenticated" class="m-btn-small" @click="openAddModal">+ Add</button>
+        </div>
+      </section>
 
     <!-- Login Required State -->
     <div v-if="!isAuthenticated" class="m-empty-state">
@@ -142,7 +149,10 @@
       </div>
     </div>
     
-    <div class="m-bottom-spacer"></div>
+    </main>
+    
+    <!-- Bottom Navigation -->
+    <SharedMobileFooter :activeTab="activeTab" @setTab="$emit('setTab', $event)" />
   </div>
 </template>
 
@@ -154,6 +164,11 @@ import PortfolioAuditor from './ai/PortfolioAuditor.vue'
 import StressSimulator from './ai/StressSimulator.vue'
 
 // Props & Emits
+const props = defineProps<{
+  activeTab?: string
+}>()
+
+defineEmits(['setTab', 'openSearch'])
 
 
 const api = useApi()
@@ -340,9 +355,17 @@ const formatNumber = (num: number) => {
 </script>
 
 <style scoped>
-.mobile-portfolio {
-  padding: 0;
-  padding-bottom: 80px;
+.portfolio-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #0a0e17;
+}
+
+.portfolio-main {
+  flex: 1;
+  padding: 0 0 80px 0;
+  overflow-y: auto;
 }
 
 .m-section-header {
