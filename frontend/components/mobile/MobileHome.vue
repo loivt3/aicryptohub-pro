@@ -39,52 +39,45 @@
 
       <!-- AI Market Mood -->
       <section class="home-section">
-        <div class="mood-card glass-card">
-          <div class="mood-header">
-            <Icon name="ph:brain" class="w-5 h-5" style="color: #10b981;" />
-            <span class="mood-title">AI Market Mood</span>
+        <div class="mood-card-v2">
+          <div class="mood-header-v2">
+            <Icon name="ph:robot" class="w-5 h-5" style="color: #38efeb;" />
+            <span class="mood-title-v2">AI Market Mood</span>
           </div>
           
-          <!-- Main Content: Gauge with Score (left) + Analysis Text (right) -->
-          <div class="mood-main-row">
-            <!-- Left: Circular Gauge with Score Inside -->
-            <div class="mood-gauge-wrapper">
-              <svg viewBox="0 0 100 100" class="mood-gauge-circle">
-                <!-- Background arc -->
+          <div class="mood-content-v2">
+            <!-- Left: Score + Label + Simple Text -->
+            <div class="mood-left-v2">
+              <span class="mood-score-v2" :class="getMoodClass(fearGreedValue)">{{ Math.round(fearGreedValue) }}</span>
+              <span class="mood-label-v2" :class="getMoodClass(fearGreedValue)">{{ fearGreedLabel }}</span>
+              <p class="mood-text-v2">{{ getMoodSimpleText(fearGreedValue) }}</p>
+            </div>
+            
+            <!-- Right: Circular Gauge with Trend Icon -->
+            <div class="mood-gauge-v2">
+              <svg viewBox="0 0 100 100" class="mood-gauge-svg">
+                <!-- Background circle -->
                 <circle 
-                  cx="50" cy="50" r="42" 
+                  cx="50" cy="50" r="40" 
                   fill="none" 
                   stroke="rgba(255,255,255,0.1)" 
                   stroke-width="6"
-                  stroke-linecap="round"
-                  stroke-dasharray="264"
-                  stroke-dashoffset="66"
-                  transform="rotate(-225 50 50)"
                 />
                 <!-- Progress arc -->
                 <circle 
-                  cx="50" cy="50" r="42" 
+                  cx="50" cy="50" r="40" 
                   fill="none" 
                   :stroke="getMoodColor(fearGreedValue)"
                   stroke-width="6"
                   stroke-linecap="round"
-                  stroke-dasharray="264"
-                  :stroke-dashoffset="264 - (fearGreedValue / 100) * 198"
-                  transform="rotate(-225 50 50)"
+                  stroke-dasharray="251"
+                  :stroke-dashoffset="251 - (fearGreedValue / 100) * 251"
+                  transform="rotate(-90 50 50)"
                 />
               </svg>
-              <!-- Score Inside Gauge -->
-              <div class="mood-gauge-center">
-                <span class="mood-score-inside" :class="getMoodClass(fearGreedValue)">{{ Math.round(fearGreedValue) }}</span>
-                <span class="mood-label-inside">{{ fearGreedLabel }}</span>
-              </div>
-            </div>
-            
-            <!-- Right: Analysis Text -->
-            <div class="mood-analysis-right">
-              <div class="analysis-content">
-                <Icon name="ph:brain" size="14" style="color: #10b981; flex-shrink: 0;" />
-                <p class="analysis-text-right">{{ truncateMoodAnalysis(moodAnalysis) }}</p>
+              <!-- Trend Icon Inside -->
+              <div class="mood-gauge-icon">
+                <Icon :name="fearGreedValue >= 50 ? 'ph:trend-up' : 'ph:trend-down'" size="24" :style="{ color: getMoodColor(fearGreedValue) }" />
               </div>
             </div>
           </div>
@@ -525,6 +518,15 @@ const getMoodDescription = (value: number) => {
   if (value <= 50) return 'Markets are neutral. Wait for clearer signals.'
   if (value <= 70) return 'Sentiment is positive. Watch for corrections.'
   return 'Sentiment is overheated. Watch for corrections.'
+}
+
+// Simple 2-line mood text for v2 design
+const getMoodSimpleText = (value: number) => {
+  if (value <= 25) return 'Extreme fear detected.\nBuying opportunity ahead.'
+  if (value <= 45) return 'Market sentiment is fearful.\nProceed with caution.'
+  if (value <= 55) return 'Sentiment is neutral.\nWait for clear signals.'
+  if (value <= 75) return 'Market is bullish.\nWatch for corrections.'
+  return 'Sentiment is overheated.\nWatch for corrections.'
 }
 
 const truncateMoodAnalysis = (text: string) => {
@@ -1046,6 +1048,95 @@ onUnmounted(() => {
   padding: 20px;
 }
 
+/* ========== AI MARKET MOOD V2 ========== */
+.mood-card-v2 {
+  background: rgba(15, 25, 35, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(56, 239, 235, 0.2);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.mood-header-v2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.mood-title-v2 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #38efeb;
+}
+
+.mood-content-v2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mood-left-v2 {
+  display: flex;
+  flex-direction: column;
+}
+
+.mood-score-v2 {
+  font-size: 42px;
+  font-weight: 700;
+  font-family: 'SF Mono', monospace;
+  line-height: 1;
+}
+
+.mood-score-v2.fear { color: #ef4444; }
+.mood-score-v2.neutral { color: #f59e0b; }
+.mood-score-v2.greed { color: #22c55e; }
+.mood-score-v2.extreme-greed { color: #38efeb; }
+
+.mood-label-v2 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.mood-label-v2.fear { color: #ef4444; }
+.mood-label-v2.neutral { color: #f59e0b; }
+.mood-label-v2.greed { color: #22c55e; }
+.mood-label-v2.extreme-greed { color: #38efeb; }
+
+.mood-text-v2 {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 10px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+/* Circular Gauge V2 */
+.mood-gauge-v2 {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  flex-shrink: 0;
+}
+
+.mood-gauge-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.mood-gauge-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ========== AI MARKET MOOD V1 (backwards compat) ========== */
 .mood-header {
   display: flex;
   align-items: center;
