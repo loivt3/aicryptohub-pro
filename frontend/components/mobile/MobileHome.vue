@@ -41,7 +41,7 @@
       <section class="home-section">
         <div class="mood-card-v2">
           <div class="mood-header-v2">
-            <Icon name="ph:robot" class="w-5 h-5" style="color: #38efeb;" />
+            <Icon name="ph:brain" class="w-5 h-5" style="color: #38efeb;" />
             <span class="mood-title-v2">AI Market Mood</span>
           </div>
           
@@ -84,47 +84,41 @@
         </div>
       </section>
 
-      <!-- AI Highlights - Horizontal Scroll Cards (Improved Style) -->
-      <section v-if="aiHighlights.length > 0" class="home-section ai-highlights-section">
-        <div class="ai-highlights-header">
-          <div class="ai-highlights-left">
+      <!-- AI Highlights - New Clean Design -->
+      <section v-if="aiHighlights.length > 0" class="home-section ai-highlights-section-v2">
+        <div class="highlights-header-v2">
+          <div class="highlights-left-v2">
             <Icon name="ph:sparkle" class="w-5 h-5" style="color: #38efeb;" />
-            <span class="ai-highlights-title">AI Highlights</span>
+            <span class="highlights-title-v2">AI Highlights</span>
           </div>
-          <span class="ai-highlights-count">{{ aiHighlights.length }}</span>
+          <span class="highlights-live-badge">
+            <span class="live-dot"></span>
+            LIVE
+          </span>
         </div>
         
-        <!-- Horizontal Scroll Container -->
-        <div class="ai-highlights-scroll">
+        <!-- Horizontal Scroll Cards -->
+        <div class="highlights-scroll-v2">
           <div 
             v-for="(highlight, idx) in aiHighlights" 
             :key="idx" 
-            class="ai-highlight-card"
-            :class="highlight.color"
+            class="highlight-card-v2"
             @click="openHighlightDetail(highlight)"
           >
-            <!-- Type Badge + Confidence -->
-            <div class="highlight-top">
-              <div class="highlight-type-badge" :class="highlight.color">
-                <Icon :name="getHighlightIcon(highlight)" size="12" />
-                <span>{{ formatHighlightType(highlight.highlight_type) }}</span>
+            <!-- Top: Type Badge + Time -->
+            <div class="highlight-header-v2">
+              <div class="highlight-badge-v2" :class="getHighlightBadgeClass(highlight)">
+                <Icon :name="getHighlightIcon(highlight)" size="14" />
+                <span>{{ getHighlightCategory(highlight) }}</span>
               </div>
-              <span v-if="highlight.confidence" class="highlight-confidence" :class="highlight.color">
-                {{ highlight.confidence }}%
-              </span>
+              <span class="highlight-time-v2">{{ getHighlightTimeAgo(highlight) }}</span>
             </div>
             
-            <!-- Symbol with Coin Icon -->
-            <div class="highlight-symbol-row">
-              <img v-if="highlight.image" :src="highlight.image" class="highlight-coin-icon" :alt="highlight.symbol" />
-              <span class="highlight-symbol-text">{{ highlight.symbol }}</span>
-            </div>
+            <!-- Title -->
+            <h3 class="highlight-title-v2">{{ highlight.title || formatHighlightTitle(highlight) }}</h3>
             
-            <!-- Description in Bento Grid Style -->
-            <div class="highlight-desc-bento">
-              <Icon name="ph:chart-line" size="14" class="desc-icon" />
-              <p class="highlight-desc-text">{{ highlight.description?.substring(0, 90) }}{{ highlight.description?.length > 90 ? '...' : '' }}</p>
-            </div>
+            <!-- Description -->
+            <p class="highlight-desc-v2" v-html="formatHighlightDesc(highlight)"></p>
           </div>
         </div>
       </section>
@@ -577,6 +571,68 @@ const formatHighlightType = (type: string) => {
     'trend_reversal': 'Reversal',
   }
   return typeMap[type] || type
+}
+
+// V2 Highlight helpers
+const getHighlightBadgeClass = (highlight: any) => {
+  const type = highlight.highlight_type || ''
+  if (['bearish_signal', 'overbought', 'risk_alert'].includes(type)) return 'badge-danger'
+  if (['bullish_signal', 'oversold', 'breakout'].includes(type)) return 'badge-success'
+  if (['whale_activity', 'volume_surge'].includes(type)) return 'badge-warning'
+  return 'badge-info'
+}
+
+const getHighlightCategory = (highlight: any) => {
+  const type = highlight.highlight_type || ''
+  const catMap: Record<string, string> = {
+    'overbought': 'Technical',
+    'oversold': 'Technical',
+    'bullish_signal': 'Technical',
+    'bearish_signal': 'Technical',
+    'breakout': 'Technical',
+    'whale_activity': 'Anomaly',
+    'volume_surge': 'Anomaly',
+    'risk_alert': 'Risk',
+    'opportunity': 'Signal',
+  }
+  return catMap[type] || 'AI Signal'
+}
+
+const getHighlightTimeAgo = (highlight: any) => {
+  if (highlight.created_at) {
+    const mins = Math.floor((Date.now() - new Date(highlight.created_at).getTime()) / 60000)
+    if (mins < 60) return `${mins}m ago`
+    if (mins < 1440) return `${Math.floor(mins / 60)}h ago`
+    return `${Math.floor(mins / 1440)}d ago`
+  }
+  return '2m ago'
+}
+
+const formatHighlightTitle = (highlight: any) => {
+  const symbol = highlight.symbol?.toUpperCase() || 'COIN'
+  const type = highlight.highlight_type || ''
+  const titleMap: Record<string, string> = {
+    'overbought': `${symbol} Overbought Alert`,
+    'oversold': `${symbol} Oversold Signal`,
+    'bullish_signal': `${symbol} Bullish Pattern`,
+    'bearish_signal': `${symbol} Bearish Warning`,
+    'breakout': `${symbol} Breakout Pattern`,
+    'whale_activity': `${symbol} Whale Activity`,
+    'volume_surge': `Abnormal ${symbol} Volume`,
+    'risk_alert': `${symbol} Risk Alert`,
+    'opportunity': `${symbol} Opportunity`,
+  }
+  return titleMap[type] || `${symbol} AI Signal`
+}
+
+const formatHighlightDesc = (highlight: any) => {
+  let desc = highlight.description || ''
+  // Highlight key terms in green
+  desc = desc.replace(/(Cup & Handle|breakout|bullish|accumulation|support|resistance)/gi, 
+    '<span class="desc-highlight">$1</span>')
+  // Truncate
+  if (desc.length > 120) desc = desc.substring(0, 120) + '...'
+  return desc
 }
 
 // RSI zone class for styling
@@ -1991,6 +2047,152 @@ onUnmounted(() => {
   padding: 0 16px !important;
 }
 
+/* ========== AI HIGHLIGHTS V2 ========== */
+.ai-highlights-section-v2 {
+  padding: 0 !important;
+}
+
+.highlights-header-v2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 0 16px;
+}
+
+.highlights-left-v2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.highlights-title-v2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.highlights-live-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #10b981;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  background: #10b981;
+  border-radius: 50%;
+  animation: pulse-dot 1.5s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.highlights-scroll-v2 {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 0 16px 8px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.highlights-scroll-v2::-webkit-scrollbar {
+  display: none;
+}
+
+.highlight-card-v2 {
+  flex: 0 0 280px;
+  background: rgba(15, 25, 35, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(56, 239, 235, 0.2);
+  border-radius: 16px;
+  padding: 16px;
+  scroll-snap-align: start;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.highlight-card-v2:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.highlight-header-v2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.highlight-badge-v2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.highlight-badge-v2.badge-success {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.highlight-badge-v2.badge-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.highlight-badge-v2.badge-warning {
+  background: rgba(249, 115, 22, 0.2);
+  color: #f97316;
+}
+
+.highlight-badge-v2.badge-info {
+  background: rgba(56, 239, 235, 0.2);
+  color: #38efeb;
+}
+
+.highlight-time-v2 {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.highlight-title-v2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 10px 0;
+  line-height: 1.3;
+}
+
+.highlight-desc-v2 {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.desc-highlight {
+  color: #10b981;
+  font-weight: 600;
+}
+
+/* ========== AI HIGHLIGHTS V1 (backwards compat) ========== */
 .ai-highlights-header {
   display: flex;
   align-items: center;
