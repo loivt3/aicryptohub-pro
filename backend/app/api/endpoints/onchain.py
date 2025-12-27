@@ -280,3 +280,112 @@ async def get_onchain_signals(coin_id: str):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/whale-stream")
+async def get_whale_stream(limit: int = 10):
+    """
+    Get aggregated whale stream data from multiple sources.
+    
+    Sources:
+    - Arkham Intelligence (if API key configured)
+    - Whale Alert (if API key configured)
+    - Internal whale_transactions table
+    
+    Returns:
+        Combined list of whale transactions with source attribution
+    """
+    from app.services.arkham_client import get_arkham_client
+    from app.services.whale_alert_client import get_whale_alert_client
+    import asyncio
+    
+    all_transactions = []
+    sources_status = {
+        "arkham": False,
+        "whale_alert": False,
+        "internal": False,
+    }
+    
+    # Fetch from Arkham Intelligence
+    arkham = get_arkham_client()
+    if arkham.is_configured():
+        try:
+            arkham_txs = await arkham.get_recent_transfers(limit=limit, min_usd=500000)
+            all_transactions.extend(arkham_txs)
+            sources_status["arkham"] = True
+        except Exception as e:
+            print(f"[WhaleStream] Arkham error: {e}")
+    
+    # Fetch from Whale Alert
+    whale_alert = get_whale_alert_client()
+    if whale_alert.is_configured():
+        try:
+            wa_txs = await whale_alert.get_recent_transactions(min_value=500000, limit=limit)
+            all_transactions.extend(wa_txs)
+            sources_status["whale_alert"] = True
+        except Exception as e:
+            print(f"[WhaleStream] Whale Alert error: {e}")
+    
+    # Fetch from internal database
+    try:
+        db = get_database_service()
+        from sqlalchemy import text
+        
+        internal_query = text("""
+            SELECT coin_id, tx_type, value_usd, from_address, to_address, 
+                   exchange_name, tx_timestamp, tx_hash
+            FROM whale_transactions
+            WHERE tx_timestamp > NOW() - INTERVAL '24 hours'
+              AND value_usd > 100000
+            ORDER BY tx_timestamp DESC
+            LIMIT :limit
+        """)
+        
+        with db.engine.connect() as conn:
+            result = conn.execute(internal_query, {"limit": limit})
+            for row in result.fetchall():
+                all_transactions.append({
+                    "tx_hash": row[7] if len(row) > 7 else "",
+                    "chain": "ethereum" if row[0] == "ethereum" else "bitcoin",
+                    "from_address": row[3] or "",
+                    "from_entity": "Unknown Wallet",
+                    "to_address": row[4] or "",
+                    "to_entity": row[5] or "Unknown",
+                    "value_usd": float(row[2]) if row[2] else 0,
+                    "token_symbol": row[0].upper() if row[0] else "",
+                    "timestamp": row[6].isoformat() if row[6] else "",
+                    "tx_type": row[1] or "transfer",
+                    "source": "internal",
+                })
+        sources_status["internal"] = True
+    except Exception as e:
+        print(f"[WhaleStream] Internal DB error: {e}")
+    
+    # Sort all by timestamp (newest first)
+    all_transactions.sort(
+        key=lambda x: x.get("timestamp", ""),
+        reverse=True
+    )
+    
+    # Deduplicate by tx_hash
+    seen_hashes = set()
+    unique_txs = []
+    for tx in all_transactions:
+        tx_hash = tx.get("tx_hash", "")
+        if tx_hash and tx_hash in seen_hashes:
+            continue
+        if tx_hash:
+            seen_hashes.add(tx_hash)
+        unique_txs.append(tx)
+    
+    # Limit results
+    unique_txs = unique_txs[:limit]
+    
+    return {
+        "success": True,
+        "transactions": unique_txs,
+        "sources": sources_status,
+        "count": len(unique_txs),
+        "timestamp": datetime.now().isoformat(),
+    }
+

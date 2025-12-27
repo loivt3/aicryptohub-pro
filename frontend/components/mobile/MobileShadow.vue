@@ -648,13 +648,23 @@ function getScoreClass(score) {
 // Fetch onchain summary data
 async function fetchOnchainData() {
   try {
-    const response = await fetch(`${apiBase}/onchain/summary`)
-    if (response.ok) {
-      const data = await response.json()
+    // Fetch summary for flow stats
+    const summaryResponse = await fetch(`${apiBase}/onchain/summary`)
+    if (summaryResponse.ok) {
+      const data = await summaryResponse.json()
       onchainSummary.value = data
-      whaleTransactions.value = data.recent_whale_txs?.slice(0, 5) || []
       exchangeInflow.value = data.total_inflow_24h || 0
       exchangeOutflow.value = data.total_outflow_24h || 0
+    }
+    
+    // Fetch whale stream from aggregated sources (Arkham, Whale Alert, Internal)
+    const streamResponse = await fetch(`${apiBase}/onchain/whale-stream?limit=10`)
+    if (streamResponse.ok) {
+      const streamData = await streamResponse.json()
+      if (streamData.success && streamData.transactions) {
+        whaleTransactions.value = streamData.transactions.slice(0, 5)
+        console.log('[WhaleStream] Sources:', streamData.sources)
+      }
     }
   } catch (error) {
     console.error('Failed to fetch onchain data:', error)
@@ -678,17 +688,36 @@ function formatAddress(addr) {
 }
 
 function formatWhaleMessage(tx) {
-  const coin = tx.coin_id?.toUpperCase() || 'CRYPTO'
+  // Support both formats (internal DB and whale-stream API)
+  const symbol = tx.token_symbol?.toUpperCase() || tx.coin_id?.toUpperCase() || 'CRYPTO'
   const value = formatCurrency(tx.value_usd)
-  const addr = formatAddress(tx.from_address)
+  const amount = tx.token_amount ? `${formatAmount(tx.token_amount)} ` : ''
+  
+  // Use entity name if available, otherwise format address
+  const fromEntity = tx.from_entity && tx.from_entity !== 'Unknown Wallet' 
+    ? tx.from_entity 
+    : formatAddress(tx.from_address)
+  const toEntity = tx.to_entity && tx.to_entity !== 'Unknown' 
+    ? tx.to_entity 
+    : tx.exchange_name || formatAddress(tx.to_address)
+  
+  // Source badge
+  const sourceBadge = tx.source === 'arkham' ? '🔍' : tx.source === 'whale_alert' ? '🐋' : '📊'
   
   if (tx.tx_type === 'exchange_deposit') {
-    // Sell signal - whale moving to exchange
-    return `Whale ${addr} deposited ${value} $${coin} to ${tx.exchange_name || 'exchange'}.`
+    return `${sourceBadge} ${fromEntity} moved ${amount}${value} $${symbol} to ${toEntity}. Sell pressure.`
+  } else if (tx.tx_type === 'exchange_withdrawal') {
+    return `${sourceBadge} ${fromEntity} withdrew ${amount}${value} $${symbol}. Accumulation.`
   } else {
-    // Buy signal - whale accumulating or withdrawing
-    return `Whale ${addr} moved ${value} $${coin} off ${tx.exchange_name || 'exchange'}.`
+    return `${sourceBadge} ${amount}${value} $${symbol} moved from ${fromEntity} to ${toEntity}.`
   }
+}
+
+function formatAmount(amount) {
+  if (!amount) return ''
+  if (amount >= 1e6) return `${(amount/1e6).toFixed(1)}M`
+  if (amount >= 1e3) return `${(amount/1e3).toFixed(0)}K`
+  return amount.toFixed(2)
 }
 
 // Lifecycle
