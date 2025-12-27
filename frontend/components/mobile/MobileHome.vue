@@ -80,7 +80,7 @@
         </div>
       </section>
 
-      <!-- AI Highlights - Horizontal Swipeable Cards -->
+      <!-- AI Highlights - Bento Grid Layout -->
       <section v-if="aiHighlights.length > 0" class="home-section ai-highlights-section">
         <div class="ai-highlights-header">
           <div class="ai-highlights-left">
@@ -89,36 +89,80 @@
           </div>
           <span class="ai-highlights-count">{{ aiHighlights.length }}</span>
         </div>
-        <div class="ai-highlights-scroll">
+        
+        <!-- Bento Grid -->
+        <div class="highlights-bento">
+          <!-- Featured Card (First item - larger) -->
           <div 
-            v-for="(highlight, idx) in aiHighlights" 
-            :key="idx" 
-            class="ai-highlight-card"
+            v-if="aiHighlights[0]" 
+            class="bento-card bento-featured"
+            :class="aiHighlights[0].color"
+            @click="openHighlightDetail(aiHighlights[0])"
+          >
+            <div class="bento-card-header">
+              <div class="bento-type-badge" :class="aiHighlights[0].color">
+                <Icon :name="getHighlightIcon(aiHighlights[0])" size="14" />
+                <span>{{ formatHighlightType(aiHighlights[0].highlight_type) }}</span>
+              </div>
+              <span v-if="aiHighlights[0].confidence" class="bento-confidence" :class="aiHighlights[0].color">
+                {{ aiHighlights[0].confidence }}%
+              </span>
+            </div>
+            <div class="bento-symbol">{{ aiHighlights[0].symbol }}</div>
+            <div v-if="aiHighlights[0].technical_data?.rsi_14" class="bento-rsi" :class="getRsiClass(aiHighlights[0].technical_data.rsi_14)">
+              RSI: {{ aiHighlights[0].technical_data.rsi_14.toFixed(0) }}
+            </div>
+            <p class="bento-desc">{{ aiHighlights[0].description }}</p>
+            <div v-if="aiHighlights[0].action_hint" class="bento-action">
+              <Icon name="ph:lightbulb" size="14" />
+              <span>{{ aiHighlights[0].action_hint }}</span>
+            </div>
+          </div>
+          
+          <!-- Secondary Card (Second item - medium) -->
+          <div 
+            v-if="aiHighlights[1]" 
+            class="bento-card bento-secondary"
+            :class="aiHighlights[1].color"
+            @click="openHighlightDetail(aiHighlights[1])"
+          >
+            <div class="bento-card-header">
+              <div class="bento-type-badge" :class="aiHighlights[1].color">
+                <Icon :name="getHighlightIcon(aiHighlights[1])" size="14" />
+                <span>{{ formatHighlightType(aiHighlights[1].highlight_type) }}</span>
+              </div>
+              <span v-if="aiHighlights[1].confidence" class="bento-confidence" :class="aiHighlights[1].color">
+                {{ aiHighlights[1].confidence }}%
+              </span>
+            </div>
+            <div class="bento-symbol">{{ aiHighlights[1].symbol }}</div>
+            <div v-if="aiHighlights[1].technical_data?.rsi_14" class="bento-rsi" :class="getRsiClass(aiHighlights[1].technical_data.rsi_14)">
+              RSI: {{ aiHighlights[1].technical_data.rsi_14.toFixed(0) }}
+            </div>
+            <p class="bento-desc-short">{{ aiHighlights[1].description?.substring(0, 80) }}...</p>
+          </div>
+          
+          <!-- Compact Cards (Remaining items) -->
+          <div 
+            v-for="(highlight, idx) in aiHighlights.slice(2, 6)" 
+            :key="idx + 2" 
+            class="bento-card bento-compact"
             :class="highlight.color"
             @click="openHighlightDetail(highlight)"
           >
-            <div class="highlight-header">
-              <div class="highlight-icon" :class="highlight.color">
-                <Icon :name="getHighlightIcon(highlight)" size="18" />
-              </div>
-              <div class="highlight-meta">
-                <span class="highlight-type">{{ formatHighlightType(highlight.highlight_type) }}</span>
-                <span class="highlight-symbol">{{ highlight.symbol }}</span>
-              </div>
-              <span v-if="highlight.confidence" class="highlight-confidence" :class="highlight.color">{{ highlight.confidence }}%</span>
+            <div class="compact-header">
+              <Icon :name="getHighlightIcon(highlight)" size="16" :class="highlight.color" />
+              <span class="compact-symbol">{{ highlight.symbol }}</span>
             </div>
-            
-            <!-- RSI Badge (if available) -->
-            <div v-if="highlight.technical_data?.rsi_14" class="highlight-rsi" :class="getRsiClass(highlight.technical_data.rsi_14)">
-              RSI: {{ highlight.technical_data.rsi_14.toFixed(0) }}
+            <div class="compact-type" :class="highlight.color">
+              {{ formatHighlightType(highlight.highlight_type) }}
             </div>
-            
-            <p class="highlight-desc">{{ highlight.description }}</p>
-            
-            <!-- Action Hint (if available) -->
-            <p v-if="highlight.action_hint" class="highlight-action">
-              💡 {{ highlight.action_hint }}
-            </p>
+            <div class="compact-footer">
+              <span v-if="highlight.technical_data?.rsi_14" class="compact-rsi">
+                RSI {{ highlight.technical_data.rsi_14.toFixed(0) }}
+              </span>
+              <span v-if="highlight.confidence" class="compact-conf" :class="highlight.color">{{ highlight.confidence }}%</span>
+            </div>
           </div>
         </div>
       </section>
@@ -1578,17 +1622,16 @@ onUnmounted(() => {
   font-size: 13px;
 }
 
-/* ========== AI HIGHLIGHTS - HORIZONTAL SCROLL ========== */
+/* ========== AI HIGHLIGHTS - BENTO GRID ========== */
 .ai-highlights-section {
-  padding: 0 !important;
+  padding: 0 16px !important;
 }
 
 .ai-highlights-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .ai-highlights-left {
@@ -1612,32 +1655,302 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-.ai-highlights-scroll {
-  display: flex;
+/* Bento Grid Container */
+.highlights-bento {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto auto;
   gap: 12px;
-  overflow-x: auto;
-  padding: 0 16px 8px;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
 }
 
-.ai-highlights-scroll::-webkit-scrollbar {
-  display: none;
+/* Base Card Styling */
+.bento-card {
+  background: linear-gradient(145deg, rgba(20, 30, 45, 0.95) 0%, rgba(15, 20, 30, 0.9) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.ai-highlight-card {
-  flex-shrink: 0;
-  width: 180px;
-  min-height: 120px;
-  background: rgba(15, 25, 35, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 14px;
-  padding: 14px;
-  scroll-snap-align: start;
+.bento-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.bento-card:active {
+  transform: scale(0.98);
+}
+
+/* Featured Card - Spans 1 column, full height */
+.bento-featured {
+  grid-column: 1;
+  grid-row: 1 / 3;
+}
+
+/* Secondary Card */
+.bento-secondary {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+/* Compact Cards - Row 2-3 col 2 + Row 3 col 1-2 */
+.bento-compact {
+  padding: 12px;
+}
+
+/* Card Header */
+.bento-card-header {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.bento-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bento-type-badge.red {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(239, 68, 68, 0.1));
+  color: #ef4444;
+}
+
+.bento-type-badge.green {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.1));
+  color: #10b981;
+}
+
+.bento-type-badge.cyan {
+  background: linear-gradient(135deg, rgba(56, 239, 235, 0.3), rgba(56, 239, 235, 0.1));
+  color: #38efeb;
+}
+
+.bento-type-badge.purple {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(168, 85, 247, 0.1));
+  color: #a855f7;
+}
+
+.bento-type-badge.yellow {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.3), rgba(234, 179, 8, 0.1));
+  color: #eab308;
+}
+
+.bento-type-badge.orange {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(249, 115, 22, 0.1));
+  color: #f97316;
+}
+
+.bento-type-badge.blue {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.1));
+  color: #3b82f6;
+}
+
+/* Confidence */
+.bento-confidence {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.bento-confidence.red { color: #ef4444; }
+.bento-confidence.green { color: #10b981; }
+.bento-confidence.cyan { color: #38efeb; }
+.bento-confidence.purple { color: #a855f7; }
+.bento-confidence.yellow { color: #eab308; }
+.bento-confidence.orange { color: #f97316; }
+.bento-confidence.blue { color: #3b82f6; }
+
+/* Symbol */
+.bento-symbol {
+  font-size: 32px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 8px;
+  letter-spacing: -1px;
+}
+
+.bento-secondary .bento-symbol {
+  font-size: 24px;
+}
+
+/* RSI Badge */
+.bento-rsi {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  width: fit-content;
+}
+
+.bento-rsi.overbought {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.bento-rsi.oversold {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.bento-rsi.neutral {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Description */
+.bento-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  margin: 0;
+  flex: 1;
+}
+
+.bento-desc-short {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Action Hint */
+.bento-action {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(234, 179, 8, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(234, 179, 8, 0.2);
+}
+
+.bento-action span {
+  font-size: 11px;
+  color: #eab308;
+  line-height: 1.4;
+}
+
+.bento-action svg {
+  color: #eab308;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Compact Card Styles */
+.compact-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.compact-symbol {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.compact-type {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.compact-type.red { color: #ef4444; }
+.compact-type.green { color: #10b981; }
+.compact-type.cyan { color: #38efeb; }
+.compact-type.purple { color: #a855f7; }
+.compact-type.yellow { color: #eab308; }
+.compact-type.orange { color: #f97316; }
+.compact-type.blue { color: #3b82f6; }
+
+.compact-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+}
+
+.compact-rsi {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.compact-conf {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.compact-conf.red { color: #ef4444; }
+.compact-conf.green { color: #10b981; }
+.compact-conf.cyan { color: #38efeb; }
+.compact-conf.purple { color: #a855f7; }
+.compact-conf.yellow { color: #eab308; }
+.compact-conf.orange { color: #f97316; }
+.compact-conf.blue { color: #3b82f6; }
+
+/* Card Glow Effects */
+.bento-card.red {
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.bento-card.green {
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.bento-card.cyan {
+  border: 1px solid rgba(56, 239, 235, 0.3);
+  box-shadow: 0 4px 20px rgba(56, 239, 235, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.bento-card.purple {
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  box-shadow: 0 4px 20px rgba(168, 85, 247, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.bento-card.yellow {
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  box-shadow: 0 4px 20px rgba(234, 179, 8, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.bento-card.orange {
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.bento-card.blue {
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
 /* Ranking Badge */
