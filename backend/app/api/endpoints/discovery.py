@@ -539,10 +539,10 @@ async def get_high_rich(
                     mds.discovery_score
                 FROM aihub_coins ac
                 LEFT JOIN market_discovery_snapshot mds ON UPPER(mds.symbol) = ac.symbol
-                WHERE COALESCE(ac.price_change_1h, mds.change_1h, 0) > 0
-                  AND COALESCE(ac.rank, mds.market_cap_rank, 500) > 20
-                  AND COALESCE(ac.volume_24h, mds.volume_24h, 0) > 50000
+                WHERE COALESCE(ac.volume_24h, mds.volume_24h, 0) > 10000
+                  AND COALESCE(ac.asi_score, 50) >= 40
                 ORDER BY 
+                    COALESCE(ac.asi_score, 50) DESC,
                     COALESCE(mds.discovery_score, 0) DESC,
                     COALESCE(ac.price_change_1h, mds.change_1h, 0) DESC
                 LIMIT :limit
