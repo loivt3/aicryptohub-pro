@@ -2747,26 +2747,43 @@ onUnmounted(() => {
   box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
-/* Ranking Badge */
-.highlight-rank {
+/* Signal Ranking Badge (Updated V2 - Colorful Circles) */
+.signal-rank {
   width: 24px;
   height: 24px;
-  border-radius: 8px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 800; /* Extra bold */
   flex-shrink: 0;
+  margin-right: 8px; /* More spacing */
+  line-height: 1;
 }
 
-.highlight-rank.green { background: rgba(16, 185, 129, 0.2); color: #10b981; }
-.highlight-rank.red { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
-.highlight-rank.blue { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
-.highlight-rank.cyan { background: rgba(56, 239, 235, 0.2); color: #38efeb; }
-.highlight-rank.purple { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
-.highlight-rank.yellow { background: rgba(234, 179, 8, 0.2); color: #eab308; }
-.highlight-rank.orange { background: rgba(249, 115, 22, 0.2); color: #f97316; }
+.signal-rank.rank-1 {
+  background: #fbbf24; /* Amber/Gold */
+  color: #000;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+}
+
+.signal-rank.rank-2 {
+  background: #d1d5db; /* Light Gray/Silver */
+  color: #000;
+}
+
+.signal-rank.rank-3 {
+  background: #fdba74; /* Orange/Bronze */
+  color: #000;
+}
+
+.signal-rank.rank-default {
+  background: rgba(45, 212, 191, 0.15); /* Darker teal bg */
+  color: #2dd4bf; /* Bright teal text */
+  font-weight: 700;
+  border: 1px solid rgba(45, 212, 191, 0.2);
+}
 
 /* Card Content */
 .highlight-content {
