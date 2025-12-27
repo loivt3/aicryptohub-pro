@@ -831,7 +831,7 @@ const fetchData = async (skipCache = false) => {
             clearTimeout(timeoutId)
             
             if (onchainRes && Array.isArray(onchainRes.recent_whale_txs) && onchainRes.recent_whale_txs.length > 0) {
-                whaleTransactions.value = onchainRes.recent_whale_txs.slice(0, 10).map((tx: any, idx: number) => ({
+                whaleTransactions.value = onchainRes.recent_whale_txs.slice(0, 8).map((tx: any, idx: number) => ({
                     id: tx.from_address + tx.tx_timestamp || Math.random(),
                     symbol: tx.coin_id?.toUpperCase() || 'WHALE',
                     amount: formatNumber(tx.value_usd),
