@@ -44,38 +44,48 @@
             <Icon name="ph:brain" class="w-5 h-5" style="color: #10b981;" />
             <span class="mood-title">AI Market Mood</span>
           </div>
-          <div class="mood-body">
-            <div class="mood-left">
+          
+          <!-- Top Row: Score + Label + Gauge -->
+          <div class="mood-top-row">
+            <div class="mood-score-block">
               <span class="mood-score" :class="getMoodClass(fearGreedValue)">{{ Math.round(fearGreedValue) }}</span>
               <span class="mood-label">{{ fearGreedLabel }}</span>
-              <p class="mood-desc">{{ truncateMoodAnalysis(moodAnalysis) }}</p>
             </div>
-            <div class="mood-right">
-              <svg viewBox="0 0 120 120" class="mood-gauge">
-                <!-- Background circle -->
+            
+            <div class="mood-gauge-block">
+              <svg viewBox="0 0 100 100" class="mood-gauge-inline">
+                <!-- Background arc -->
                 <circle 
-                  cx="60" cy="60" r="50" 
+                  cx="50" cy="50" r="40" 
                   fill="none" 
                   stroke="rgba(255,255,255,0.1)" 
-                  stroke-width="10"
+                  stroke-width="8"
                   stroke-linecap="round"
-                  :stroke-dasharray="314"
-                  :stroke-dashoffset="78.5"
-                  transform="rotate(-225 60 60)"
+                  stroke-dasharray="251"
+                  stroke-dashoffset="62.75"
+                  transform="rotate(-225 50 50)"
                 />
-                <!-- Progress circle -->
+                <!-- Progress arc -->
                 <circle 
-                  cx="60" cy="60" r="50" 
+                  cx="50" cy="50" r="40" 
                   fill="none" 
                   :stroke="getMoodColor(fearGreedValue)"
-                  stroke-width="10"
+                  stroke-width="8"
                   stroke-linecap="round"
-                  :stroke-dasharray="314"
-                  :stroke-dashoffset="314 - (fearGreedValue / 100) * 235.5"
-                  transform="rotate(-225 60 60)"
+                  stroke-dasharray="251"
+                  :stroke-dashoffset="251 - (fearGreedValue / 100) * 188.25"
+                  transform="rotate(-225 50 50)"
                 />
               </svg>
             </div>
+          </div>
+          
+          <!-- Bottom: Analysis Text in Bento Grid -->
+          <div class="mood-analysis-bento">
+            <div class="analysis-icon-box">
+              <Icon name="ph:brain" size="16" />
+            </div>
+            <p class="analysis-text">{{ truncateMoodAnalysis(moodAnalysis) }}</p>
           </div>
         </div>
       </section>
@@ -1048,14 +1058,17 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.8);
 }
 
-.mood-body {
+/* Top Row: Score + Gauge */
+.mood-top-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 16px;
 }
 
-.mood-left {
-  flex: 1;
+.mood-score-block {
+  display: flex;
+  flex-direction: column;
 }
 
 .mood-score {
@@ -1075,16 +1088,54 @@ onUnmounted(() => {
   font-size: 18px;
   font-weight: 600;
   color: #fff;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
-.mood-desc {
+/* Inline Gauge */
+.mood-gauge-block {
+  width: 80px;
+  height: 80px;
+}
+
+.mood-gauge-inline {
+  width: 100%;
+  height: 100%;
+}
+
+/* Analysis Bento Grid */
+.mood-analysis-bento {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.analysis-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.15));
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.analysis-icon-box svg {
+  color: #10b981;
+}
+
+.analysis-text {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-  margin-top: 8px;
-  max-width: 180px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  margin: 0;
 }
 
+/* Old mood-right for backwards compat */
 .mood-right {
   width: 100px;
   height: 100px;
