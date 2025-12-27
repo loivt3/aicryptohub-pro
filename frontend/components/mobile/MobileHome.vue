@@ -231,22 +231,29 @@
               </div>
               
               <div class="signal-right">
-                <span class="signal-badge" :class="'signal-' + (coin.signal || 'hold').toLowerCase().replace('_', '-')">
-                  {{ formatSignal(coin.signal) }}
-                </span>
-                <span class="signal-expected" :class="coin.expected_return >= 0 ? 'positive' : 'negative'">
-                  {{ coin.expected_return >= 0 ? '+' : '' }}{{ coin.expected_return?.toFixed(1) }}% exp.
-                </span>
+                <div class="signal-meta-col">
+                  <span class="signal-badge signal-badge--compact" :class="'signal-' + (coin.signal || 'hold').toLowerCase().replace('_', '-')">
+                    {{ formatSignalShort(coin.signal) }}
+                  </span>
+                  <span class="signal-expected" :class="coin.expected_return >= 0 ? 'positive' : 'negative'">
+                    {{ coin.expected_return >= 0 ? '+' : '' }}{{ coin.expected_return?.toFixed(1) }}%
+                  </span>
+                </div>
+                <!-- Risk Bar -->
+                <div class="signal-risk-col">
+                  <span class="risk-label">RISK</span>
+                  <div class="risk-bar-mini">
+                    <div class="risk-bar-fill" :class="getRiskClass(coin.risk_score || 50)" :style="{ width: (coin.risk_score || 50) + '%' }"></div>
+                  </div>
+                  <span class="risk-value" :class="getRiskClass(coin.risk_score || 50)">{{ coin.risk_score || 50 }}%</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- AI Risk Widget -->
-      <section class="home-section">
-        <AIRiskWidget :limit="7" @select="handleRiskSelect" />
-      </section>
+      <!-- AI Risk integrated into Top AI Signals above -->
 
       <!-- Whale Stream Terminal - NEW DESIGN -->
       <section class="home-section">
@@ -646,6 +653,31 @@ const formatSignal = (signal: string | null) => {
     'STRONG_SELL': 'STRONG SELL',
   }
   return map[signal.toUpperCase()] || signal
+}
+
+// Short version of signal for compact display
+const formatSignalShort = (signal: string | null) => {
+  if (!signal) return 'HOLD'
+  const map: Record<string, string> = {
+    'STRONG_BUY': 'S.BUY',
+    'BUY': 'BUY',
+    'NEUTRAL': 'HOLD',
+    'HOLD': 'HOLD',
+    'SELL': 'SELL',
+    'STRONG_SELL': 'S.SELL',
+    'ACCUMULATION': 'ACCUM',
+    'DISTRIBUTION': 'DIST',
+  }
+  return map[signal.toUpperCase()] || signal.substring(0, 6)
+}
+
+// Risk level class based on score
+const getRiskClass = (score: number) => {
+  if (score >= 80) return 'extreme'
+  if (score >= 60) return 'high'
+  if (score >= 40) return 'moderate'
+  if (score >= 20) return 'low'
+  return 'minimal'
 }
 
 const getTimeAgo = (timestamp: string | number | null) => {
@@ -1318,16 +1350,34 @@ onUnmounted(() => {
 
 .signal-right {
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.signal-meta-col {
+  display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 4px;
+  gap: 2px;
 }
 
 .signal-badge {
-  padding: 4px 10px;
+  padding: 4px 8px;
   border-radius: 6px;
   font-size: 10px;
   font-weight: 700;
+  text-transform: uppercase;
+}
+
+.signal-badge--compact {
+  padding: 3px 6px;
+  font-size: 9px;
+  max-width: 55px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .signal-strong-buy {
@@ -1350,12 +1400,63 @@ onUnmounted(() => {
   color: #ef4444;
 }
 
+.signal-accum, .signal-accumulation {
+  background: rgba(139, 92, 246, 0.2);
+  color: #8b5cf6;
+}
+
 .signal-expected {
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .signal-expected.positive { color: #22c55e; }
 .signal-expected.negative { color: #ef4444; }
+
+/* Risk Bar in Signal Row */
+.signal-risk-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  min-width: 50px;
+}
+
+.risk-label {
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.5px;
+}
+
+.risk-bar-mini {
+  width: 45px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.risk-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.risk-bar-fill.minimal { background: #22c55e; }
+.risk-bar-fill.low { background: #4ade80; }
+.risk-bar-fill.moderate { background: #f59e0b; }
+.risk-bar-fill.high { background: #f97316; }
+.risk-bar-fill.extreme { background: #ef4444; }
+
+.risk-value {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.risk-value.minimal { color: #22c55e; }
+.risk-value.low { color: #4ade80; }
+.risk-value.moderate { color: #f59e0b; }
+.risk-value.high { color: #f97316; }
+.risk-value.extreme { color: #ef4444; }
 
 /* ========== WHALE STREAM ========== */
 .whale-card {
