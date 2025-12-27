@@ -113,18 +113,15 @@
             <!-- Symbol -->
             <div class="highlight-symbol">{{ highlight.symbol }}</div>
             
-            <!-- RSI Badge -->
-            <div v-if="highlight.technical_data?.rsi_14" class="highlight-rsi" :class="getRsiClass(highlight.technical_data.rsi_14)">
-              RSI: {{ highlight.technical_data.rsi_14.toFixed(0) }}
-            </div>
-            
             <!-- Description (truncated) -->
-            <p class="highlight-desc">{{ highlight.description?.substring(0, 100) }}{{ highlight.description?.length > 100 ? '...' : '' }}</p>
+            <p class="highlight-desc">{{ highlight.description?.substring(0, 80) }}{{ highlight.description?.length > 80 ? '...' : '' }}</p>
             
-            <!-- Action Hint -->
-            <div v-if="highlight.action_hint" class="highlight-action">
-              <Icon name="ph:lightbulb" size="12" />
-              <span>{{ highlight.action_hint }}</span>
+            <!-- Action Hint - Bento Style -->
+            <div v-if="highlight.action_hint" class="highlight-action-bento">
+              <div class="action-icon-box">
+                <Icon name="ph:lightbulb-filament" size="16" />
+              </div>
+              <span class="action-text">{{ highlight.action_hint }}</span>
             </div>
           </div>
         </div>
@@ -1991,27 +1988,38 @@ onUnmounted(() => {
   flex: 1;
 }
 
-/* Action Hint */
-.highlight-action {
+/* Action Hint - Bento Style */
+.highlight-action-bento {
   display: flex;
   align-items: flex-start;
-  gap: 5px;
-  margin-top: 10px;
-  padding: 8px;
-  background: rgba(234, 179, 8, 0.1);
-  border-radius: 6px;
-  border: 1px solid rgba(234, 179, 8, 0.2);
+  gap: 10px;
+  margin-top: auto;
+  padding: 10px;
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.15) 0%, rgba(234, 179, 8, 0.05) 100%);
+  border-radius: 10px;
+  border: 1px solid rgba(234, 179, 8, 0.25);
 }
 
-.highlight-action span {
-  font-size: 10px;
-  color: #eab308;
-  line-height: 1.3;
-}
-
-.highlight-action svg {
-  color: #eab308;
+.action-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(145deg, rgba(234, 179, 8, 0.3), rgba(234, 179, 8, 0.15));
+  border-radius: 8px;
   flex-shrink: 0;
+}
+
+.action-icon-box svg {
+  color: #eab308;
+}
+
+.action-text {
+  font-size: 10px;
+  color: #fbbf24;
+  line-height: 1.4;
+  font-weight: 500;
 }
 .bento-confidence.cyan { color: #38efeb; }
 .bento-confidence.purple { color: #a855f7; }
