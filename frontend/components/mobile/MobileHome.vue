@@ -314,6 +314,13 @@
       :highlight="selectedHighlight"
       @close="closeHighlightModal"
     />
+    
+    <!-- Risk Detail Modal -->
+    <RiskDetailModal 
+      :visible="showRiskModal" 
+      :risk="selectedRisk"
+      @close="closeRiskModal"
+    />
   </div>
 </template>
 
@@ -355,10 +362,28 @@ const closeHighlightModal = () => {
   selectedHighlight.value = null
 }
 
-// Handle risk widget selection
-const handleRiskSelect = (riskItem: any) => {
-  console.log('Selected risk item:', riskItem)
-  // Could navigate to coin detail or show modal
+// Risk detail modal state
+const showRiskModal = ref(false)
+const selectedRisk = ref<any>(null)
+
+// Handle risk widget selection - fetch full data and show modal
+const handleRiskSelect = async (riskItem: any) => {
+  try {
+    // Fetch full risk data with factors
+    const fullRisk = await api.getCoinRisk(riskItem.coin_id)
+    selectedRisk.value = fullRisk
+    showRiskModal.value = true
+  } catch (e) {
+    console.warn('Failed to fetch risk details:', e)
+    // Fallback: show modal with basic data
+    selectedRisk.value = riskItem
+    showRiskModal.value = true
+  }
+}
+
+const closeRiskModal = () => {
+  showRiskModal.value = false
+  selectedRisk.value = null
 }
 
 // Top coins for pills

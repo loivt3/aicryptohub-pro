@@ -12,6 +12,10 @@
         class="risk-item"
         @click="$emit('select', item)"
       >
+        <div class="risk-item-header">
+          <span class="risk-symbol">{{ item.symbol?.toUpperCase() }}</span>
+          <span class="risk-score">{{ item.risk_score }}%</span>
+        </div>
         <div class="risk-bar-container">
           <div 
             class="risk-bar" 
@@ -44,11 +48,11 @@ import { useApi } from '~/composables/useApi'
 interface RiskItem {
   coin_id: string
   symbol: string
-  name: string
+  name?: string
   risk_score: number
   risk_level: string
   risk_label: string
-  risk_color: string
+  risk_color?: string
 }
 
 const props = defineProps<{
@@ -135,6 +139,23 @@ onMounted(() => {
 
 .risk-item:active {
   transform: scale(0.98);
+}
+
+.risk-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.risk-symbol {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.risk-score {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .risk-bar-container {
