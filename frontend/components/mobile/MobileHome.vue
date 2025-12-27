@@ -181,7 +181,7 @@
           <div class="signals-list">
             <div v-for="(coin, idx) in aiSignals" :key="coin.coin_id" class="signal-row">
               <!-- Ranking Number -->
-              <div class="signal-rank">{{ idx + 1 }}</div>
+              <div class="signal-rank" :class="getRankBadgeClass(idx)">{{ idx + 1 }}</div>
               
               <div class="signal-left">
                 <div class="signal-top-row">
@@ -610,6 +610,13 @@ const getHighlightHeaderSubtitle = (highlight: any) => {
 // Pattern: Wide, Small, Small, Wide... (1, 2, 2, 1...)
 const isBentoWide = (index: number) => {
   return index % 3 === 0
+}
+
+const getRankBadgeClass = (index: number) => {
+  if (index === 0) return 'rank-1'
+  if (index === 1) return 'rank-2'
+  if (index === 2) return 'rank-3'
+  return 'rank-default'
 }
 
 const formatHighlightDesc = (highlight: any) => {
