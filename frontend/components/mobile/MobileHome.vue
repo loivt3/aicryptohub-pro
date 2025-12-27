@@ -48,7 +48,7 @@
             <div class="mood-left">
               <span class="mood-score" :class="getMoodClass(fearGreedValue)">{{ Math.round(fearGreedValue) }}</span>
               <span class="mood-label">{{ fearGreedLabel }}</span>
-              <p class="mood-desc">{{ getMoodDescription(fearGreedValue) }}</p>
+              <p class="mood-desc">{{ moodAnalysis }}</p>
             </div>
             <div class="mood-right">
               <svg viewBox="0 0 120 120" class="mood-gauge">
@@ -345,6 +345,8 @@ const allCoins = ref<any[]>([])
 const sentimentMap = ref<Record<string, any>>({})
 const fearGreedValue = ref(50)
 const fearGreedClassification = ref('Neutral')
+const moodAnalysis = ref('Loading market analysis...')
+const moodSource = ref('')
 const heatmapTimeframe = ref('24h') // Default to 24h as API usually gives 24h change best
 const whaleTransactions = ref<any[]>([])
 const categoriesData = ref<any[]>([])
@@ -678,16 +680,22 @@ const fetchData = async (skipCache = false) => {
       }
     }
     
-    // 2. Fetch AI Market Mood (proprietary indicator)
+    // 2. Fetch AI Market Mood (proprietary indicator with AI analysis)
     try {
         const moodRes = await api.getAIMood()
         if (moodRes.success && moodRes.data) {
             fearGreedValue.value = moodRes.data.score
             fearGreedClassification.value = moodRes.data.label
+            // Store AI-generated analysis
+            if (moodRes.data.analysis) {
+                moodAnalysis.value = moodRes.data.analysis
+                moodSource.value = moodRes.data.source || 'ai'
+            }
         }
     } catch (e) {
         // Fallback to Fear & Greed if AI Mood fails
         console.warn('Failed to fetch AI Mood, falling back to Fear & Greed:', e)
+        moodAnalysis.value = 'Markets are neutral. Wait for clearer signals.'
         try {
             const globalRes = await api.getGlobalStats()
             if (globalRes.success && globalRes.data) {
