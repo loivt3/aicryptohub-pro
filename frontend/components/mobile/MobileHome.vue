@@ -98,7 +98,6 @@
         </div>
         
         <!-- Horizontal Scroll Cards -->
-        <!-- Horizontal Scroll Cards -->
         <div class="highlights-scroll-v2">
           <div 
             v-for="(highlight, idx) in aiHighlights" 
@@ -118,25 +117,6 @@
                   {{ getHighlightHeaderSubtitle(highlight) }}
                 </span>
               </div>
-            </div>
-            
-            <!-- Large Sparkline Area Chart -->
-            <div class="highlight-chart-v3">
-              <svg viewBox="0 0 280 100" preserveAspectRatio="none" class="chart-svg-v3">
-                <defs>
-                  <linearGradient :id="'chartGradient-' + idx" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="currentColor" stop-opacity="0.5" />
-                    <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
-                  </linearGradient>
-                </defs>
-                <path 
-                  :d="generateAreaSparkPath(highlight)" 
-                  fill="url(#chartGradient-' + idx + ')" 
-                  stroke="currentColor" 
-                  stroke-width="3"
-                  vector-effect="non-scaling-stroke"
-                />
-              </svg>
             </div>
             
             <!-- Footer Description -->
@@ -2188,7 +2168,7 @@ onUnmounted(() => {
   padding: 20px;
   scroll-snap-align: start;
   cursor: pointer;
-  height: 200px; /* Fixed height for consistency */
+  height: 160px; /* Reduced fixed height since chart is gone */
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -2264,36 +2244,15 @@ onUnmounted(() => {
 .highlight-subtitle-v3.card-risk { color: rgba(255, 255, 255, 0.6); }
 .highlight-subtitle-v3.card-neutral { color: #38efeb; }
 
-/* Chart Area */
-.highlight-chart-v3 {
-  position: absolute;
-  bottom: 50px; /* Space for footer */
-  left: 0;
-  width: 100%;
-  height: 80px;
-  z-index: 1;
-  opacity: 0.8;
-  mask-image: linear-gradient(to top, black 50%, transparent 100%);
-}
-
-.chart-svg-v3 {
-  width: 100%;
-  height: 100%;
-}
-
-.card-bullish .chart-svg-v3 { color: #10b981; }
-.card-risk .chart-svg-v3 { color: #ef4444; }
-.card-neutral .chart-svg-v3 { color: #38efeb; }
-
-/* Footer */
+/* Footer - Positioned at bottom */
 .highlight-footer-v3 {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1.4;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
   margin: 0;
   z-index: 2;
   position: relative;
-  font-family: 'Inter', sans-serif; /* Clean font as requested */
+  font-family: 'Inter', sans-serif;
 }
 
 /* ========== AI HIGHLIGHTS V1 (backwards compat) ========== */
