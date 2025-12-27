@@ -1367,8 +1367,8 @@ onUnmounted(() => {
 
 .signal-left {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 6px;
   flex: 1;
   min-width: 0;
 }
