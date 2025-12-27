@@ -200,12 +200,22 @@
                 <span class="signal-symbol-badge" v-else>{{ coin.symbol?.toUpperCase().slice(0, 4) }}</span>
                 <div class="signal-info">
                   <span class="signal-name">{{ coin.symbol?.toUpperCase() }}</span>
-                  <div class="signal-asi-row">
-                    <span class="asi-label">ASI Score:</span>
-                    <div class="asi-bar">
-                      <div class="asi-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
+                  <!-- ASI Score + AI Risk on same row -->
+                  <div class="signal-metrics-row">
+                    <div class="metric-item">
+                      <span class="metric-label">ASI</span>
+                      <div class="metric-bar">
+                        <div class="metric-bar-fill" :class="getAsiClass(coin.asi_score)" :style="{ width: coin.asi_score + '%' }"></div>
+                      </div>
+                      <span class="metric-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
                     </div>
-                    <span class="asi-value" :class="getAsiClass(coin.asi_score)">{{ coin.asi_score }}</span>
+                    <div class="metric-item">
+                      <span class="metric-label">AI RISK</span>
+                      <div class="metric-bar">
+                        <div class="metric-bar-fill" :class="getRiskClass(coin.risk_score || 50)" :style="{ width: (coin.risk_score || 50) + '%' }"></div>
+                      </div>
+                      <span class="metric-value" :class="getRiskClass(coin.risk_score || 50)">{{ coin.risk_score || 50 }}%</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -245,14 +255,6 @@
                   <span class="signal-expected" :class="coin.expected_return >= 0 ? 'positive' : 'negative'">
                     {{ coin.expected_return >= 0 ? '+' : '' }}{{ coin.expected_return?.toFixed(1) }}%
                   </span>
-                </div>
-                <!-- Risk Bar -->
-                <div class="signal-risk-col">
-                  <span class="risk-label">RISK</span>
-                  <div class="risk-bar-mini">
-                    <div class="risk-bar-fill" :class="getRiskClass(coin.risk_score || 50)" :style="{ width: (coin.risk_score || 50) + '%' }"></div>
-                  </div>
-                  <span class="risk-value" :class="getRiskClass(coin.risk_score || 50)">{{ coin.risk_score || 50 }}%</span>
                 </div>
               </div>
             </div>
@@ -1376,6 +1378,62 @@ onUnmounted(() => {
   font-weight: 600;
   color: #fff;
 }
+
+/* ASI + AI RISK Metrics Row */
+.signal-metrics-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.metric-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.metric-label {
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.metric-bar {
+  width: 35px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.metric-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+.metric-bar-fill.positive { background: #22c55e; }
+.metric-bar-fill.neutral { background: #f59e0b; }
+.metric-bar-fill.negative { background: #ef4444; }
+.metric-bar-fill.minimal { background: #22c55e; }
+.metric-bar-fill.low { background: #4ade80; }
+.metric-bar-fill.moderate { background: #f59e0b; }
+.metric-bar-fill.high { background: #f97316; }
+.metric-bar-fill.extreme { background: #ef4444; }
+
+.metric-value {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.metric-value.positive { color: #22c55e; }
+.metric-value.neutral { color: #f59e0b; }
+.metric-value.negative { color: #ef4444; }
+.metric-value.minimal { color: #22c55e; }
+.metric-value.low { color: #4ade80; }
+.metric-value.moderate { color: #f59e0b; }
+.metric-value.high { color: #f97316; }
+.metric-value.extreme { color: #ef4444; }
 
 .signal-asi-row {
   display: flex;
