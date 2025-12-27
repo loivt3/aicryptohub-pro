@@ -106,7 +106,18 @@
               </div>
               <span v-if="highlight.confidence" class="highlight-confidence" :class="highlight.color">{{ highlight.confidence }}%</span>
             </div>
+            
+            <!-- RSI Badge (if available) -->
+            <div v-if="highlight.technical_data?.rsi_14" class="highlight-rsi" :class="getRsiClass(highlight.technical_data.rsi_14)">
+              RSI: {{ highlight.technical_data.rsi_14.toFixed(0) }}
+            </div>
+            
             <p class="highlight-desc">{{ highlight.description }}</p>
+            
+            <!-- Action Hint (if available) -->
+            <p v-if="highlight.action_hint" class="highlight-action">
+              💡 {{ highlight.action_hint }}
+            </p>
           </div>
         </div>
       </section>
@@ -461,8 +472,21 @@ const formatHighlightType = (type: string) => {
     'breakout': 'Breakout',
     'whale_activity': 'Whale Activity',
     'opportunity': 'Opportunity',
+    // New types
+    'dip_buy': 'Dip Buy',
+    'oversold_alert': 'Oversold',
+    'overbought_alert': 'Overbought',
+    'momentum_surge': 'Momentum',
+    'trend_reversal': 'Reversal',
   }
   return typeMap[type] || type
+}
+
+// RSI zone class for styling
+const getRsiClass = (rsi: number) => {
+  if (rsi <= 30) return 'rsi-oversold'
+  if (rsi >= 70) return 'rsi-overbought'
+  return 'rsi-neutral'
 }
 
 // Generate sparkline path for highlight cards
@@ -1696,6 +1720,46 @@ onUnmounted(() => {
   line-height: 1.45;
   margin: 0;
   margin-top: auto;
+}
+
+/* RSI Badge Styles */
+.highlight-rsi {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  margin: 6px 0;
+}
+
+.highlight-rsi.rsi-oversold {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.highlight-rsi.rsi-overbought {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.highlight-rsi.rsi-neutral {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Action Hint Styles */
+.highlight-action {
+  font-size: 10px;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  border-left: 2px solid #fbbf24;
+  padding: 4px 8px;
+  margin: 6px 0 0 0;
+  border-radius: 0 4px 4px 0;
+  line-height: 1.4;
 }
 
 /* Whale Stream Terminal Styles */

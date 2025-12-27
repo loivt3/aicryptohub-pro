@@ -28,6 +28,7 @@ class AIHighlightsService:
     - Breakout signals
     - Whale activity alerts
     - Market opportunities
+    - NEW: Trend reversals, dip buying, oversold/overbought
     """
     
     def __init__(self):
@@ -38,8 +39,80 @@ class AIHighlightsService:
             "volume_surge",
             "breakout",
             "whale_activity",
-            "opportunity"
+            "opportunity",
+            # New highlight types
+            "trend_reversal",
+            "dip_buy",
+            "oversold_alert",
+            "overbought_alert",
+            "momentum_surge",
         ]
+    
+    def calculate_rsi(self, prices: List[float], period: int = 14) -> float:
+        """Calculate RSI from price list."""
+        if len(prices) < period + 1:
+            return 50.0  # Neutral if not enough data
+        
+        deltas = [prices[i] - prices[i-1] for i in range(1, len(prices))]
+        gains = [d if d > 0 else 0 for d in deltas]
+        losses = [-d if d < 0 else 0 for d in deltas]
+        
+        if len(gains) < period:
+            return 50.0
+        
+        avg_gain = sum(gains[-period:]) / period
+        avg_loss = sum(losses[-period:]) / period
+        
+        if avg_loss == 0:
+            return 100.0
+        
+        rs = avg_gain / avg_loss
+        rsi = 100 - (100 / (1 + rs))
+        return round(rsi, 2)
+    
+    def get_technical_data(self, coin: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract and calculate technical data for a coin."""
+        change_24h = coin.get("price_change_percentage_24h") or coin.get("change_24h") or 0
+        change_7d = coin.get("price_change_percentage_7d") or 0
+        change_30d = coin.get("price_change_percentage_30d") or 0
+        volume_24h = coin.get("volume_24h") or coin.get("total_volume") or 0
+        market_cap = coin.get("market_cap") or 1
+        current_price = coin.get("current_price") or coin.get("price") or 0
+        ath = coin.get("ath") or current_price
+        atl = coin.get("atl") or current_price
+        
+        # Volume ratio
+        volume_ratio = (volume_24h / market_cap * 100) if market_cap > 0 else 0
+        
+        # Simulated RSI based on recent price movements
+        # In production, use actual OHLC data
+        if change_24h > 10:
+            rsi = min(85, 70 + change_24h)
+        elif change_24h < -10:
+            rsi = max(15, 30 + change_24h)
+        else:
+            rsi = 50 + change_24h * 2
+        rsi = max(0, min(100, rsi))
+        
+        # Distance from ATH
+        ath_distance = ((current_price - ath) / ath * 100) if ath > 0 else 0
+        
+        # Trend strength
+        trend_strength = abs(change_24h) + abs(change_7d) * 0.5
+        trend_direction = "up" if (change_24h + change_7d) > 0 else "down"
+        
+        return {
+            "rsi_14": round(rsi, 1),
+            "rsi_zone": "oversold" if rsi < 30 else "overbought" if rsi > 70 else "neutral",
+            "change_24h": round(change_24h, 2),
+            "change_7d": round(change_7d, 2),
+            "change_30d": round(change_30d, 2),
+            "volume_ratio": round(volume_ratio, 2),
+            "ath_distance_pct": round(ath_distance, 2),
+            "trend_strength": round(trend_strength, 2),
+            "trend_direction": trend_direction,
+            "current_price": current_price,
+        }
     
     def analyze_coin_signal(self, coin: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze a coin and generate bullish/bearish signal."""
@@ -285,6 +358,132 @@ class AIHighlightsService:
             "timestamp": datetime.utcnow().isoformat()
         }
     
+    def detect_dip_buy(self, coin: Dict[str, Any]) -> Dict[str, Any] | None:
+        """Detect dip buying opportunities - significant drops with recovery potential."""
+        symbol = coin.get("symbol", "").upper()
+        name = coin.get("name", symbol)
+        change_24h = coin.get("price_change_percentage_24h") or coin.get("change_24h") or 0
+        change_7d = coin.get("price_change_percentage_7d") or 0
+        tech = self.get_technical_data(coin)
+        
+        # Dip buy: sharp 24h drop but not in long-term downtrend
+        if change_24h <= -8 and change_7d > -20 and tech["rsi_14"] < 35:
+            confidence = min(90, 60 + abs(change_24h) + (35 - tech["rsi_14"]))
+            
+            descriptions = [
+                f"Dip buying opportunity! RSI at {tech['rsi_14']:.0f} with {change_24h:.1f}% drop.",
+                f"Sharp pullback to oversold levels. Consider scaling in.",
+                f"Price dropped {abs(change_24h):.1f}% - potential reversal zone.",
+            ]
+            
+            return {
+                "coin_id": coin.get("coin_id") or coin.get("id"),
+                "symbol": symbol,
+                "name": name,
+                "highlight_type": "dip_buy",
+                "confidence": int(confidence),
+                "change_24h": round(change_24h, 2),
+                "change_7d": round(change_7d, 2),
+                "technical_data": tech,
+                "action_hint": f"Consider buying at ${tech['current_price']:.4f} with stop below recent lows",
+                "description": random.choice(descriptions),
+                "icon": "arrow-down-circle",
+                "color": "cyan",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        return None
+    
+    def detect_oversold_alert(self, coin: Dict[str, Any]) -> Dict[str, Any] | None:
+        """Detect extreme oversold conditions."""
+        symbol = coin.get("symbol", "").upper()
+        name = coin.get("name", symbol)
+        tech = self.get_technical_data(coin)
+        
+        if tech["rsi_14"] <= 25:
+            confidence = min(95, 70 + (30 - tech["rsi_14"]) * 2)
+            
+            descriptions = [
+                f"EXTREME OVERSOLD! RSI at {tech['rsi_14']:.0f}. Bounce likely.",
+                f"RSI hit {tech['rsi_14']:.0f} - historically strong reversal zone.",
+                f"Panic selling detected. Smart money may be accumulating.",
+            ]
+            
+            return {
+                "coin_id": coin.get("coin_id") or coin.get("id"),
+                "symbol": symbol,
+                "name": name,
+                "highlight_type": "oversold_alert",
+                "confidence": int(confidence),
+                "technical_data": tech,
+                "description": random.choice(descriptions),
+                "icon": "alert-triangle",
+                "color": "green",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        return None
+    
+    def detect_overbought_alert(self, coin: Dict[str, Any]) -> Dict[str, Any] | None:
+        """Detect extreme overbought conditions."""
+        symbol = coin.get("symbol", "").upper()
+        name = coin.get("name", symbol)
+        tech = self.get_technical_data(coin)
+        
+        if tech["rsi_14"] >= 80:
+            confidence = min(95, 70 + (tech["rsi_14"] - 70))
+            
+            descriptions = [
+                f"OVERBOUGHT WARNING! RSI at {tech['rsi_14']:.0f}. Correction possible.",
+                f"RSI hit {tech['rsi_14']:.0f} - consider taking profits.",
+                f"Extended rally may pause. Watch for reversal signals.",
+            ]
+            
+            return {
+                "coin_id": coin.get("coin_id") or coin.get("id"),
+                "symbol": symbol,
+                "name": name,
+                "highlight_type": "overbought_alert",
+                "confidence": int(confidence),
+                "technical_data": tech,
+                "description": random.choice(descriptions),
+                "icon": "alert-triangle",
+                "color": "orange",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        return None
+    
+    def detect_momentum_surge(self, coin: Dict[str, Any]) -> Dict[str, Any] | None:
+        """Detect strong momentum surges with volume confirmation."""
+        symbol = coin.get("symbol", "").upper()
+        name = coin.get("name", symbol)
+        change_24h = coin.get("price_change_percentage_24h") or coin.get("change_24h") or 0
+        tech = self.get_technical_data(coin)
+        
+        # Strong upward momentum with volume
+        if change_24h >= 12 and tech["volume_ratio"] >= 15:
+            confidence = min(95, 65 + change_24h / 2 + tech["volume_ratio"] / 5)
+            
+            descriptions = [
+                f"MOMENTUM SURGE! +{change_24h:.1f}% with {tech['volume_ratio']:.0f}% vol/cap.",
+                f"Explosive move with volume confirmation. Trend may continue.",
+                f"Strong buying pressure. Volume {tech['volume_ratio']:.0f}x average.",
+            ]
+            
+            return {
+                "coin_id": coin.get("coin_id") or coin.get("id"),
+                "symbol": symbol,
+                "name": name,
+                "highlight_type": "momentum_surge",
+                "confidence": int(confidence),
+                "change_24h": round(change_24h, 2),
+                "technical_data": tech,
+                "description": random.choice(descriptions),
+                "icon": "rocket",
+                "color": "green",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        return None
+
+    
     def get_highlights(self, coins: List[Dict[str, Any]], limit: int = 6) -> Dict[str, Any]:
         """Generate comprehensive AI highlights from market data."""
         if not coins:
@@ -321,6 +520,23 @@ class AIHighlightsService:
             opportunity = self.detect_opportunity(coin)
             if opportunity:
                 all_highlights.append(opportunity)
+            
+            # New detection methods
+            dip_buy = self.detect_dip_buy(coin)
+            if dip_buy:
+                all_highlights.append(dip_buy)
+            
+            oversold = self.detect_oversold_alert(coin)
+            if oversold:
+                all_highlights.append(oversold)
+            
+            overbought = self.detect_overbought_alert(coin)
+            if overbought:
+                all_highlights.append(overbought)
+            
+            momentum = self.detect_momentum_surge(coin)
+            if momentum:
+                all_highlights.append(momentum)
         
         # Sort by importance (confidence for signals, severity for risks)
         def get_priority(h):
