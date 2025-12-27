@@ -175,5 +175,37 @@ export const useApi = () => {
                 total_analyzed: number;
                 generated_at: string;
             }>('/alerts/highlights'),
+
+        // AI Risk Assessment
+        getCoinRisk: (coinId: string) =>
+            apiFetch<{
+                coin_id: string;
+                symbol: string;
+                name: string;
+                risk_score: number;
+                risk_level: string;
+                risk_label: string;
+                risk_color: string;
+                factors: Record<string, any>;
+                summary: string;
+            }>(`/risk/${coinId}`),
+
+        getTopRiskyCoins: (limit = 10) =>
+            apiFetch<Array<{
+                coin_id: string;
+                symbol: string;
+                risk_score: number;
+                risk_level: string;
+                risk_label: string;
+            }>>('/risk/top/risky', { query: { limit } }),
+
+        getMarketRiskOverview: () =>
+            apiFetch<{
+                average_risk: number;
+                risk_level: string;
+                risk_label: string;
+                distribution: Record<string, number>;
+                top_risks: any[];
+            }>('/risk/overview/market'),
     }
 }

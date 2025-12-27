@@ -7,7 +7,7 @@ from fastapi import APIRouter
 
 from app.api.endpoints import market, portfolio, sentiment, auth, onchain, admin, news, alerts
 from app.api.endpoints import admin_data, admin_users, admin_fetcher, admin_ai_workers
-from app.api.endpoints import triggers, realtime, intent_divergence, discovery
+from app.api.endpoints import triggers, realtime, intent_divergence, discovery, risk
 
 api_router = APIRouter()
 
@@ -40,6 +40,13 @@ api_router.include_router(
     alerts.router,
     prefix="/alerts",
     tags=["AI Alerts & Highlights"]
+)
+
+# AI Risk Assessment
+api_router.include_router(
+    risk.router,
+    prefix="/risk",
+    tags=["AI Risk"]
 )
 
 # Intent Divergence (Shadow Analysis)

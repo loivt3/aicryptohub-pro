@@ -236,6 +236,11 @@
         </div>
       </section>
 
+      <!-- AI Risk Widget -->
+      <section class="home-section">
+        <AIRiskWidget :limit="7" @select="handleRiskSelect" />
+      </section>
+
       <!-- Whale Stream Terminal - NEW DESIGN -->
       <section class="home-section">
         <div class="whale-terminal">
@@ -348,6 +353,12 @@ const openHighlightDetail = (highlight: any) => {
 const closeHighlightModal = () => {
   showHighlightModal.value = false
   selectedHighlight.value = null
+}
+
+// Handle risk widget selection
+const handleRiskSelect = (riskItem: any) => {
+  console.log('Selected risk item:', riskItem)
+  // Could navigate to coin detail or show modal
 }
 
 // Top coins for pills
