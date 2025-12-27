@@ -224,30 +224,49 @@
         </div>
       </section>
 
-      <!-- Whale Stream - NEW DESIGN -->
+      <!-- Whale Stream Terminal - NEW DESIGN -->
       <section class="home-section">
-        <div class="whale-stream-card">
-          <div class="whale-stream-header">
-            <span class="whale-stream-icon">🌊</span>
-            <span class="whale-stream-title">Whale Stream</span>
-            <span class="whale-live-dot"></span>
+        <div class="whale-terminal">
+          <div class="terminal-header">
+            <div class="terminal-title">
+              <span class="terminal-icon">🐋</span>
+              <span>WHALE-STREAM // V.2.0</span>
+            </div>
+            <span class="terminal-live">
+              <span class="live-dot"></span>
+              LIVE
+            </span>
           </div>
-          <div class="whale-stream-list">
-            <div v-for="tx in whaleTransactions" :key="tx.id" class="whale-stream-row">
-              <div class="whale-stream-left">
-                <span class="whale-emoji">🐋</span>
-                <div class="whale-stream-info">
-                  <span class="whale-stream-amount">{{ tx.amount }} {{ tx.symbol }} <span class="whale-usd-inline">(${{ formatCompact(tx.usd_value) }})</span></span>
-                  <span class="whale-stream-direction">{{ tx.from_label || 'Wallet' }} → {{ tx.to_label || 'Wallet' }}</span>
+          
+          <div class="terminal-body">
+            <div class="terminal-alerts">
+              <div 
+                v-for="tx in whaleTransactions" 
+                :key="tx.id"
+                class="terminal-alert"
+                :class="tx.type === 'dump' ? 'alert-sell' : 'alert-buy'"
+              >
+                <span class="alert-prefix">>></span>
+                <div class="alert-content">
+                  <span class="alert-type" :class="tx.type === 'dump' ? 'type-sell' : 'type-buy'">
+                    {{ tx.type === 'dump' ? 'SELL SIGNAL:' : 'WHALE ALERT:' }}
+                  </span>
+                  <span class="alert-message">
+                    {{ tx.from_label || 'Whale' }} moved {{ tx.amount }} ${{ tx.symbol }} ({{ formatCompact(tx.usd_value) }}) {{ tx.type === 'dump' ? 'to ' + (tx.to_label || 'exchange') : 'off exchange' }}.
+                  </span>
+                  <span class="alert-time">{{ tx.time_ago }}</span>
                 </div>
               </div>
-              <div class="whale-stream-right">
-                <span class="whale-stream-time">{{ tx.time_ago }}</span>
-                <span class="whale-type-badge" :class="tx.type">{{ tx.type === 'accum' ? 'ACCUM' : 'DUMP' }}</span>
-              </div>
             </div>
-            <div v-if="whaleTransactions.length === 0" class="whale-stream-empty">
-              <span>🐋 No whale activity detected</span>
+            
+            <div v-if="whaleTransactions.length === 0" class="terminal-empty">
+              <span class="cursor-prompt">>></span>
+              <span>Monitoring whale activity...</span>
+            </div>
+            
+            <div class="terminal-cursor" v-if="whaleTransactions.length > 0">
+              <span class="cursor-prompt">>></span>
+              <span class="cursor-blink">▌</span>
             </div>
           </div>
         </div>
@@ -1665,5 +1684,146 @@ onUnmounted(() => {
   line-height: 1.45;
   margin: 0;
   margin-top: auto;
+}
+
+/* Whale Stream Terminal Styles */
+.whale-terminal {
+  background: rgba(10, 15, 25, 0.95);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+.terminal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(0, 212, 255, 0.08);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.15);
+}
+
+.terminal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #00d4ff;
+  letter-spacing: 0.5px;
+}
+
+.terminal-icon {
+  font-size: 14px;
+}
+
+.terminal-live {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #00ff88;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  background: #00ff88;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.terminal-body {
+  padding: 16px;
+}
+
+.terminal-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.terminal-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.alert-prefix {
+  color: #00d4ff;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.alert-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.alert-type {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.alert-type.type-buy {
+  color: #00ff88;
+}
+
+.alert-type.type-sell {
+  color: #ff4757;
+}
+
+.alert-message {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.alert-time {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.terminal-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.terminal-cursor {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.cursor-prompt {
+  color: #00d4ff;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.cursor-blink {
+  color: #00d4ff;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 </style>
