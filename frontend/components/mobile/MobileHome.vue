@@ -45,47 +45,48 @@
             <span class="mood-title">AI Market Mood</span>
           </div>
           
-          <!-- Top Row: Score + Label + Gauge -->
-          <div class="mood-top-row">
-            <div class="mood-score-block">
-              <span class="mood-score" :class="getMoodClass(fearGreedValue)">{{ Math.round(fearGreedValue) }}</span>
-              <span class="mood-label">{{ fearGreedLabel }}</span>
-            </div>
-            
-            <div class="mood-gauge-block">
-              <svg viewBox="0 0 100 100" class="mood-gauge-inline">
+          <!-- Main Content: Gauge with Score (left) + Analysis Text (right) -->
+          <div class="mood-main-row">
+            <!-- Left: Circular Gauge with Score Inside -->
+            <div class="mood-gauge-wrapper">
+              <svg viewBox="0 0 100 100" class="mood-gauge-circle">
                 <!-- Background arc -->
                 <circle 
-                  cx="50" cy="50" r="40" 
+                  cx="50" cy="50" r="42" 
                   fill="none" 
                   stroke="rgba(255,255,255,0.1)" 
-                  stroke-width="8"
+                  stroke-width="6"
                   stroke-linecap="round"
-                  stroke-dasharray="251"
-                  stroke-dashoffset="62.75"
+                  stroke-dasharray="264"
+                  stroke-dashoffset="66"
                   transform="rotate(-225 50 50)"
                 />
                 <!-- Progress arc -->
                 <circle 
-                  cx="50" cy="50" r="40" 
+                  cx="50" cy="50" r="42" 
                   fill="none" 
                   :stroke="getMoodColor(fearGreedValue)"
-                  stroke-width="8"
+                  stroke-width="6"
                   stroke-linecap="round"
-                  stroke-dasharray="251"
-                  :stroke-dashoffset="251 - (fearGreedValue / 100) * 188.25"
+                  stroke-dasharray="264"
+                  :stroke-dashoffset="264 - (fearGreedValue / 100) * 198"
                   transform="rotate(-225 50 50)"
                 />
               </svg>
+              <!-- Score Inside Gauge -->
+              <div class="mood-gauge-center">
+                <span class="mood-score-inside" :class="getMoodClass(fearGreedValue)">{{ Math.round(fearGreedValue) }}</span>
+                <span class="mood-label-inside">{{ fearGreedLabel }}</span>
+              </div>
             </div>
-          </div>
-          
-          <!-- Bottom: Analysis Text in Bento Grid -->
-          <div class="mood-analysis-bento">
-            <div class="analysis-icon-box">
-              <Icon name="ph:brain" size="16" />
+            
+            <!-- Right: Analysis Text -->
+            <div class="mood-analysis-right">
+              <div class="analysis-content">
+                <Icon name="ph:brain" size="14" style="color: #10b981; flex-shrink: 0;" />
+                <p class="analysis-text-right">{{ truncateMoodAnalysis(moodAnalysis) }}</p>
+              </div>
             </div>
-            <p class="analysis-text">{{ truncateMoodAnalysis(moodAnalysis) }}</p>
           </div>
         </div>
       </section>
@@ -1060,7 +1061,82 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.8);
 }
 
-/* Top Row: Score + Gauge */
+/* Main Row: Gauge (left) + Text (right) */
+.mood-main-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Gauge Wrapper with Score Inside */
+.mood-gauge-wrapper {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+}
+
+.mood-gauge-circle {
+  width: 100%;
+  height: 100%;
+}
+
+.mood-gauge-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.mood-score-inside {
+  font-size: 28px;
+  font-weight: 700;
+  font-family: 'SF Mono', monospace;
+  line-height: 1;
+}
+
+.mood-score-inside.fear { color: #ef4444; }
+.mood-score-inside.neutral { color: #f59e0b; }
+.mood-score-inside.greed { color: #22c55e; }
+.mood-score-inside.extreme-greed { color: #10b981; }
+
+.mood-label-inside {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  margin-top: 2px;
+}
+
+/* Analysis Text (Right Column) */
+.mood-analysis-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.analysis-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%);
+  border-radius: 10px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.analysis-text-right {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Old styles for backwards compat */
 .mood-top-row {
   display: flex;
   justify-content: space-between;
@@ -1091,61 +1167,6 @@ onUnmounted(() => {
   font-weight: 600;
   color: #fff;
   margin-top: 6px;
-}
-
-/* Inline Gauge */
-.mood-gauge-block {
-  width: 80px;
-  height: 80px;
-}
-
-.mood-gauge-inline {
-  width: 100%;
-  height: 100%;
-}
-
-/* Analysis Bento Grid */
-.mood-analysis-bento {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%);
-  border-radius: 12px;
-  border: 1px solid rgba(16, 185, 129, 0.2);
-}
-
-.analysis-icon-box {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(145deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.15));
-  border-radius: 8px;
-  flex-shrink: 0;
-}
-
-.analysis-icon-box svg {
-  color: #10b981;
-}
-
-.analysis-text {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1.5;
-  margin: 0;
-}
-
-/* Old mood-right for backwards compat */
-.mood-right {
-  width: 100px;
-  height: 100px;
-}
-
-.mood-gauge {
-  width: 100%;
-  height: 100%;
 }
 
 /* ========== BENTO GRID ========== */
